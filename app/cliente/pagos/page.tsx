@@ -1,0 +1,7 @@
+import { getClientPayments } from '@/app/actions/client-modules'
+
+export default async function PagosPage() {
+  const rows = await getClientPayments()
+  const pending = rows.filter((row) => row.status === 'pending' || row.status === 'overdue')
+  return <div className="px-5 pt-6 pb-4 flex flex-col gap-5"><header><p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Facturación</p><h1 className="font-serif text-2xl font-semibold">Mis Pagos</h1></header>{!rows.length ? <div className="rounded-2xl border border-dashed border-border p-8 text-center"><p className="font-semibold">Aún no hay pagos registrados</p><p className="text-sm text-muted-foreground mt-1">Cuando se genere una factura aparecerá aquí.</p></div> : <><div className="rounded-2xl bg-muted p-5"><p className="text-xs text-muted-foreground">Pendientes</p><p className="text-3xl font-bold">{pending.length}</p></div><div className="flex flex-col gap-3">{rows.map((payment) => <article key={payment.id} className="rounded-2xl border border-border bg-card p-4"><div className="flex justify-between gap-3"><div><p className="font-semibold text-sm">{payment.description}</p><p className="text-xs text-muted-foreground mt-1">{payment.dueDate ? `Vence ${payment.dueDate}` : 'Sin vencimiento'}</p></div><p className="font-bold">${payment.amount} {payment.currency}</p></div><span className="inline-block mt-3 rounded-full bg-muted px-2 py-1 text-xs">{payment.status}</span></article>)}</div></>}</div>
+}
