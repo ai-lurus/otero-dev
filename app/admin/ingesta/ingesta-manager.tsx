@@ -214,7 +214,7 @@ function DeleteModal({ source, onCancel, onConfirm, pending }: {
 }
 
 // ── Main component ────────────────────────────────────────────────
-type KindFilter = 'todas' | 'url' | 'file'
+type KindFilter = 'todas' | 'url' | 'file' | 'site'
 
 export default function IngestaManager({ initialSources }: { initialSources: IngestSourceRow[] }) {
   const [sources, setSources] = useState(initialSources)
@@ -235,14 +235,17 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   const addSource = (s: IngestSourceRow) => setSources(prev => [s, ...prev])
 
   const items = sources.filter(s => s.kind !== 'site')
-  const filtered = items.filter(s => {
+  // Los sitios recurrentes no tienen estado de procesamiento propio: solo salen con el filtro de estado en "todos".
+  const filtered = sources.filter(s => {
     if (kind !== 'todas' && s.kind !== kind) return false
-    if (status !== 'todos' && s.status !== status) return false
+    if (status !== 'todos' && (s.kind === 'site' || s.status !== status)) return false
     const q = search.trim().toLowerCase()
     return !q || s.title.toLowerCase().includes(q) || (s.url ?? '').toLowerCase().includes(q) || (s.fileName ?? '').toLowerCase().includes(q)
   })
 
   const sites = sources.filter(s => s.kind === 'site')
+  const siteById = new Map(sites.map(x => [x.id, x]))
+  const childCount = (siteId: string) => items.filter(x => x.parentId === siteId).length
   const failed = items.filter(s => s.status === 'error')
   const counts = {
     total: items.length,
@@ -412,6 +415,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           <option value="todas">Todos los tipos</option>
           <option value="url">Enlaces</option>
           <option value="file">Archivos</option>
+          <option value="site">Sitios recurrentes</option>
         </select>
         <select value={status} onChange={e => setStatus(e.target.value)}
           className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none">
@@ -447,22 +451,24 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           </div>
         )}
         {filtered.map(s => {
-          const href = s.kind === 'url' ? s.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(s.id)}`
+          const href = s.kind === 'url' || s.kind === 'site' ? s.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(s.id)}`
           return (
             <article key={s.id} className="flex items-start gap-4 bg-card border border-border rounded-2xl px-4 py-3">
               <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0 text-muted-foreground">
-                {s.kind === 'url' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                {s.kind === 'site' ? <Globe className="w-4 h-4" /> : s.kind === 'url' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {s.kind === 'url' ? s.url : [s.fileName, formatSize(s.sizeBytes)].filter(Boolean).join(' · ')}
+                  {s.kind === 'file' ? [s.fileName, formatSize(s.sizeBytes)].filter(Boolean).join(' · ') : s.url}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {formatDate(s.createdAt)}{s.createdByName ? ` · ${s.createdByName}` : ''}
+                  {s.kind === 'site' && ` · ${childCount(s.id)} publicaciones · ${s.lastCheckedAt ? `revisado ${new Date(s.lastCheckedAt).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}` : 'sin revisar'}`}
+                  {s.parentId && siteById.get(s.parentId) && ` · de ${siteById.get(s.parentId)!.title}`}
                 </p>
-                {s.status === 'error' && s.statusDetail && <p className="text-[11px] text-red-600 mt-0.5">{s.statusDetail}</p>}
-                {s.status === 'lista' && (
+                {s.kind !== 'site' && s.status === 'error' && s.statusDetail && <p className="text-[11px] text-red-600 mt-0.5">{s.statusDetail}</p>}
+                {s.kind !== 'site' && s.status === 'lista' && (
                   <div className="mt-1.5 space-y-1">
                     <div className="flex flex-wrap gap-1.5">
                       {s.materia && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1C2B4A]/10 text-[#1C2B4A]">{MATERIAS[s.materia as keyof typeof MATERIAS] ?? s.materia}</span>}
@@ -474,18 +480,27 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   </div>
                 )}
               </div>
-              <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0', statusBadge(s.status))}>
-                {STATUS_LABELS[s.status] ?? s.status}
-              </span>
+              {s.kind === 'site'
+                ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0 bg-indigo-50 text-indigo-700 border-indigo-200">Sitio recurrente</span>
+                : <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0', statusBadge(s.status))}>
+                    {STATUS_LABELS[s.status] ?? s.status}
+                  </span>}
               <div className="flex items-center gap-1 shrink-0">
-                {(s.status === 'en_cola' || s.status === 'error') && (
+                {s.kind === 'site' && (
+                  <button onClick={() => handleCheck(s)} disabled={checkingId !== null}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+                    {checkingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarSearch className="w-3.5 h-3.5" />}
+                    Revisar ahora
+                  </button>
+                )}
+                {s.kind !== 'site' && (s.status === 'en_cola' || s.status === 'error') && (
                   <button onClick={() => handleProcess(s)} disabled={processingId !== null}
                     className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
                     {s.status === 'error' ? <RotateCw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                     {s.status === 'error' ? 'Reintentar' : 'Procesar'}
                   </button>
                 )}
-                {s.status === 'procesando' && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-2" />}
+                {s.kind !== 'site' && s.status === 'procesando' && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-2" />}
                 <a href={href} target="_blank" rel="noopener noreferrer" aria-label="Abrir"
                   className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                   <ExternalLink className="w-4 h-4" />
