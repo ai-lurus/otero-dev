@@ -230,6 +230,24 @@ export const appointments = pgTable('appointments', {
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })
 
+// Fuentes que el despacho agrega para ingesta (URLs o archivos). La
+// categorización llega después; por ahora solo se guardan con su estado.
+export const ingestSources = pgTable('ingest_sources', {
+  id:           text('id').primaryKey(),
+  kind:         text('kind').notNull(), // 'url' | 'file'
+  title:        text('title').notNull(),
+  url:          text('url'),
+  blobPathname: text('blob_pathname'),
+  fileName:     text('file_name'),
+  mimeType:     text('mime_type'),
+  sizeBytes:    integer('size_bytes'),
+  status:       text('status').notNull().default('en_cola'), // en_cola | procesando | lista | error
+  statusDetail: text('status_detail'),
+  createdBy:    text('created_by').notNull(),
+  createdAt:    timestamp('created_at').notNull().defaultNow(),
+  updatedAt:    timestamp('updated_at').notNull().defaultNow(),
+})
+
 // ── Type exports ───────────────────────────────────────────────────
 export type User          = typeof user.$inferSelect
 export type Tenant        = typeof tenants.$inferSelect
@@ -237,3 +255,4 @@ export type UserTenant    = typeof userTenants.$inferSelect
 export type DocumentRow   = typeof documents.$inferSelect
 export type Post           = typeof posts.$inferSelect
 export type CompanyProfile = typeof companyProfiles.$inferSelect
+export type IngestSource   = typeof ingestSources.$inferSelect
