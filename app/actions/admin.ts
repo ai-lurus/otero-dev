@@ -12,6 +12,15 @@ async function requireSuper() {
   if (!(await isSuperAdmin())) throw new Error('Forbidden')
 }
 
+async function requireCanManage(targetUserId: string) {
+  await requireAdmin()
+  const memberships = await db
+    .select({ role: userTenants.role })
+    .from(userTenants)
+    .where(eq(userTenants.userId, targetUserId))
+  if (memberships.some(m => m.role === 'admin' || m.role === 'superadmin')) await requireSuper()
+}
+
 // ── Tenants ────────────────────────────────────────────────────────
 
 export async function getTenants() {
@@ -20,7 +29,7 @@ export async function getTenants() {
 }
 
 export async function createTenant(data: { name: string; rfc?: string; industry?: string }) {
-  await requireAdmin()
+  await requireSuper()
   const id = `tenant-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
   await db.insert(tenants).values({ id, ...data })
   revalidatePath('/admin')
@@ -72,6 +81,7 @@ export async function createUser(data: {
 }) {
   await requireAdmin()
   if (data.role !== 'admin' && data.role !== 'client') throw new Error('Rol inválido')
+  if (data.role === 'admin') await requireSuper()
 
   // Use Better Auth admin API to create the user with a hashed password
   const newUser = await auth.api.signUpEmail({
@@ -94,7 +104,7 @@ export async function createUser(data: {
 }
 
 export async function updateUser(userId: string, data: { name?: string; email?: string }) {
-  await requireAdmin()
+  await requireCanManage(userId)
   const updates: Record<string, unknown> = { updatedAt: new Date() }
   if (data.name)  updates.name  = data.name.trim()
   if (data.email) updates.email = data.email.trim().toLowerCase()
@@ -103,8 +113,8 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
 }
 
 export async function updateUserRole(userId: string, tenantId: string, role: string) {
-  if (role === 'superadmin') await requireSuper()
-  else await requireAdmin()
+  if (role === 'superadmin' || role === 'admin') await requireSuper()
+  else await requireCanManage(userId)
   if (!['client', 'admin', 'superadmin'].includes(role)) throw new Error('Rol inválido')
   await db
     .update(userTenants)
@@ -114,7 +124,7 @@ export async function updateUserRole(userId: string, tenantId: string, role: str
 }
 
 export async function removeUserFromTenant(userId: string, tenantId: string) {
-  await requireAdmin()
+  await requireCanManage(userId)
   await db.delete(userTenants).where(
     and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId))
   )
@@ -122,7 +132,7 @@ export async function removeUserFromTenant(userId: string, tenantId: string) {
 }
 
 export async function updateTenantSlug(tenantId: string, slug: string) {
-  await requireAdmin()
+  await requireSuper()
   const clean = slug.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-').replace(/^-|-$/g, '')
   if (!clean) throw new Error('Slug inválido')
   await db.update(tenants).set({ slug: clean }).where(eq(tenants.id, tenantId))
@@ -159,7 +169,7 @@ export async function deleteUser(userId: string) {
 }
 
 export async function resetUserPassword(userId: string, newPassword: string) {
-  await requireAdmin()
+  await requireCanManage(userId)
   if (newPassword.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres')
   const ctx = await auth.$context
   const hash = await ctx.password.hash(newPassword)
