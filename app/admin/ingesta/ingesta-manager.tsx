@@ -186,6 +186,100 @@ function SiteForm({ hasSite, onAdded }: { hasSite: boolean; onAdded: (s: IngestS
   )
 }
 
+// ── Detalle de una fuente ─────────────────────────────────────────
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
+      <div className="text-sm text-foreground break-words">{children}</div>
+    </div>
+  )
+}
+
+function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
+  source: IngestSourceRow; parent?: IngestSourceRow; href?: string; busy: boolean
+  onClose: () => void; onProcess: () => void
+}) {
+  const none = <span className="text-muted-foreground">—</span>
+  const isSite = source.kind === 'site'
+  const canProcess = !isSite && (source.status === 'en_cola' || source.status === 'error')
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-background w-full max-w-xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {isSite ? 'Sitio recurrente' : source.kind === 'url' ? 'Enlace' : 'Archivo'}
+            </p>
+            <h2 className="font-serif text-xl font-semibold leading-snug break-words">{source.title}</h2>
+          </div>
+          <button onClick={onClose} aria-label="Cerrar" className="rounded-full bg-secondary p-1.5 text-muted-foreground hover:text-foreground shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+          {!isSite && (
+            <DetailRow label="Estado">
+              <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide', statusBadge(source.status))}>
+                {STATUS_LABELS[source.status] ?? source.status}
+              </span>
+              {source.status === 'error' && source.statusDetail && <p className="text-xs text-red-600 mt-1.5">{source.statusDetail}</p>}
+              {source.processedAt && source.status === 'lista' && (
+                <p className="text-xs text-muted-foreground mt-1.5">Procesada el {formatDate(source.processedAt)}</p>
+              )}
+            </DetailRow>
+          )}
+
+          {!isSite && source.status === 'lista' && (
+            <>
+              <div className="grid grid-cols-2 gap-5">
+                <DetailRow label="Materia">{source.materia ? (MATERIAS[source.materia as keyof typeof MATERIAS] ?? source.materia) : none}</DetailRow>
+                <DetailRow label="Autoridad emisora">{source.authority ?? none}</DetailRow>
+                <DetailRow label="Fecha de publicación">{source.publishedAt ? formatDate(`${source.publishedAt}T12:00:00`) : none}</DetailRow>
+                <DetailRow label="Vigencia">{source.vigenciaStatus ? (VIGENCIAS[source.vigenciaStatus as keyof typeof VIGENCIAS] ?? source.vigenciaStatus) : none}</DetailRow>
+              </div>
+              <DetailRow label="Detalle de vigencia">{source.vigenciaDetail ?? none}</DetailRow>
+              <DetailRow label="Resumen">
+                {source.summary ? <p className="leading-relaxed whitespace-pre-line">{source.summary}</p> : none}
+              </DetailRow>
+            </>
+          )}
+
+          {!isSite && source.status !== 'lista' && source.status !== 'error' && (
+            <p className="text-sm text-muted-foreground">Aún no se ha categorizado. Pulsa Procesar para que Otero la lea y la clasifique.</p>
+          )}
+
+          <div className="border-t border-border pt-5 space-y-5">
+            <DetailRow label="Origen">
+              {source.kind === 'file'
+                ? [source.fileName, formatSize(source.sizeBytes), source.mimeType].filter(Boolean).join(' · ')
+                : <a href={source.url ?? undefined} target="_blank" rel="noopener noreferrer" className="underline">{source.url}</a>}
+            </DetailRow>
+            {parent && <DetailRow label="Sitio recurrente">{parent.title}</DetailRow>}
+            <DetailRow label="Agregada">{formatDate(source.createdAt)}{source.createdByName ? ` por ${source.createdByName}` : ''}</DetailRow>
+          </div>
+        </div>
+
+        <div className="border-t border-border bg-background px-6 py-4 flex gap-3">
+          {canProcess && (
+            <button onClick={onProcess} disabled={busy}
+              className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+              {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : source.status === 'error' ? <RotateCw className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              {source.status === 'error' ? 'Reintentar' : 'Procesar'}
+            </button>
+          )}
+          {source.status === 'procesando' && <span className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Procesando…</span>}
+          <a href={href} target="_blank" rel="noopener noreferrer"
+            className="ml-auto flex items-center gap-2 rounded-xl bg-secondary px-4 py-2.5 text-sm font-medium">
+            <ExternalLink className="w-4 h-4" /> Abrir original
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Delete confirm ────────────────────────────────────────────────
 function DeleteModal({ source, onCancel, onConfirm, pending }: {
   source: IngestSourceRow; onCancel: () => void; onConfirm: () => void; pending: boolean
@@ -224,6 +318,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   const [status, setStatus] = useState('todos')
   const [deleting, setDeleting] = useState<IngestSourceRow | null>(null)
   const [deletePending, setDeletePending] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [processError, setProcessError] = useState('')
   const [checkingId, setCheckingId] = useState<string | null>(null)
@@ -434,7 +529,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                 {s.kind === 'site' ? <Globe className="w-4 h-4" /> : s.kind === 'url' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
+                <button onClick={() => setDetailId(s.id)} className="block max-w-full text-left text-sm font-medium text-foreground truncate hover:underline">{s.title}</button>
                 <p className="text-xs text-muted-foreground truncate">
                   {s.kind === 'file' ? [s.fileName, formatSize(s.sizeBytes)].filter(Boolean).join(' · ') : s.url}
                 </p>
@@ -495,6 +590,16 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           )
         })}
       </div>
+
+      {detailId && (() => {
+        const d = sources.find(x => x.id === detailId)
+        if (!d) return null
+        return (
+          <DetailModal source={d} parent={d.parentId ? siteById.get(d.parentId) : undefined}
+            href={d.kind === 'file' ? `/api/ingesta/file?id=${encodeURIComponent(d.id)}` : d.url ?? undefined}
+            busy={processingId !== null} onClose={() => setDetailId(null)} onProcess={() => handleProcess(d)} />
+        )
+      })()}
 
       {deleting && (
         <DeleteModal source={deleting} pending={deletePending} onCancel={() => setDeleting(null)} onConfirm={handleDelete} />
