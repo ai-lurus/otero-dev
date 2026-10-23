@@ -15,7 +15,8 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // Stores nuevos de Vercel usan OIDC (BLOB_STORE_ID); los antiguos, token fijo.
+  if (!process.env.BLOB_READ_WRITE_TOKEN && !process.env.BLOB_STORE_ID) {
     return NextResponse.json({ error: 'El almacenamiento de archivos aún no está configurado' }, { status: 503 })
   }
 
