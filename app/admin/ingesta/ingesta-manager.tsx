@@ -351,31 +351,6 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         {mode === 'url' ? <UrlForm onAdded={addSource} /> : mode === 'file' ? <FileDrop onAdded={addSource} /> : <SiteForm hasSite={sites.length > 0} onAdded={addSource} />}
       </section>
 
-      {/* Sitios recurrentes */}
-      {sites.map(site => (
-        <section key={site.id} className="mb-6 bg-card border border-border rounded-2xl p-5">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground"><Globe className="w-4 h-4" /></div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">{site.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {site.lastCheckedAt ? `Última revisión: ${new Date(site.lastCheckedAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Aún no se ha revisado'}
-              </p>
-            </div>
-            <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)} aria-label="Fecha del sumario"
-              className="bg-background border border-border rounded-lg px-3 py-2 text-sm" />
-            <button onClick={() => handleCheck(site)} disabled={checkingId !== null}
-              className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
-              {checkingId === site.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarSearch className="w-4 h-4" />}
-              Revisar ahora
-            </button>
-            <button onClick={() => setDeleting(site)} aria-label="Quitar sitio" className="p-2 rounded-lg text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
-          </div>
-          <p className="mt-2 text-[11px] text-muted-foreground">Sin fecha se revisa el sumario de hoy (hora de la Ciudad de México).</p>
-          {checkMessage && <p className="mt-2 text-xs text-emerald-700">{checkMessage}</p>}
-        </section>
-      ))}
-
       {/* Alerta: fuentes que no se pudieron leer */}
       {failed.length > 0 && (
         <section role="alert" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
@@ -439,6 +414,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         </div>
       )}
       {processError && <p className="mb-3 text-xs text-red-600">{processError}</p>}
+      {checkMessage && <p className="mb-3 text-xs text-emerald-700">{checkMessage}</p>}
 
       {/* Lista */}
       <div className="space-y-2">
@@ -486,6 +462,11 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                     {STATUS_LABELS[s.status] ?? s.status}
                   </span>}
               <div className="flex items-center gap-1 shrink-0">
+                {s.kind === 'site' && (
+                  <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)}
+                    aria-label="Fecha del sumario (vacío = hoy)" title="Fecha del sumario (vacío = hoy, hora de la Ciudad de México)"
+                    className="bg-background border border-border rounded-lg px-2 py-1 text-xs" />
+                )}
                 {s.kind === 'site' && (
                   <button onClick={() => handleCheck(s)} disabled={checkingId !== null}
                     className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
