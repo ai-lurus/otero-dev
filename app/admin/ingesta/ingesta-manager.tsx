@@ -1,8 +1,8 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { AlertCircle, ExternalLink, FileText, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
-import { addUrlSource, deleteIngestSource, processSource, type IngestSourceRow } from '@/app/actions/ingest'
+import { AlertCircle, CalendarSearch, ExternalLink, FileText, Globe, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
+import { addSiteSource, addUrlSource, checkSite, deleteIngestSource, processSource, type IngestSourceRow } from '@/app/actions/ingest'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from '@/lib/upload-rules'
 import { MATERIAS, VIGENCIAS } from '@/lib/ingest/categories'
 import { cn } from '@/lib/utils'
@@ -151,6 +151,41 @@ function FileDrop({ onAdded }: { onAdded: (s: IngestSourceRow) => void }) {
   )
 }
 
+// ── Alta de sitio recurrente ──────────────────────────────────────
+function SiteForm({ hasSite, onAdded }: { hasSite: boolean; onAdded: (s: IngestSourceRow) => void }) {
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleAdd() {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await addSiteSource({ url: 'https://dof.gob.mx/' })
+      if (!res.ok) { setError(res.error); return }
+      onAdded(res.source)
+    } catch {
+      setError('No se pudo guardar. Intenta de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Registra el Diario Oficial de la Federación: con <strong>Revisar ahora</strong> Otero lee el sumario del día y
+        agrega cada publicación como una fuente nueva, sin repetir las que ya tiene.
+      </p>
+      <button onClick={handleAdd} disabled={saving || hasSite}
+        className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
+        {hasSite ? 'Diario Oficial ya registrado' : 'Registrar Diario Oficial'}
+      </button>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </div>
+  )
+}
+
 // ── Delete confirm ────────────────────────────────────────────────
 function DeleteModal({ source, onCancel, onConfirm, pending }: {
   source: IngestSourceRow; onCancel: () => void; onConfirm: () => void; pending: boolean
@@ -164,7 +199,7 @@ function DeleteModal({ source, onCancel, onConfirm, pending }: {
         <h3 className="font-serif text-lg font-semibold text-center">Eliminar fuente</h3>
         <p className="text-sm text-muted-foreground text-center mt-2 break-words">
           <span className="font-medium text-foreground">&ldquo;{source.title}&rdquo;</span> se quitará de la ingesta
-          {source.kind === 'file' ? ' y el archivo se borrará.' : '.'}
+          {source.kind === 'file' ? ' y el archivo se borrará.' : source.kind === 'site' ? '. Las publicaciones ya agregadas se conservan.' : '.'}
         </p>
         <div className="flex gap-3 mt-6">
           <button onClick={onCancel} className="flex-1 text-sm font-medium bg-secondary py-2.5 rounded-xl">Cancelar</button>
@@ -183,7 +218,7 @@ type KindFilter = 'todas' | 'url' | 'file'
 
 export default function IngestaManager({ initialSources }: { initialSources: IngestSourceRow[] }) {
   const [sources, setSources] = useState(initialSources)
-  const [mode, setMode] = useState<'url' | 'file'>('url')
+  const [mode, setMode] = useState<'url' | 'file' | 'site'>('url')
   const [search, setSearch] = useState('')
   const [kind, setKind] = useState<KindFilter>('todas')
   const [status, setStatus] = useState('todos')
@@ -191,21 +226,29 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   const [deletePending, setDeletePending] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [processError, setProcessError] = useState('')
+  const [checkingId, setCheckingId] = useState<string | null>(null)
+  const [checkMessage, setCheckMessage] = useState('')
+  const [checkDate, setCheckDate] = useState('')
+  const [batchRunning, setBatchRunning] = useState(false)
+  const stopBatch = useRef(false)
 
   const addSource = (s: IngestSourceRow) => setSources(prev => [s, ...prev])
 
-  const filtered = sources.filter(s => {
+  const items = sources.filter(s => s.kind !== 'site')
+  const filtered = items.filter(s => {
     if (kind !== 'todas' && s.kind !== kind) return false
     if (status !== 'todos' && s.status !== status) return false
     const q = search.trim().toLowerCase()
     return !q || s.title.toLowerCase().includes(q) || (s.url ?? '').toLowerCase().includes(q) || (s.fileName ?? '').toLowerCase().includes(q)
   })
 
+  const sites = sources.filter(s => s.kind === 'site')
+  const failed = items.filter(s => s.status === 'error')
   const counts = {
-    total: sources.length,
-    queued: sources.filter(s => s.status === 'en_cola' || s.status === 'procesando').length,
-    ready: sources.filter(s => s.status === 'lista').length,
-    error: sources.filter(s => s.status === 'error').length,
+    total: items.length,
+    queued: items.filter(s => s.status === 'en_cola' || s.status === 'procesando').length,
+    ready: items.filter(s => s.status === 'lista').length,
+    error: failed.length,
   }
 
   async function handleProcess(s: IngestSourceRow) {
@@ -224,6 +267,42 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
       setProcessError('El procesamiento tardó demasiado o falló. Recarga la página para ver el estado.')
     } finally {
       setProcessingId(null)
+    }
+  }
+
+  async function handleCheck(site: IngestSourceRow) {
+    setCheckingId(site.id)
+    setCheckMessage('')
+    setProcessError('')
+    try {
+      const res = await checkSite(site.id, checkDate || undefined)
+      if (!res.ok) { setProcessError(res.error); return }
+      setSources(prev => [...res.created.reverse(), ...prev.map(x => x.id === site.id ? res.site : x)])
+      const parts = [`${res.created.length} publicaciones nuevas`]
+      if (res.skipped) parts.push(`${res.skipped} ya estaban registradas`)
+      if (res.remaining) parts.push(`quedan ${res.remaining} sin agregar; vuelve a pulsar Revisar ahora`)
+      setCheckMessage(`${parts.join(', ')}.`)
+    } catch {
+      setProcessError('No se pudo revisar el sitio. Intenta de nuevo.')
+    } finally {
+      setCheckingId(null)
+    }
+  }
+
+  // Una a la vez y con pausa: cada fuente puede tardar hasta 60 s y evitamos saturar el sitio de origen.
+  async function handleProcessQueued() {
+    stopBatch.current = false
+    setBatchRunning(true)
+    setProcessError('')
+    const queue = items.filter(s => s.status === 'en_cola')
+    try {
+      for (const s of queue) {
+        if (stopBatch.current) break
+        await handleProcess(s)
+        await new Promise(r => setTimeout(r, 1200))
+      }
+    } finally {
+      setBatchRunning(false)
     }
   }
 
@@ -258,7 +337,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
       {/* Alta */}
       <section className="mb-6 bg-card border border-border rounded-2xl p-5">
         <div className="mb-4 inline-flex rounded-xl bg-secondary p-1">
-          {([['url', 'Enlace', Link2], ['file', 'Archivo', FileText]] as const).map(([value, label, Icon]) => (
+          {([['url', 'Enlace', Link2], ['file', 'Archivo', FileText], ['site', 'Sitio recurrente', Globe]] as const).map(([value, label, Icon]) => (
             <button key={value} onClick={() => setMode(value)}
               className={cn('flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
                 mode === value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
@@ -266,8 +345,59 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
             </button>
           ))}
         </div>
-        {mode === 'url' ? <UrlForm onAdded={addSource} /> : <FileDrop onAdded={addSource} />}
+        {mode === 'url' ? <UrlForm onAdded={addSource} /> : mode === 'file' ? <FileDrop onAdded={addSource} /> : <SiteForm hasSite={sites.length > 0} onAdded={addSource} />}
       </section>
+
+      {/* Sitios recurrentes */}
+      {sites.map(site => (
+        <section key={site.id} className="mb-6 bg-card border border-border rounded-2xl p-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground"><Globe className="w-4 h-4" /></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">{site.title}</p>
+              <p className="text-xs text-muted-foreground">
+                {site.lastCheckedAt ? `Última revisión: ${new Date(site.lastCheckedAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Aún no se ha revisado'}
+              </p>
+            </div>
+            <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)} aria-label="Fecha del sumario"
+              className="bg-background border border-border rounded-lg px-3 py-2 text-sm" />
+            <button onClick={() => handleCheck(site)} disabled={checkingId !== null}
+              className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+              {checkingId === site.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarSearch className="w-4 h-4" />}
+              Revisar ahora
+            </button>
+            <button onClick={() => setDeleting(site)} aria-label="Quitar sitio" className="p-2 rounded-lg text-red-600 hover:bg-red-50"><Trash2 className="w-4 h-4" /></button>
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground">Sin fecha se revisa el sumario de hoy (hora de la Ciudad de México).</p>
+          {checkMessage && <p className="mt-2 text-xs text-emerald-700">{checkMessage}</p>}
+        </section>
+      ))}
+
+      {/* Alerta: fuentes que no se pudieron leer */}
+      {failed.length > 0 && (
+        <section role="alert" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-amber-900">
+                {failed.length === 1 ? '1 fuente no se pudo leer' : `${failed.length} fuentes no se pudieron leer`}: revísalas a mano
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">Ábrelas, descarga el PDF o copia el texto y súbelo en la pestaña Archivo; luego elimina la fuente fallida. También puedes reintentar.</p>
+              <ul className="mt-3 space-y-1.5">
+                {failed.slice(0, 8).map(f => (
+                  <li key={f.id} className="flex items-center gap-2 text-xs text-amber-900">
+                    <span className="truncate font-medium">{f.title}</span>
+                    <span className="shrink-0 text-amber-800">· {f.statusDetail ?? 'Error'}</span>
+                    <a href={f.kind === 'url' ? f.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(f.id)}`} target="_blank" rel="noopener noreferrer"
+                      className="ml-auto shrink-0 underline">Abrir</a>
+                  </li>
+                ))}
+                {failed.length > 8 && <li className="text-xs text-amber-800">y {failed.length - 8} más en la lista</li>}
+              </ul>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Filtros */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row">
@@ -290,6 +420,20 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         </select>
       </div>
 
+      {counts.queued > 0 && (
+        <div className="mb-3 flex items-center gap-3">
+          {!batchRunning
+            ? <button onClick={handleProcessQueued} disabled={processingId !== null}
+                className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">
+                <Play className="w-3.5 h-3.5" /> Procesar pendientes
+              </button>
+            : <button onClick={() => { stopBatch.current = true }}
+                className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2 text-xs font-semibold">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Detener después de esta
+              </button>}
+          <span className="text-[11px] text-muted-foreground">Procesa de una en una; no cierres la página mientras corre.</span>
+        </div>
+      )}
       {processError && <p className="mb-3 text-xs text-red-600">{processError}</p>}
 
       {/* Lista */}

@@ -1,4 +1,5 @@
-import { IngestError, type Content } from './extract'
+import { IngestError } from './errors'
+import type { Content } from './extract'
 import { MATERIAS, MATERIA_KEYS, VIGENCIA_KEYS, VIGENCIAS, type Materia, type Vigencia } from './categories'
 
 const MODEL = 'claude-haiku-5-5'

@@ -1,11 +1,12 @@
 'use server'
 
 import { del } from '@vercel/blob'
-import { and, desc, eq, lt, ne, or } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { ingestSources, user } from '@/lib/db/schema'
 import { requireAdmin } from './auth-helpers'
+import { DOF_HOSTS, DOF_ORIGIN, fetchDofSummary, todayInMexico } from '@/lib/ingest/dof'
 import { autoUrlTitle } from '@/lib/ingest/title'
 import { categorize } from '@/lib/ingest/categorize'
 import { extractFromBlob, extractFromUrl, IngestError } from '@/lib/ingest/extract'
@@ -88,6 +89,7 @@ export async function processSource(id: string): Promise<
     .set({ status: 'procesando', statusDetail: null, updatedAt: new Date() })
     .where(and(
       eq(ingestSources.id, id),
+      ne(ingestSources.kind, 'site'),
       or(ne(ingestSources.status, 'procesando'), lt(ingestSources.updatedAt, new Date(Date.now() - STUCK_AFTER_MS))),
     ))
     .returning()
@@ -128,4 +130,84 @@ export async function processSource(id: string): Promise<
     .where(eq(ingestSources.id, id))
     .limit(1)
   return { ok: true, source: { ...row.source, createdByName: row.createdByName } }
+}
+
+// ── Sitios recurrentes (por ahora solo el DOF) ─────────────────────
+
+const DOF_TITLE = 'Diario Oficial de la Federación'
+const MAX_NEW_PER_CHECK = 80
+
+export async function addSiteSource(data: { url: string }): Promise<
+  { ok: true; source: IngestSourceRow } | { ok: false; error: string }
+> {
+  const userId = await requireAdmin()
+  const url = normalizeUrl(data.url)
+  if (!url || !DOF_HOSTS.includes(url.hostname)) {
+    return { ok: false, error: 'Por ahora solo se puede registrar el Diario Oficial (dof.gob.mx) como sitio recurrente' }
+  }
+  const existing = await db.select({ id: ingestSources.id }).from(ingestSources).where(eq(ingestSources.kind, 'site')).limit(1)
+  if (existing.length) return { ok: false, error: 'El Diario Oficial ya está registrado como sitio recurrente' }
+
+  const [row] = await db.insert(ingestSources).values({
+    id: `src-${crypto.randomUUID()}`,
+    kind: 'site',
+    title: DOF_TITLE,
+    url: `${DOF_ORIGIN}/`,
+    status: 'lista',
+    createdBy: userId,
+  }).returning()
+  revalidatePath('/admin/ingesta')
+  const [me] = await db.select({ name: user.name }).from(user).where(eq(user.id, userId)).limit(1)
+  return { ok: true, source: { ...row, createdByName: me?.name ?? null } }
+}
+
+export async function checkSite(id: string, date?: string): Promise<
+  { ok: true; site: IngestSourceRow; created: IngestSourceRow[]; found: number; skipped: number; remaining: number }
+  | { ok: false; error: string }
+> {
+  const userId = await requireAdmin()
+  const [site] = await db.select().from(ingestSources).where(and(eq(ingestSources.id, id), eq(ingestSources.kind, 'site'))).limit(1)
+  if (!site) return { ok: false, error: 'El sitio no existe' }
+  const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayInMexico()
+
+  let notes
+  try {
+    notes = await fetchDofSummary(day)
+  } catch (e) {
+    if (e instanceof IngestError) return { ok: false, error: e.message }
+    console.error('checkSite', id, e)
+    return { ok: false, error: 'No se pudo leer el sumario del Diario Oficial' }
+  }
+
+  const known = await db.select({ url: ingestSources.url }).from(ingestSources)
+    .where(inArray(ingestSources.url, notes.map(n => n.url)))
+  const knownUrls = new Set(known.map(k => k.url))
+  const fresh = notes.filter(n => !knownUrls.has(n.url))
+  const toCreate = fresh.slice(0, MAX_NEW_PER_CHECK)
+
+  const inserted = toCreate.length
+    ? await db.insert(ingestSources).values(toCreate.map(n => ({
+        id: `src-${crypto.randomUUID()}`,
+        kind: 'url',
+        title: n.title,
+        url: n.url,
+        parentId: site.id,
+        createdBy: userId,
+      }))).returning()
+    : []
+  const [updatedSite] = await db.update(ingestSources)
+    .set({ lastCheckedAt: new Date(), updatedAt: new Date() })
+    .where(eq(ingestSources.id, site.id)).returning()
+  revalidatePath('/admin/ingesta')
+
+  const [me] = await db.select({ name: user.name }).from(user).where(eq(user.id, userId)).limit(1)
+  const withName = (r: typeof ingestSources.$inferSelect) => ({ ...r, createdByName: me?.name ?? null })
+  return {
+    ok: true,
+    site: withName(updatedSite),
+    created: inserted.map(withName),
+    found: notes.length,
+    skipped: notes.length - fresh.length,
+    remaining: fresh.length - toCreate.length,
+  }
 }

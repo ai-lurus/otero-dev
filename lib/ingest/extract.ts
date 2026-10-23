@@ -1,6 +1,8 @@
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import { get } from '@vercel/blob'
+import { IngestError } from './errors'
+import { assertAllowedByRobots, USER_AGENT } from './robots'
 
 // Límites pensados para el plan free de Vercel (funciones de hasta 60 s).
 const FETCH_TIMEOUT_MS = 15_000
@@ -14,8 +16,7 @@ export type Content =
   | { kind: 'pdf'; base64: string }
   | { kind: 'image'; base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' }
 
-/** Error con mensaje apto para mostrarse al usuario. */
-export class IngestError extends Error {}
+export { IngestError }
 
 function isPrivateAddress(ip: string): boolean {
   if (ip.includes(':')) {
@@ -43,14 +44,15 @@ async function assertPublicHost(url: URL) {
   if (addresses.some(isPrivateAddress)) throw new IngestError('El enlace apunta a una dirección interna y no se puede leer')
 }
 
-async function fetchRemote(startUrl: string): Promise<Response> {
+export async function fetchRemote(startUrl: string): Promise<Response> {
   let url = new URL(startUrl)
   for (let i = 0; i <= MAX_REDIRECTS; i++) {
     await assertPublicHost(url)
+    await assertAllowedByRobots(url)
     const res = await fetch(url, {
       redirect: 'manual',
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; OteroBot/1.0)', Accept: 'text/html,application/pdf,text/plain;q=0.9,*/*;q=0.5' },
+      headers: { 'User-Agent': USER_AGENT, Accept: 'text/html,application/pdf,text/plain;q=0.9,*/*;q=0.5' },
     }).catch(() => { throw new IngestError('No se pudo descargar el enlace (sin respuesta a tiempo)') })
     if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
       url = new URL(res.headers.get('location')!, url)
@@ -62,7 +64,7 @@ async function fetchRemote(startUrl: string): Promise<Response> {
   throw new IngestError('El enlace tiene demasiadas redirecciones')
 }
 
-async function readCapped(stream: ReadableStream<Uint8Array> | null, max: number): Promise<Buffer> {
+export async function readCapped(stream: ReadableStream<Uint8Array> | null, max: number): Promise<Buffer> {
   if (!stream) return Buffer.alloc(0)
   const chunks: Uint8Array[] = []
   let total = 0
@@ -98,6 +100,17 @@ export function htmlToText(html: string): { text: string; title?: string } {
   return { text, title: title ? htmlToText(title).text.slice(0, 200) : undefined }
 }
 
+/** Decodifica según el charset del encabezado o del <meta>; muchos sitios del gobierno usan ISO-8859-1. */
+export function decodeBody(body: Buffer, contentType: string): string {
+  const head = body.subarray(0, 4096).toString('latin1')
+  const label = contentType.match(/charset=["']?([\w-]+)/i)?.[1] ?? head.match(/<meta[^>]+charset=["']?([\w-]+)/i)?.[1] ?? 'utf-8'
+  try {
+    return new TextDecoder(label).decode(body)
+  } catch {
+    return body.toString('utf8')
+  }
+}
+
 export async function extractFromUrl(url: string): Promise<Content> {
   const res = await fetchRemote(url)
   const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
@@ -107,11 +120,11 @@ export async function extractFromUrl(url: string): Promise<Content> {
 
   if (type === 'application/pdf') return { kind: 'pdf', base64: body.toString('base64') }
   if (type === 'text/html' || type === 'application/xhtml+xml' || type === '') {
-    const { text, title } = htmlToText(body.toString('utf8'))
+    const { text, title } = htmlToText(decodeBody(body, res.headers.get('content-type') ?? ''))
     if (text.length < 200) throw new IngestError('La página casi no tiene texto legible (puede requerir JavaScript o inicio de sesión)')
     return { kind: 'text', text: text.slice(0, MAX_TEXT_CHARS), title }
   }
-  if (type.startsWith('text/')) return { kind: 'text', text: body.toString('utf8').slice(0, MAX_TEXT_CHARS) }
+  if (type.startsWith('text/')) return { kind: 'text', text: decodeBody(body, res.headers.get('content-type') ?? '').slice(0, MAX_TEXT_CHARS) }
   throw new IngestError(`Tipo de contenido no soportado todavía (${type})`)
 }
 

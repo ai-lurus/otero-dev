@@ -234,7 +234,7 @@ export const appointments = pgTable('appointments', {
 // categorización llega después; por ahora solo se guardan con su estado.
 export const ingestSources = pgTable('ingest_sources', {
   id:           text('id').primaryKey(),
-  kind:         text('kind').notNull(), // 'url' | 'file'
+  kind:         text('kind').notNull(), // 'url' | 'file' | 'site'
   title:        text('title').notNull(),
   url:          text('url'),
   blobPathname: text('blob_pathname'),
@@ -251,6 +251,9 @@ export const ingestSources = pgTable('ingest_sources', {
   vigenciaDetail: text('vigencia_detail'),
   summary:        text('summary'),
   processedAt:    timestamp('processed_at'),
+  // kind 'site' = sitio recurrente (p. ej. DOF); sus publicaciones son fuentes 'url' con parentId.
+  parentId:       text('parent_id'),
+  lastCheckedAt:  timestamp('last_checked_at'),
   createdBy:    text('created_by').notNull(),
   createdAt:    timestamp('created_at').notNull().defaultNow(),
   updatedAt:    timestamp('updated_at').notNull().defaultNow(),
