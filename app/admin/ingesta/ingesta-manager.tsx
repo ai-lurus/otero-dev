@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, CalendarSearch, ExternalLink, FileText, Globe, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
 import { addSiteSource, addUrlSource, checkSite, deleteIngestSource, processSource, type IngestSourceRow } from '@/app/actions/ingest'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from '@/lib/upload-rules'
 import { MATERIAS, VIGENCIAS } from '@/lib/ingest/categories'
+import { decodeEntities } from '@/lib/ingest/title'
 import { cn } from '@/lib/utils'
 
 const ACCEPT = [...ALLOWED_UPLOAD_TYPES].join(',')
@@ -186,6 +187,17 @@ function SiteForm({ hasSite, onAdded }: { hasSite: boolean; onAdded: (s: IngestS
   )
 }
 
+function useEscape(onClose: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+}
+
+// Títulos guardados antes de decodificar entidades HTML (&oacute;) se limpian al mostrarlos.
+const titleOf = (s: { title: string }) => decodeEntities(s.title)
+
 // ── Detalle de una fuente ─────────────────────────────────────────
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -200,25 +212,27 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
   source: IngestSourceRow; parent?: IngestSourceRow; href?: string; busy: boolean
   onClose: () => void; onProcess: () => void
 }) {
+  useEscape(onClose)
   const none = <span className="text-muted-foreground">—</span>
   const isSite = source.kind === 'site'
   const canProcess = !isSite && (source.status === 'en_cola' || source.status === 'error')
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-background w-full max-w-xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border">
+        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border shrink-0">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               {isSite ? 'Sitio recurrente' : source.kind === 'url' ? 'Enlace' : 'Archivo'}
             </p>
-            <h2 className="font-serif text-xl font-semibold leading-snug break-words">{source.title}</h2>
+            {/* <p> y no <h2>: las reglas globales de h1/h2 fuerzan fuentes enormes que ganan sobre Tailwind. */}
+            <p role="heading" aria-level={2} className="mt-1 text-lg font-semibold leading-snug break-words [overflow-wrap:anywhere] line-clamp-4">{titleOf(source)}</p>
           </div>
           <button onClick={onClose} aria-label="Cerrar" className="rounded-full bg-secondary p-1.5 text-muted-foreground hover:text-foreground shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
           {!isSite && (
             <DetailRow label="Estado">
               <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide', statusBadge(source.status))}>
@@ -241,7 +255,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
               </div>
               <DetailRow label="Detalle de vigencia">{source.vigenciaDetail ?? none}</DetailRow>
               <DetailRow label="Resumen">
-                {source.summary ? <p className="leading-relaxed whitespace-pre-line">{source.summary}</p> : none}
+                {source.summary ? <p className="leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">{source.summary}</p> : none}
               </DetailRow>
             </>
           )}
@@ -256,12 +270,12 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
                 ? [source.fileName, formatSize(source.sizeBytes), source.mimeType].filter(Boolean).join(' · ')
                 : <a href={source.url ?? undefined} target="_blank" rel="noopener noreferrer" className="underline">{source.url}</a>}
             </DetailRow>
-            {parent && <DetailRow label="Sitio recurrente">{parent.title}</DetailRow>}
+            {parent && <DetailRow label="Sitio recurrente">{titleOf(parent)}</DetailRow>}
             <DetailRow label="Agregada">{formatDate(source.createdAt)}{source.createdByName ? ` por ${source.createdByName}` : ''}</DetailRow>
           </div>
         </div>
 
-        <div className="border-t border-border bg-background px-6 py-4 flex gap-3">
+        <div className="border-t border-border bg-background px-6 py-4 flex flex-wrap gap-3 shrink-0">
           {canProcess && (
             <button onClick={onProcess} disabled={busy}
               className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
@@ -284,6 +298,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
 function DeleteModal({ source, onCancel, onConfirm, pending }: {
   source: IngestSourceRow; onCancel: () => void; onConfirm: () => void; pending: boolean
 }) {
+  useEscape(onCancel)
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
       <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-2xl">
@@ -292,7 +307,7 @@ function DeleteModal({ source, onCancel, onConfirm, pending }: {
         </div>
         <h3 className="font-serif text-lg font-semibold text-center">Eliminar fuente</h3>
         <p className="text-sm text-muted-foreground text-center mt-2 break-words">
-          <span className="font-medium text-foreground">&ldquo;{source.title}&rdquo;</span> se quitará de la ingesta
+          <span className="font-medium text-foreground line-clamp-3">&ldquo;{titleOf(source)}&rdquo;</span> se quitará de la ingesta
           {source.kind === 'file' ? ' y el archivo se borrará.' : source.kind === 'site' ? '. Las publicaciones ya agregadas se conservan.' : '.'}
         </p>
         <div className="flex gap-3 mt-6">
@@ -335,7 +350,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
     if (kind !== 'todas' && s.kind !== kind) return false
     if (status !== 'todos' && (s.kind === 'site' || s.status !== status)) return false
     const q = search.trim().toLowerCase()
-    return !q || s.title.toLowerCase().includes(q) || (s.url ?? '').toLowerCase().includes(q) || (s.fileName ?? '').toLowerCase().includes(q)
+    return !q || titleOf(s).toLowerCase().includes(q) || (s.url ?? '').toLowerCase().includes(q) || (s.fileName ?? '').toLowerCase().includes(q)
   })
 
   const sites = sources.filter(s => s.kind === 'site')
@@ -420,7 +435,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
     <div className="min-h-full p-6 lg:p-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="font-serif text-3xl font-semibold text-foreground">Ingesta de información</h1>
+        <h1 className="font-serif text-3xl! leading-tight! font-semibold text-foreground">Ingesta de información</h1>
         <p className="mt-1 text-sm text-muted-foreground">Agrega enlaces y documentos y pulsa Procesar: Otero los lee y los clasifica por materia, autoridad, fecha y vigencia.</p>
       </div>
 
@@ -459,7 +474,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
               <ul className="mt-3 space-y-1.5">
                 {failed.slice(0, 8).map(f => (
                   <li key={f.id} className="flex items-center gap-2 text-xs text-amber-900">
-                    <span className="truncate font-medium">{f.title}</span>
+                    <span className="truncate font-medium">{titleOf(f)}</span>
                     <span className="shrink-0 text-amber-800">· {f.statusDetail ?? 'Error'}</span>
                     <a href={f.kind === 'url' ? f.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(f.id)}`} target="_blank" rel="noopener noreferrer"
                       className="ml-auto shrink-0 underline">Abrir</a>
@@ -524,19 +539,20 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         {filtered.map(s => {
           const href = s.kind === 'url' || s.kind === 'site' ? s.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(s.id)}`
           return (
-            <article key={s.id} className="flex items-start gap-4 bg-card border border-border rounded-2xl px-4 py-3">
+            <article key={s.id} className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4 bg-card border border-border rounded-2xl px-4 py-3">
+              <div className="flex min-w-0 flex-1 items-start gap-4">
               <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0 text-muted-foreground">
                 {s.kind === 'site' ? <Globe className="w-4 h-4" /> : s.kind === 'url' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
               </div>
               <div className="flex-1 min-w-0">
-                <button onClick={() => setDetailId(s.id)} className="block max-w-full text-left text-sm font-medium text-foreground truncate hover:underline">{s.title}</button>
+                <button onClick={() => setDetailId(s.id)} className="block max-w-full text-left text-sm font-medium text-foreground truncate hover:underline" title={titleOf(s)}>{titleOf(s)}</button>
                 <p className="text-xs text-muted-foreground truncate">
                   {s.kind === 'file' ? [s.fileName, formatSize(s.sizeBytes)].filter(Boolean).join(' · ') : s.url}
                 </p>
                 <p className="text-[11px] text-muted-foreground mt-0.5">
                   {formatDate(s.createdAt)}{s.createdByName ? ` · ${s.createdByName}` : ''}
                   {s.kind === 'site' && ` · ${childCount(s.id)} publicaciones · ${s.lastCheckedAt ? `revisado ${new Date(s.lastCheckedAt).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}` : 'sin revisar'}`}
-                  {s.parentId && siteById.get(s.parentId) && ` · de ${siteById.get(s.parentId)!.title}`}
+                  {s.parentId && siteById.get(s.parentId) && ` · de ${titleOf(siteById.get(s.parentId)!)}`}
                 </p>
                 {s.kind !== 'site' && s.status === 'error' && s.statusDetail && <p className="text-[11px] text-red-600 mt-0.5">{s.statusDetail}</p>}
                 {s.kind !== 'site' && s.status === 'lista' && (
@@ -551,16 +567,18 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   </div>
                 )}
               </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pl-[3.25rem] sm:pl-0 sm:shrink-0">
               {s.kind === 'site'
                 ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0 bg-indigo-50 text-indigo-700 border-indigo-200">Sitio recurrente</span>
                 : <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0', statusBadge(s.status))}>
                     {STATUS_LABELS[s.status] ?? s.status}
                   </span>}
-              <div className="flex items-center gap-1 shrink-0">
+              <div className="flex flex-wrap items-center gap-1">
                 {s.kind === 'site' && (
                   <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)}
                     aria-label="Fecha del sumario (vacío = hoy)" title="Fecha del sumario (vacío = hoy, hora de la Ciudad de México)"
-                    className="bg-background border border-border rounded-lg px-2 py-1 text-xs" />
+                    className="w-36 bg-background border border-border rounded-lg px-2 py-1 text-xs" />
                 )}
                 {s.kind === 'site' && (
                   <button onClick={() => handleCheck(s)} disabled={checkingId !== null}
@@ -585,6 +603,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
+              </div>
               </div>
             </article>
           )

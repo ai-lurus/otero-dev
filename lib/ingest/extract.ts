@@ -3,6 +3,7 @@ import { isIP } from 'node:net'
 import { get } from '@vercel/blob'
 import { IngestError } from './errors'
 import { assertAllowedByRobots, USER_AGENT } from './robots'
+import { decodeEntities } from './title'
 
 // Límites pensados para el plan free de Vercel (funciones de hasta 60 s).
 const FETCH_TIMEOUT_MS = 15_000
@@ -82,18 +83,15 @@ export async function readCapped(stream: ReadableStream<Uint8Array> | null, max:
   return Buffer.concat(chunks)
 }
 
-const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
-
 export function htmlToText(html: string): { text: string; title?: string } {
   const title = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]
-  const text = html
+  const stripped = html
     .replace(/<(script|style|noscript|svg|nav|footer|header|form|iframe)\b[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<\/(p|div|li|tr|h[1-6]|br|section|article)>|<br\s*\/?>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
-    .replace(/&([a-z]+);/gi, (m, n) => ENTITIES[n.toLowerCase()] ?? m)
-    .replace(/[ \t\f\v ]+/g, ' ')
+  const text = decodeEntities(stripped)
+    .replace(/[ \t\f\v\u00a0]+/g, ' ')
     .replace(/ ?\n ?/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
