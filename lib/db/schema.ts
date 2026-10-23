@@ -243,6 +243,14 @@ export const ingestSources = pgTable('ingest_sources', {
   sizeBytes:    integer('size_bytes'),
   status:       text('status').notNull().default('en_cola'), // en_cola | procesando | lista | error
   statusDetail: text('status_detail'),
+  // Resultado de la categorización (Claude Haiku). Nulos hasta que status = 'lista'.
+  materia:        text('materia'),
+  authority:      text('authority'),
+  publishedAt:    date('published_at'),
+  vigenciaStatus: text('vigencia_status'), // vigente | derogada | proyecto | no_aplica | desconocida
+  vigenciaDetail: text('vigencia_detail'),
+  summary:        text('summary'),
+  processedAt:    timestamp('processed_at'),
   createdBy:    text('created_by').notNull(),
   createdAt:    timestamp('created_at').notNull().defaultNow(),
   updatedAt:    timestamp('updated_at').notNull().defaultNow(),

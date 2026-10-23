@@ -1,11 +1,14 @@
 'use server'
 
 import { del } from '@vercel/blob'
-import { desc, eq } from 'drizzle-orm'
+import { and, desc, eq, lt, ne, or } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { ingestSources, user } from '@/lib/db/schema'
 import { requireAdmin } from './auth-helpers'
+import { autoUrlTitle } from '@/lib/ingest/title'
+import { categorize } from '@/lib/ingest/categorize'
+import { extractFromBlob, extractFromUrl, IngestError } from '@/lib/ingest/extract'
 
 export type IngestSourceRow = typeof ingestSources.$inferSelect & { createdByName: string | null }
 
@@ -44,7 +47,7 @@ export async function addUrlSource(data: { url: string; title?: string }): Promi
   const existing = await db.select({ id: ingestSources.id }).from(ingestSources).where(eq(ingestSources.url, href)).limit(1)
   if (existing.length) return { ok: false, error: 'Esa URL ya está en la lista de fuentes' }
 
-  const title = data.title?.trim().slice(0, 200) || `${url.hostname}${url.pathname === '/' ? '' : url.pathname}`
+  const title = data.title?.trim().slice(0, 200) || autoUrlTitle(url)
   const [row] = await db.insert(ingestSources).values({
     id: `src-${crypto.randomUUID()}`,
     kind: 'url',
@@ -65,4 +68,64 @@ export async function deleteIngestSource(id: string) {
     await del(row.blobPathname).catch(() => {})
   }
   revalidatePath('/admin/ingesta')
+}
+
+function isAutoTitle(s: typeof ingestSources.$inferSelect) {
+  if (s.kind === 'file') return s.title === s.fileName?.slice(0, 200)
+  return s.title === autoUrlTitle(new URL(s.url!))
+}
+
+// Una fuente por vez: el plan free de Vercel limita la duración de la función.
+// Un "procesando" de hace más de 5 minutos se considera atorado y se puede reintentar.
+const STUCK_AFTER_MS = 5 * 60 * 1000
+
+export async function processSource(id: string): Promise<
+  { ok: true; source: IngestSourceRow } | { ok: false; error: string }
+> {
+  await requireAdmin()
+
+  const [claimed] = await db.update(ingestSources)
+    .set({ status: 'procesando', statusDetail: null, updatedAt: new Date() })
+    .where(and(
+      eq(ingestSources.id, id),
+      or(ne(ingestSources.status, 'procesando'), lt(ingestSources.updatedAt, new Date(Date.now() - STUCK_AFTER_MS))),
+    ))
+    .returning()
+  if (!claimed) return { ok: false, error: 'La fuente no existe o ya se está procesando' }
+
+  try {
+    const content = claimed.kind === 'url'
+      ? await extractFromUrl(claimed.url!)
+      : await extractFromBlob(claimed.blobPathname!, claimed.mimeType)
+    const result = await categorize(content, claimed.title)
+    await db.update(ingestSources).set({
+      status: 'lista',
+      statusDetail: null,
+      // Solo reemplaza el título si es el automático (dominio/ruta o nombre del archivo).
+      title: isAutoTitle(claimed) ? result.title : claimed.title,
+      materia: result.materia,
+      authority: result.authority,
+      publishedAt: result.publishedAt,
+      vigenciaStatus: result.vigenciaStatus,
+      vigenciaDetail: result.vigenciaDetail,
+      summary: result.summary,
+      processedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(ingestSources.id, id))
+  } catch (e) {
+    const message = e instanceof IngestError ? e.message : 'Ocurrió un error inesperado al procesar'
+    if (!(e instanceof IngestError)) console.error('processSource', id, e)
+    await db.update(ingestSources)
+      .set({ status: 'error', statusDetail: message, updatedAt: new Date() })
+      .where(eq(ingestSources.id, id))
+  }
+
+  revalidatePath('/admin/ingesta')
+  const [row] = await db
+    .select({ source: ingestSources, createdByName: user.name })
+    .from(ingestSources)
+    .leftJoin(user, eq(user.id, ingestSources.createdBy))
+    .where(eq(ingestSources.id, id))
+    .limit(1)
+  return { ok: true, source: { ...row.source, createdByName: row.createdByName } }
 }

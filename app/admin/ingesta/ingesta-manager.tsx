@@ -1,9 +1,10 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { AlertCircle, ExternalLink, FileText, Link2, Loader2, Search, Trash2, Upload, X } from 'lucide-react'
-import { addUrlSource, deleteIngestSource, type IngestSourceRow } from '@/app/actions/ingest'
+import { AlertCircle, ExternalLink, FileText, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
+import { addUrlSource, deleteIngestSource, processSource, type IngestSourceRow } from '@/app/actions/ingest'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from '@/lib/upload-rules'
+import { MATERIAS, VIGENCIAS } from '@/lib/ingest/categories'
 import { cn } from '@/lib/utils'
 
 const ACCEPT = [...ALLOWED_UPLOAD_TYPES].join(',')
@@ -188,6 +189,8 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   const [status, setStatus] = useState('todos')
   const [deleting, setDeleting] = useState<IngestSourceRow | null>(null)
   const [deletePending, setDeletePending] = useState(false)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [processError, setProcessError] = useState('')
 
   const addSource = (s: IngestSourceRow) => setSources(prev => [s, ...prev])
 
@@ -203,6 +206,25 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
     queued: sources.filter(s => s.status === 'en_cola' || s.status === 'procesando').length,
     ready: sources.filter(s => s.status === 'lista').length,
     error: sources.filter(s => s.status === 'error').length,
+  }
+
+  async function handleProcess(s: IngestSourceRow) {
+    setProcessingId(s.id)
+    setProcessError('')
+    setSources(prev => prev.map(x => x.id === s.id ? { ...x, status: 'procesando', statusDetail: null } : x))
+    try {
+      const res = await processSource(s.id)
+      if (res.ok) setSources(prev => prev.map(x => x.id === s.id ? res.source : x))
+      else {
+        setProcessError(res.error)
+        setSources(prev => prev.map(x => x.id === s.id ? s : x))
+      }
+    } catch {
+      // Normalmente es el límite de duración de la función: el estado real queda en la base.
+      setProcessError('El procesamiento tardó demasiado o falló. Recarga la página para ver el estado.')
+    } finally {
+      setProcessingId(null)
+    }
   }
 
   async function handleDelete() {
@@ -222,7 +244,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
       {/* Header */}
       <div className="mb-6">
         <h1 className="font-serif text-3xl font-semibold text-foreground">Ingesta de información</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Agrega enlaces y documentos que Otero debe leer. Después se categorizarán por materia.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Agrega enlaces y documentos y pulsa Procesar: Otero los lee y los clasifica por materia, autoridad, fecha y vigencia.</p>
       </div>
 
       {/* Stats */}
@@ -268,6 +290,8 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         </select>
       </div>
 
+      {processError && <p className="mb-3 text-xs text-red-600">{processError}</p>}
+
       {/* Lista */}
       <div className="space-y-2">
         {filtered.length === 0 && (
@@ -281,7 +305,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         {filtered.map(s => {
           const href = s.kind === 'url' ? s.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(s.id)}`
           return (
-            <article key={s.id} className="flex items-center gap-4 bg-card border border-border rounded-2xl px-4 py-3">
+            <article key={s.id} className="flex items-start gap-4 bg-card border border-border rounded-2xl px-4 py-3">
               <div className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center shrink-0 text-muted-foreground">
                 {s.kind === 'url' ? <Link2 className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
               </div>
@@ -294,11 +318,30 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   {formatDate(s.createdAt)}{s.createdByName ? ` · ${s.createdByName}` : ''}
                 </p>
                 {s.status === 'error' && s.statusDetail && <p className="text-[11px] text-red-600 mt-0.5">{s.statusDetail}</p>}
+                {s.status === 'lista' && (
+                  <div className="mt-1.5 space-y-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      {s.materia && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1C2B4A]/10 text-[#1C2B4A]">{MATERIAS[s.materia as keyof typeof MATERIAS] ?? s.materia}</span>}
+                      {s.authority && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{s.authority}</span>}
+                      {s.publishedAt && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">Publicada {formatDate(`${s.publishedAt}T12:00:00`)}</span>}
+                      {s.vigenciaStatus && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5" title={s.vigenciaDetail ?? undefined}>{VIGENCIAS[s.vigenciaStatus as keyof typeof VIGENCIAS] ?? s.vigenciaStatus}</span>}
+                    </div>
+                    {s.summary && <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{s.summary}</p>}
+                  </div>
+                )}
               </div>
               <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0', statusBadge(s.status))}>
                 {STATUS_LABELS[s.status] ?? s.status}
               </span>
               <div className="flex items-center gap-1 shrink-0">
+                {(s.status === 'en_cola' || s.status === 'error') && (
+                  <button onClick={() => handleProcess(s)} disabled={processingId !== null}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+                    {s.status === 'error' ? <RotateCw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                    {s.status === 'error' ? 'Reintentar' : 'Procesar'}
+                  </button>
+                )}
+                {s.status === 'procesando' && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground mx-2" />}
                 <a href={href} target="_blank" rel="noopener noreferrer" aria-label="Abrir"
                   className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
                   <ExternalLink className="w-4 h-4" />
