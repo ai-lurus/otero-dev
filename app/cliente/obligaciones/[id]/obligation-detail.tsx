@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, CircleDot, Download, ExternalLink, FileSpreadsheet, FileText, ImageIcon, Pencil, Plus, Search } from 'lucide-react'
-import { addItemEvidence, setAdminItemStatus, updateItemStatus, type RegulatoryItem as Obligation } from '@/app/actions/regulatory-items'
+import { addItemEvidence, setAdminItemStatus, setItemSent, updateItemStatus, type RegulatoryItem as Obligation } from '@/app/actions/regulatory-items'
 import { ItemFormDialog } from '@/app/admin/obligaciones/item-form'
 import { ImpactBadge, SourceLink } from '@/components/regulatory/items-list'
 import { DIRECTION_LABELS, SCOPE_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
@@ -85,6 +85,14 @@ export function ObligationDetail({
     })
   }
 
+  function toggleSent() {
+    if (!tenantId) return
+    startTransition(async () => {
+      await setItemSent(tenantId, obligation.id, !obligation.sentAt)
+      router.refresh()
+    })
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 py-5 text-foreground md:px-10 md:py-10">
       <div className="mx-auto flex max-w-5xl flex-col gap-6">
@@ -116,14 +124,22 @@ export function ObligationDetail({
             <Badge variant="outline">{SCOPE_LABELS[obligation.scope as keyof typeof SCOPE_LABELS] ?? obligation.scope}</Badge>
             <ImpactBadge impact={obligation.impact} />
             <Badge variant="secondary">{STATUS_LABELS[obligation.status] ?? obligation.status}</Badge>
+            {adminMode && (
+              <Badge variant={obligation.sentAt ? 'default' : 'outline'}>{obligation.sentAt ? 'Enviado al cliente' : 'Borrador · el cliente no lo ve'}</Badge>
+            )}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <h1 className="item-title item-title-lg min-w-0" title={obligation.title}>{obligation.title}</h1>
             {adminMode && tenantId && (
-              <Button type="button" variant="outline" className="min-h-11 w-full shrink-0 sm:w-auto" onClick={() => setIsEditOpen(true)}>
-                <Pencil data-icon="inline-start" />
-                Editar objeto
-              </Button>
+              <div className="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                <Button type="button" variant="outline" className="min-h-11" onClick={() => setIsEditOpen(true)}>
+                  <Pencil data-icon="inline-start" />
+                  Editar objeto
+                </Button>
+                <Button type="button" variant={obligation.sentAt ? 'outline' : 'default'} className="min-h-11" disabled={isPending} onClick={toggleSent}>
+                  {obligation.sentAt ? 'Retirar del cliente' : 'Enviar al cliente'}
+                </Button>
+              </div>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
