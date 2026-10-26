@@ -219,6 +219,9 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState<GenerateResult[] | null>(null)
+  const [query, setQuery] = useState('')
+  const [showAll, setShowAll] = useState(false)
+  const [progress, setProgress] = useState('')
 
   async function load() {
     try {
@@ -243,16 +246,38 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
   async function handleGenerate() {
     setGenerating(true)
     setError('')
+    // De 8 en 8: cada borrador es una llamada a Haiku y la función dura 60 s.
+    const ids = [...selected]
+    const all: GenerateResult[] = []
     try {
-      const res = await generateObligations(sourceId, [...selected])
-      if (!res.ok) { setError(res.error); return }
-      setResults(res.results)
+      for (let i = 0; i < ids.length; i += 8) {
+        setProgress(`${Math.min(i + 8, ids.length)} de ${ids.length}`)
+        const res = await generateObligations(sourceId, ids.slice(i, i + 8))
+        if (!res.ok) { setError(res.error); break }
+        all.push(...res.results)
+      }
+      setResults(all)
       await load()
     } catch {
-      setError('No se pudieron generar las obligaciones')
+      setError('No se pudieron generar todas las obligaciones; los que ya salieron quedan como borrador')
+      await load()
     } finally {
       setGenerating(false)
+      setProgress('')
     }
+  }
+
+  const q = query.trim().toLowerCase()
+  const visible = (targets ?? []).filter(t => (showAll || t.applies || t.itemId) && (!q || t.name.toLowerCase().includes(q)))
+  const hidden = (targets ?? []).filter(t => !t.applies && !t.itemId).length
+  const selectable = visible.filter(t => !t.itemId && !t.error)
+  const allSelected = selectable.length > 0 && selectable.every(t => selected.has(t.tenantId))
+  function toggleAll() {
+    setSelected(prev => {
+      const next = new Set(prev)
+      for (const t of selectable) allSelected ? next.delete(t.tenantId) : next.add(t.tenantId)
+      return next
+    })
   }
 
   const reviewHref = (tenantId: string, itemId: string) => `/admin/obligaciones/${itemId}?tenant=${tenantId}`
@@ -266,9 +291,26 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
       {loadError && <p className="text-xs text-red-600">{loadError}</p>}
       {!targets && !loadError && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Revisando clientes…</p>}
       {targets && targets.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay clientes registrados.</p>}
+      {targets && targets.length > 8 && (
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar cliente…" aria-label="Buscar cliente"
+          className="mb-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none" />
+      )}
       {targets && targets.length > 0 && (
-        <ul className="space-y-2">
-          {targets.map(t => (
+        <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+          <button type="button" onClick={toggleAll} disabled={generating || selectable.length === 0} className="underline disabled:opacity-40">
+            {allSelected ? 'Quitar selección' : 'Seleccionar todos'}
+          </button>
+          {hidden > 0 && (
+            <button type="button" onClick={() => setShowAll(v => !v)} className="underline">
+              {showAll ? 'Ocultar los que no aplican' : `Mostrar ${hidden} que no aplican`}
+            </button>
+          )}
+        </div>
+      )}
+      {targets && targets.length > 0 && visible.length === 0 && <p className="text-sm text-muted-foreground">Ningún cliente coincide.</p>}
+      {targets && targets.length > 0 && (
+        <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
+          {visible.map(t => (
             <li key={t.tenantId} className={cn('flex items-start gap-3 rounded-xl border px-3 py-2.5', t.applies ? 'border-[#1C2B4A]/25 bg-[#1C2B4A]/5' : 'border-border')}>
               {t.itemId ? (
                 <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 shrink-0" />
@@ -301,7 +343,7 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
         <button onClick={handleGenerate} disabled={generating || selected.size === 0}
           className="mt-3 flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
           {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus2 className="w-4 h-4" />}
-          {generating ? 'Redactando borradores…' : `Generar obligaciones${selected.size ? ` (${selected.size})` : ''}`}
+          {generating ? `Redactando borradores… ${progress}` : `Generar obligaciones${selected.size ? ` (${selected.size})` : ''}`}
         </button>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { getTenantDb } from '@/lib/db/tenant'
 import { companyProfiles, ingestMatches, tenants, type IngestSource } from '@/lib/db/schema'
@@ -20,7 +20,12 @@ export async function computeMatches(source: Pick<IngestSource, 'id' | 'materia'
       console.error('computeMatches', tenant.id, e)
     }
   }))
-  await db.delete(ingestMatches).where(eq(ingestMatches.sourceId, source.id))
-  if (rows.length) await db.insert(ingestMatches).values(rows)
+  // Upsert y no borrar: conserva draftItemId de los borradores ya generados.
+  if (rows.length) {
+    await db.insert(ingestMatches).values(rows).onConflictDoUpdate({
+      target: [ingestMatches.sourceId, ingestMatches.tenantId],
+      set: { applies: sql`excluded.applies`, reason: sql`excluded.reason`, updatedAt: new Date() },
+    })
+  }
   return rows
 }

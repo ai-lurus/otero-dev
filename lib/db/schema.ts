@@ -271,6 +271,8 @@ export const ingestMatches = pgTable('ingest_matches', {
   tenantId:  text('tenant_id').notNull(),
   applies:   boolean('applies').notNull(),
   reason:    text('reason').notNull().default(''),
+  // Borrador ya generado para este cliente (id del asunto en su base), para no abrir su base al listar.
+  draftItemId: text('draft_item_id'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.sourceId, t.tenantId] })])
 

@@ -57,16 +57,18 @@ export async function getObligationTargets(sourceId: string): Promise<Obligation
     stored = await db.select().from(ingestMatches).where(eq(ingestMatches.sourceId, sourceId))
   }
   const matches = new Map(stored.map(m => [m.tenantId, m]))
-  return Promise.all(list.map(async (tenant): Promise<ObligationTarget> => {
-    try {
-      const { itemId } = await tenantContext(tenant.id, sourceId)
-      const match = matches.get(tenant.id)
-      return { tenantId: tenant.id, name: tenant.name, applies: match?.applies ?? false, reason: match?.reason ?? '', itemId, error: null }
-    } catch (e) {
-      console.error('getObligationTargets', tenant.id, e)
-      return { tenantId: tenant.id, name: tenant.name, applies: false, reason: '', itemId: null, error: 'No se pudo leer la base de este cliente' }
+  // Solo la base principal: no se abre la base de cada cliente al listar.
+  return list.map((tenant): ObligationTarget => {
+    const match = matches.get(tenant.id)
+    return {
+      tenantId: tenant.id,
+      name: tenant.name,
+      applies: match?.applies ?? false,
+      reason: match?.reason ?? 'No se pudo evaluar; revisa si aplica',
+      itemId: match?.draftItemId ?? null,
+      error: null,
     }
-  }))
+  })
 }
 
 export type GenerateResult = { tenantId: string; name: string; itemId: string | null; aiDraft: boolean; error: string | null }
@@ -91,7 +93,10 @@ export async function generateObligations(sourceId: string, tenantIds: string[])
     const base = { tenantId: tenant.id, name: tenant.name }
     try {
       const { tdb, profile, itemId: existing } = await tenantContext(tenant.id, sourceId)
-      if (existing) return { ...base, itemId: existing, aiDraft: false, error: 'Ya tenía un borrador de esta publicación' }
+      if (existing) {
+        await db.update(ingestMatches).set({ draftItemId: existing }).where(and(eq(ingestMatches.sourceId, source.id), eq(ingestMatches.tenantId, tenant.id)))
+        return { ...base, itemId: existing, aiDraft: false, error: 'Ya tenía un borrador de esta publicación' }
+      }
 
       const company: Company = { name: tenant.name, ...profile, industry: profile?.industry || tenant.industry }
       let draft: Draft | null = null
@@ -136,6 +141,9 @@ export async function generateObligations(sourceId: string, tenantIds: string[])
         metadata: { ingestSourceId: source.id, aiDraft: Boolean(draft) },
         createdBy: session?.user.id ?? userId,
       })
+      await db.insert(ingestMatches)
+        .values({ sourceId: source.id, tenantId: tenant.id, applies: true, reason: 'Generado manualmente', draftItemId: itemId })
+        .onConflictDoUpdate({ target: [ingestMatches.sourceId, ingestMatches.tenantId], set: { draftItemId: itemId, updatedAt: new Date() } })
       return { ...base, itemId, aiDraft: Boolean(draft), error: null }
     } catch (e) {
       console.error('generateObligations', tenant.id, e)
