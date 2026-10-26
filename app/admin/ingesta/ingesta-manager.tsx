@@ -527,8 +527,22 @@ function DeleteModal({ source, onCancel, onConfirm, pending }: {
   )
 }
 
+// Sitios cuya lectura la hace un script local (el sitio bloquea a los servidores): no se revisan desde el panel.
+const isLocalLoad = (u: string | null) => /(^|\.)herramientasregulatorias\.gob\.mx$/i.test(u ? new URL(u).hostname : '')
+
+const mxDay = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(d)
+const mxTime = (d: Date) => new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hour12: false }).format(d)
+
+/** Estado de revisión de un sitio, en hora de la Ciudad de México. */
+function checkState(lastCheckedAt: Date | string | null): { today: boolean; label: string } {
+  if (!lastCheckedAt) return { today: false, label: 'Sin revisar hoy · nunca revisado' }
+  const d = new Date(lastCheckedAt)
+  if (mxDay(d) === mxDay(new Date())) return { today: true, label: `Revisado hoy ${mxTime(d)}` }
+  return { today: false, label: `Sin revisar hoy · último ${new Intl.DateTimeFormat('es-MX', { timeZone: 'America/Mexico_City', day: '2-digit', month: 'short' }).format(d)} ${mxTime(d)}` }
+}
+
 // ── Main component ────────────────────────────────────────────────
-type KindFilter = 'todas' | 'url' | 'file' | 'site'
+type KindFilter = 'todas' | 'url' | 'file'
 
 export default function IngestaManager({ initialSources }: { initialSources: IngestSourceRow[] }) {
   const [sources, setSources] = useState(initialSources)
@@ -543,6 +557,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   const [processError, setProcessError] = useState('')
   const [checkingId, setCheckingId] = useState<string | null>(null)
   const [checkMessage, setCheckMessage] = useState('')
+  const [checkError, setCheckError] = useState('')
   const [checkDate, setCheckDate] = useState('')
   const [batchRunning, setBatchRunning] = useState(false)
   const stopBatch = useRef(false)
@@ -550,10 +565,10 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   const addSource = (s: IngestSourceRow) => setSources(prev => [s, ...prev])
 
   const items = sources.filter(s => s.kind !== 'site')
-  // Los sitios recurrentes no tienen estado de procesamiento propio: solo salen con el filtro de estado en "todos".
   const filtered = sources.filter(s => {
+    if (s.kind === 'site') return false // los sitios van en su propia sección
     if (kind !== 'todas' && s.kind !== kind) return false
-    if (status !== 'todos' && (s.kind === 'site' || s.status !== status)) return false
+    if (status !== 'todos' && s.status !== status) return false
     const q = search.trim().toLowerCase()
     return !q || titleOf(s).toLowerCase().includes(q) || (s.url ?? '').toLowerCase().includes(q) || (s.fileName ?? '').toLowerCase().includes(q)
   })
@@ -591,17 +606,17 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
   async function handleCheck(site: IngestSourceRow) {
     setCheckingId(site.id)
     setCheckMessage('')
-    setProcessError('')
+    setCheckError('')
     try {
       const res = await checkSite(site.id, checkDate || undefined)
-      if (!res.ok) { setProcessError(res.error); return }
+      if (!res.ok) { setCheckError(res.error); return }
       setSources(prev => [...res.created.reverse(), ...prev.map(x => x.id === site.id ? res.site : x)])
       const parts = [`${res.created.length} publicaciones nuevas`]
       if (res.skipped) parts.push(`${res.skipped} ya estaban registradas`)
       if (res.remaining) parts.push(`quedan ${res.remaining} sin agregar; vuelve a pulsar Revisar ahora`)
       setCheckMessage(`${parts.join(', ')}.`)
     } catch {
-      setProcessError('No se pudo revisar el sitio. Intenta de nuevo.')
+      setCheckError('No se pudo revisar el sitio. Intenta de nuevo.')
     } finally {
       setCheckingId(null)
     }
@@ -666,6 +681,57 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         {mode === 'url' ? <UrlForm onAdded={addSource} /> : mode === 'file' ? <FileDrop onAdded={addSource} /> : <SiteForm hasDof={sites.some(x => isDofUrl(x.url ?? ''))} onAdded={addSource} />}
       </section>
 
+      {/* Sitios recurrentes */}
+      {sites.length > 0 && (
+        <section className="mb-6" aria-label="Sitios recurrentes">
+          <p role="heading" aria-level={2} className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Sitios recurrentes</p>
+          <div className="space-y-2">
+            {sites.map(s => {
+              const state = checkState(s.lastCheckedAt)
+              const local = isLocalLoad(s.url)
+              return (
+                <article key={s.id} className="flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/40 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700"><Globe className="w-4 h-4" /></div>
+                    <div className="min-w-0 flex-1">
+                      <button onClick={() => setDetailId(s.id)} className="block max-w-full text-left text-sm font-medium text-foreground truncate hover:underline" title={titleOf(s)}>{titleOf(s)}</button>
+                      <p className="text-xs text-muted-foreground truncate">{s.url} · {childCount(s.id)} publicaciones</p>
+                      {local && <p className="text-[11px] text-muted-foreground">Se carga desde tu computadora con <code>pnpm pigr:ingest</code>; el sitio bloquea a los servidores.</p>}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 pl-12 sm:pl-0 sm:shrink-0">
+                    {!local && (
+                      <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                        state.today ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
+                        {state.label}
+                      </span>
+                    )}
+                    {!local && isDofUrl(s.url ?? '') && (
+                      <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)}
+                        aria-label="Fecha del sumario (vacío = hoy)" title="Fecha del sumario (vacío = hoy, hora de la Ciudad de México)"
+                        className="w-36 bg-background border border-border rounded-lg px-2 py-1 text-xs" />
+                    )}
+                    {!local && (
+                      <button onClick={() => handleCheck(s)} disabled={checkingId !== null}
+                        className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+                        {checkingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarSearch className="w-3.5 h-3.5" />}
+                        Revisar ahora
+                      </button>
+                    )}
+                    <a href={s.url ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Abrir"
+                      className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><ExternalLink className="w-4 h-4" /></a>
+                    <button onClick={() => setDeleting(s)} aria-label="Eliminar"
+                      className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+          {checkError && <p className="mt-2 text-xs text-red-600">{checkError}</p>}
+          {checkMessage && <p className="mt-2 text-xs text-emerald-700">{checkMessage}</p>}
+        </section>
+      )}
+
       {/* Alerta: fuentes que no se pudieron leer */}
       {failed.length > 0 && (
         <section role="alert" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
@@ -705,7 +771,6 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           <option value="todas">Todos los tipos</option>
           <option value="url">Enlaces</option>
           <option value="file">Archivos</option>
-          <option value="site">Sitios recurrentes</option>
         </select>
         <select value={status} onChange={e => setStatus(e.target.value)}
           className="bg-card border border-border rounded-xl px-3 py-2.5 text-sm focus:outline-none">
@@ -729,7 +794,6 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         </div>
       )}
       {processError && <p className="mb-3 text-xs text-red-600">{processError}</p>}
-      {checkMessage && <p className="mb-3 text-xs text-emerald-700">{checkMessage}</p>}
 
       {/* Lista */}
       <div className="space-y-2">
@@ -737,7 +801,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           <div className="rounded-2xl border border-dashed border-border bg-card p-10 text-center">
             <Upload className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">
-              {sources.length === 0 ? 'Aún no hay fuentes. Agrega un enlace o sube un documento.' : 'Ninguna fuente coincide con los filtros.'}
+              {items.length === 0 ? 'Aún no hay fuentes. Agrega un enlace o sube un documento.' : 'Ninguna fuente coincide con los filtros.'}
             </p>
           </div>
         )}
