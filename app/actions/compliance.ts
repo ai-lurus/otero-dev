@@ -3,7 +3,7 @@
 import { headers } from 'next/headers'
 import { and, desc, eq } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { getTenantDb } from '@/lib/db/tenant'
 import { documents } from '@/lib/db/schema'
 import { getFirstTenantId } from './auth-helpers'
 
@@ -12,6 +12,7 @@ export async function getComplianceDocuments() {
   if (!session?.user) throw new Error('Unauthorized')
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('Tenant not found')
+  const db = await getTenantDb(tenantId)
 
   return db
     .select({
@@ -37,6 +38,7 @@ export async function updateComplianceDocumentStatus(id: string, status: string)
   if (!tenantId) throw new Error('Tenant not found')
   const allowedStatuses = ['vigente', 'por_vencer', 'vencido', 'archivado', 'sin_vencimiento']
   if (!allowedStatuses.includes(status)) throw new Error('Invalid status')
+  const db = await getTenantDb(tenantId)
   const updated = await db
     .update(documents)
     .set({ status })

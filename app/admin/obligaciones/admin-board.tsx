@@ -60,7 +60,7 @@ export function AdminBoard({ tenants, tenantId, items }: Props) {
         <ItemsList
           items={items}
           showDraft
-          getHref={(item) => `/admin/obligaciones/${item.id}`}
+          getHref={(item) => `/admin/obligaciones/${item.id}?tenant=${tenantId}`}
           emptyTitle="Este cliente aún no tiene asuntos"
           emptyDescription="Captura el primero con el botón Nuevo asunto."
         />

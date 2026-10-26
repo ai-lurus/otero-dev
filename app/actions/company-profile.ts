@@ -1,6 +1,6 @@
 'use server'
 
-import { db } from '@/lib/db'
+import { getTenantDb } from '@/lib/db/tenant'
 import { companyProfiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getUserId, getFirstTenantId, getSession } from './auth-helpers'
@@ -12,6 +12,7 @@ export async function getCompanyProfileForCurrentUser() {
   const tenantId = await getFirstTenantId()
   if (!tenantId || !session?.user) throw new Error('No tenant')
 
+  const db = await getTenantDb(tenantId)
   const rows = await db
     .select()
     .from(companyProfiles)
@@ -31,6 +32,7 @@ export async function getCompanyProfile(tenantId: string) {
   await getUserId()
   const currentTenantId = await getFirstTenantId()
   if (!currentTenantId || currentTenantId !== tenantId) throw new Error('Forbidden')
+  const db = await getTenantDb(currentTenantId)
   const rows = await db
     .select()
     .from(companyProfiles)
@@ -51,6 +53,7 @@ export async function saveCompanyProfile(data: {
   await getUserId()
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('No tenant')
+  const db = await getTenantDb(tenantId)
 
   await db
     .insert(companyProfiles)

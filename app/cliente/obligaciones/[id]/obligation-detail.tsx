@@ -104,7 +104,7 @@ export function ObligationDetail({
               setIsEditOpen(false)
               router.refresh()
             }}
-            onDeleted={() => router.push('/admin/obligaciones')}
+            onDeleted={() => router.push(`/admin/obligaciones?tenant=${tenantId}`)}
           />
         ) : (
         <>
@@ -156,7 +156,9 @@ export function ObligationDetail({
               <Field label="Sentido del impacto">{obligation.impactDirection ? DIRECTION_LABELS[obligation.impactDirection] : 'Sin definir'}</Field>
               <Field label="Justificación del impacto" wide>{obligation.impactRationale || 'Sin justificación agregada.'}</Field>
               <Field label="Obligaciones" wide>
-                {obligation.generatesObligation ? obligation.obligationDetail || 'Sí, sin detalle agregado.' : 'No genera obligaciones registradas.'}
+                <span className="whitespace-pre-line">
+                  {obligation.obligationDetail || (obligation.generatesObligation ? 'Sí, sin detalle agregado.' : 'No genera obligaciones registradas.')}
+                </span>
               </Field>
               <Field label="Fechas relevantes" wide>
                 {obligation.dueDate ? `Fecha: ${obligation.dueDate}` : 'Sin fecha relevante registrada.'}

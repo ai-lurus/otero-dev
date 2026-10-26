@@ -10,7 +10,8 @@
     "db:push": "drizzle-kit push",
     "tenant:set-db": "node scripts/set-tenant-db.mjs",
     "tenant:push": "node scripts/tenant-push.mjs",
-    "tenant:check": "node scripts/tenant-check.mjs"
+    "tenant:check": "node scripts/tenant-check.mjs",
+    "tenant:copy": "node scripts/tenant-copy.mjs"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.55",

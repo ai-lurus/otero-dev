@@ -276,7 +276,7 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
               </div>
               <div className="divide-y divide-border">
 {urgentItems.map(({ item, daysLeft }) => (
-                  <Link key={item.id} href={`/admin/obligaciones/${item.id}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/40 transition-colors group">
+                  <Link key={item.id} href={`/admin/obligaciones/${item.id}?tenant=${item.tenantId}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/40 transition-colors group">
                     <div className={cn("w-2 h-2 rounded-full shrink-0", daysLeft !== null && daysLeft < 0 ? "bg-red-500" : "bg-amber-400")} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-foreground truncate">{item.title}</p>

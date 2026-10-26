@@ -1,7 +1,7 @@
 import { and, eq, isNotNull } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { getTenantDb } from '@/lib/db/tenant'
 import { documents, regulatoryItems, regulatoryItemEvidence } from '@/lib/db/schema'
 import { getFirstTenantId } from '@/app/actions/auth-helpers'
 
@@ -14,6 +14,7 @@ export async function getTenantSession() {
 }
 
 export async function tenantOwnsItem(tenantId: string, itemId: string) {
+  const db = await getTenantDb(tenantId)
   const rows = await db
     .select({ id: regulatoryItems.id })
     .from(regulatoryItems)
@@ -23,6 +24,7 @@ export async function tenantOwnsItem(tenantId: string, itemId: string) {
 }
 
 export async function tenantOwnsBlob(tenantId: string, pathname: string) {
+  const db = await getTenantDb(tenantId)
   const rows = await db
     .select({ id: regulatoryItemEvidence.id })
     .from(regulatoryItemEvidence)
@@ -32,6 +34,7 @@ export async function tenantOwnsBlob(tenantId: string, pathname: string) {
 }
 
 export async function tenantOwnsDocument(tenantId: string, pathname: string) {
+  const db = await getTenantDb(tenantId)
   const rows = await db
     .select({ id: documents.id })
     .from(documents)

@@ -4,12 +4,15 @@ import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { eq, and, desc, isNotNull, inArray } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { db } from '@/lib/db'
+import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@/lib/db/schema'
 import { DIRECTIONS, IMPACTS, MATERIAS, SCOPES, STATUSES, isOneOf } from '@/lib/regulatory'
 import { getFirstTenantId, requireAdmin } from './auth-helpers'
 
 export type ItemEvent = typeof regulatoryItemEvents.$inferSelect
+
+// Los asuntos viven en la base de cada cliente (getTenantDb).
+type TenantDb = Awaited<ReturnType<typeof getTenantDb>>
 
 export type ItemInput = {
   scope: string
@@ -39,7 +42,7 @@ async function clientContext() {
   if (!session?.user) throw new Error('Unauthorized')
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('Tenant not found')
-  return { userId: session.user.id, tenantId }
+  return { userId: session.user.id, tenantId, db: await getTenantDb(tenantId) }
 }
 
 const text = (value?: string) => value?.trim() || null
@@ -77,7 +80,7 @@ function normalize(input: ItemInput) {
   }
 }
 
-async function recordEvent(input: {
+async function recordEvent(db: TenantDb, input: {
   itemId: string
   tenantId: string
   eventType: string
@@ -98,7 +101,7 @@ async function recordEvent(input: {
   })
 }
 
-async function attachEvidence<T extends { id: string }>(rows: T[]) {
+async function attachEvidence<T extends { id: string }>(db: TenantDb, rows: T[]) {
   if (!rows.length) return rows.map((row) => ({ ...row, evidence: [] as (typeof regulatoryItemEvidence.$inferSelect)[] }))
   const evidence = await db
     .select()
@@ -111,24 +114,24 @@ async function attachEvidence<T extends { id: string }>(rows: T[]) {
 // ── Cliente: solo ve lo que el admin le envió ──────────────────────
 
 export async function getRegulatoryItems() {
-  const { tenantId } = await clientContext()
+  const { tenantId, db } = await clientContext()
   const rows = await db
     .select()
     .from(regulatoryItems)
     .where(and(eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
     .orderBy(desc(regulatoryItems.publishedAt), desc(regulatoryItems.updatedAt))
-  return attachEvidence(rows)
+  return attachEvidence(db, rows)
 }
 
 export async function getRegulatoryItem(id: string) {
-  const { tenantId } = await clientContext()
+  const { tenantId, db } = await clientContext()
   const [row] = await db
     .select()
     .from(regulatoryItems)
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
     .limit(1)
   if (!row) return null
-  const [withEvidence] = await attachEvidence([row])
+  const [withEvidence] = await attachEvidence(db, [row])
   const events = await db
     .select()
     .from(regulatoryItemEvents)
@@ -138,7 +141,7 @@ export async function getRegulatoryItem(id: string) {
 }
 
 export async function updateItemStatus(id: string, status: string) {
-  const { tenantId } = await clientContext()
+  const { tenantId, db } = await clientContext()
   if (!isOneOf(STATUSES, status)) throw new Error('Estado inválido')
   const updated = await db
     .update(regulatoryItems)
@@ -146,7 +149,7 @@ export async function updateItemStatus(id: string, status: string) {
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
     .returning({ id: regulatoryItems.id })
   if (!updated.length) throw new Error('Asunto no encontrado')
-  await recordEvent({
+  await recordEvent(db, {
     itemId: id,
     tenantId,
     eventType: 'status_changed',
@@ -160,7 +163,7 @@ export async function updateItemStatus(id: string, status: string) {
 }
 
 export async function addItemEvidence(input: { itemId: string; kind: string; title: string; content: string; url?: string; blobPathname?: string }) {
-  const { userId, tenantId } = await clientContext()
+  const { userId, tenantId, db } = await clientContext()
   const parent = await db
     .select({ id: regulatoryItems.id })
     .from(regulatoryItems)
@@ -178,7 +181,7 @@ export async function addItemEvidence(input: { itemId: string; kind: string; tit
     createdBy: userId,
   })
   const labels = { nota: 'nota', documento: 'documento', evidencia: 'evidencia' }
-  await recordEvent({
+  await recordEvent(db, {
     itemId: input.itemId,
     tenantId,
     eventType: `${input.kind}_added`,
@@ -199,19 +202,21 @@ export async function getAdminDashboardData() {
 
 export async function getAdminItems(tenantId: string) {
   await requireAdmin()
+  const db = await getTenantDb(tenantId)
   const rows = await db
     .select()
     .from(regulatoryItems)
     .where(eq(regulatoryItems.tenantId, tenantId))
     .orderBy(desc(regulatoryItems.publishedAt), desc(regulatoryItems.updatedAt))
-  return attachEvidence(rows)
+  return attachEvidence(db, rows)
 }
 
-export async function getAdminItem(id: string) {
+export async function getAdminItem(tenantId: string, id: string) {
   await requireAdmin()
-  const [row] = await db.select().from(regulatoryItems).where(eq(regulatoryItems.id, id)).limit(1)
+  const db = await getTenantDb(tenantId)
+  const [row] = await db.select().from(regulatoryItems).where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId))).limit(1)
   if (!row) return null
-  const [withEvidence] = await attachEvidence([row])
+  const [withEvidence] = await attachEvidence(db, [row])
   const events = await db
     .select()
     .from(regulatoryItemEvents)
@@ -222,6 +227,7 @@ export async function getAdminItem(id: string) {
 
 export async function saveRegulatoryItem(tenantId: string, id: string | null, input: ItemInput) {
   await requireAdmin()
+  const db = await getTenantDb(tenantId)
   const values = normalize(input)
   const session = await auth.api.getSession({ headers: await headers() })
   const actorId = session?.user.id ?? 'admin'
@@ -232,17 +238,18 @@ export async function saveRegulatoryItem(tenantId: string, id: string | null, in
       .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId)))
       .returning({ id: regulatoryItems.id })
     if (!updated.length) throw new Error('Asunto no encontrado')
-    await recordEvent({ itemId: id, tenantId, eventType: 'item_updated', title: 'Se actualizó el asunto', description: 'Se modificaron los datos del expediente.', createdBy: actorId })
+    await recordEvent(db, { itemId: id, tenantId, eventType: 'item_updated', title: 'Se actualizó el asunto', description: 'Se modificaron los datos del expediente.', createdBy: actorId })
   } else {
     const itemId = crypto.randomUUID()
     await db.insert(regulatoryItems).values({ id: itemId, tenantId, createdBy: actorId, ...values })
-    await recordEvent({ itemId, tenantId, eventType: 'created', title: 'Asunto identificado', description: 'Se abrió el expediente regulatorio.', createdBy: actorId })
+    await recordEvent(db, { itemId, tenantId, eventType: 'created', title: 'Asunto identificado', description: 'Se abrió el expediente regulatorio.', createdBy: actorId })
   }
   revalidatePath('/admin/obligaciones')
 }
 
 export async function setItemSent(tenantId: string, id: string, sent: boolean) {
   await requireAdmin()
+  const db = await getTenantDb(tenantId)
   const updated = await db
     .update(regulatoryItems)
     .set({ sentAt: sent ? new Date() : null, updatedAt: new Date() })
@@ -250,7 +257,7 @@ export async function setItemSent(tenantId: string, id: string, sent: boolean) {
     .returning({ id: regulatoryItems.id })
   if (!updated.length) throw new Error('Asunto no encontrado')
   const session = await auth.api.getSession({ headers: await headers() })
-  await recordEvent({
+  await recordEvent(db, {
     itemId: id,
     tenantId,
     eventType: sent ? 'sent' : 'recalled',
@@ -264,6 +271,7 @@ export async function setItemSent(tenantId: string, id: string, sent: boolean) {
 
 export async function setAdminItemStatus(tenantId: string, id: string, status: string) {
   await requireAdmin()
+  const db = await getTenantDb(tenantId)
   if (!isOneOf(STATUSES, status)) throw new Error('Estado inválido')
   const updated = await db
     .update(regulatoryItems)
@@ -272,12 +280,13 @@ export async function setAdminItemStatus(tenantId: string, id: string, status: s
     .returning({ id: regulatoryItems.id })
   if (!updated.length) throw new Error('Asunto no encontrado')
   const session = await auth.api.getSession({ headers: await headers() })
-  await recordEvent({ itemId: id, tenantId, eventType: 'status_changed', title: `Estado cambiado a ${status}`, description: 'El equipo actualizó el estado del asunto regulatorio.', createdBy: session?.user.id ?? 'admin', metadata: { status } })
+  await recordEvent(db, { itemId: id, tenantId, eventType: 'status_changed', title: `Estado cambiado a ${status}`, description: 'El equipo actualizó el estado del asunto regulatorio.', createdBy: session?.user.id ?? 'admin', metadata: { status } })
   revalidatePath('/admin/obligaciones')
 }
 
 export async function deleteRegulatoryItem(tenantId: string, id: string) {
   await requireAdmin()
+  const db = await getTenantDb(tenantId)
   await db.delete(regulatoryItemEvidence).where(and(eq(regulatoryItemEvidence.itemId, id), eq(regulatoryItemEvidence.tenantId, tenantId)))
   await db.delete(regulatoryItemEvents).where(and(eq(regulatoryItemEvents.itemId, id), eq(regulatoryItemEvents.tenantId, tenantId)))
   await db.delete(regulatoryItems).where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId)))

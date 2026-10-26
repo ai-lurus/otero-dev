@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
+import { getTenantDb } from '@/lib/db/tenant'
 import { companyProfiles, posts } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { getFirstTenantId } from '@/app/actions/auth-helpers'
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
       const tenantId = await getFirstTenantId()
       if (tenantId) {
         const [profile, recentPosts] = await Promise.all([
-          db.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId)).limit(1),
+          getTenantDb(tenantId).then((tdb) => tdb.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId)).limit(1)),
           db.select().from(posts).where(eq(posts.published, true)).orderBy(desc(posts.createdAt)).limit(10),
         ])
 
