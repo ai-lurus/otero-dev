@@ -50,20 +50,30 @@ try {
   const browser = await chromium.launch({ headless: false })
   const page = await (await browser.newContext({ locale: 'es-MX' })).newPage()
 
-  // 1) Enlaces a fichas de las primeras páginas del Buscador.
+  // 1) Enlaces a fichas. Los resultados son un fragmento HTML que el propio sitio carga con
+  //    Buscador/SearchRegulacionResult (search, page); se pide desde la página ya abierta.
   const found = new Map()
+  await page.goto(`${ORIGIN}/Buscador?txtSearch=${encodeURIComponent(term)}&tab=tab1`, { waitUntil: 'domcontentloaded' })
+  await page.waitForLoadState('networkidle').catch(() => {})
   for (let p = 1; p <= maxPages; p++) {
-    await page.goto(`${ORIGIN}/Buscador?txtSearch=${encodeURIComponent(term)}&tab=tab1&Pagina=${p}`, { waitUntil: 'domcontentloaded' })
-    await page.waitForLoadState('networkidle').catch(() => {})
-    const links = await page.$$eval('a[href*="AirConstancia"]', as => as.map(a => ({ href: a.href, title: (a.textContent || '').replace(/\s+/g, ' ').trim() })))
+    const cards = await page.evaluate(async ({ term, p }) => {
+      const res = await fetch(`/Buscador/SearchRegulacionResult?search=${encodeURIComponent(term)}&page=${p}`, { credentials: 'include' })
+      if (!res.ok) return { error: res.status }
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
+      return { cards: [...doc.querySelectorAll('a[href*="AirConstancia?IdAir="]')].map(a => ({
+        href: a.getAttribute('href'),
+        title: (a.closest('.card')?.querySelector('h4')?.textContent || '').replace(/\s+/g, ' ').trim(),
+      })) }
+    }, { term, p })
+    if (cards.error) { console.warn(`Página ${p}: el sitio respondió ${cards.error}`); break }
     let added = 0
-    for (const l of links) {
-      const id = new URL(l.href).searchParams.get('IdAir')
+    for (const l of cards.cards) {
+      const id = new URL(l.href, ORIGIN).searchParams.get('IdAir')
       if (!id) continue
       const url = `${ORIGIN}/AirConstancia?IdAir=${id}&tab=tab1`
       if (!found.has(url)) { found.set(url, l.title); added++ }
     }
-    console.log(`Página ${p}: ${links.length} enlaces, ${added} fichas distintas nuevas`)
+    console.log(`Página ${p}: ${cards.cards.length} enlaces, ${added} fichas nuevas`)
     if (added === 0) break
     await sleep(1500)
   }
