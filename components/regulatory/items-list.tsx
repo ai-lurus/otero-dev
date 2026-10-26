@@ -25,6 +25,13 @@ const IMPACT_STYLE: Record<string, string> = {
 const formatDay = (value: string) =>
   new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`))
 
+/** Solo para el admin: si el asunto sigue en borrador o ya se envió al cliente (con la fecha). */
+function SentBadge({ sentAt }: { sentAt: Date | string | null }) {
+  if (!sentAt) return <Badge variant="outline" className="border-dashed">Borrador · no enviado</Badge>
+  const day = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(sentAt))
+  return <Badge className="border-transparent bg-emerald-100 text-emerald-800">Enviado al cliente · {day}</Badge>
+}
+
 export function ImpactBadge({ impact }: { impact: string | null }) {
   if (!impact) return null
   return <Badge className={cn('border-transparent', IMPACT_STYLE[impact])}>{IMPACT_LABELS[impact] ?? impact}</Badge>
@@ -155,7 +162,7 @@ export function ItemsList({ items, getHref, showDraft, emptyTitle, emptyDescript
                       <TableCell className="max-w-0"><div className="truncate font-medium">{item.title}</div><div className="truncate text-xs text-muted-foreground">{item.authority ?? item.materia}</div></TableCell>
                       <TableCell><Badge variant="outline">{SCOPE_LABELS[item.scope as keyof typeof SCOPE_LABELS] ?? item.scope}</Badge></TableCell>
                       <TableCell><ImpactBadge impact={item.impact} /></TableCell>
-                      <TableCell><Badge variant="secondary">{STATUS_LABELS[item.status] ?? item.status}</Badge></TableCell>
+                      <TableCell><div className="flex flex-wrap gap-1"><Badge variant="secondary">{STATUS_LABELS[item.status] ?? item.status}</Badge>{showDraft && <SentBadge sentAt={item.sentAt} />}</div></TableCell>
                       <TableCell className="text-right"><ChevronRight className="ml-auto size-4 text-muted-foreground" /></TableCell>
                     </>
                   )
@@ -174,7 +181,7 @@ export function ItemsList({ items, getHref, showDraft, emptyTitle, emptyDescript
                     <Badge variant="outline">{SCOPE_LABELS[item.scope as keyof typeof SCOPE_LABELS] ?? item.scope}</Badge>
                     <ImpactBadge impact={item.impact} />
                     <Badge variant="secondary">{STATUS_LABELS[item.status] ?? item.status}</Badge>
-                    {showDraft && !item.sentAt && <Badge variant="outline" className="border-dashed">Borrador</Badge>}
+                    {showDraft && <SentBadge sentAt={item.sentAt} />}
                   </div>
                   <h2 className="item-title max-w-full" title={item.title}>{item.title}</h2>
                   <p className="mt-1 text-xs font-medium text-muted-foreground">
