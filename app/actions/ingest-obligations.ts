@@ -9,6 +9,7 @@ import { getTenantDb } from '@/lib/db/tenant'
 import { companyProfiles, ingestMatches, ingestSources, regulatoryItemEvents, regulatoryItems, tenants } from '@/lib/db/schema'
 import { draftObligation, ITEM_MATERIA, type Company, type Draft } from '@/lib/ingest/draft'
 import { computeMatches } from '@/lib/ingest/matching'
+import { isDofHost } from '@/lib/ingest/site'
 import type { Materia } from '@/lib/ingest/categories'
 import { requireAdmin } from './auth-helpers'
 
@@ -88,6 +89,11 @@ export async function generateObligations(sourceId: string, tenantIds: string[])
   const source = await readySource(sourceId).catch(() => null)
   if (!source) return { ok: false, error: 'La fuente aún no está categorizada' }
   const list = await db.select().from(tenants).where(inArray(tenants.id, tenantIds))
+  // Publicación de un sitio recurrente: el origen es el sitio (DOF o el nombre con que se registró).
+  const [parent] = source.parentId
+    ? await db.select({ title: ingestSources.title, url: ingestSources.url }).from(ingestSources).where(eq(ingestSources.id, source.parentId)).limit(1)
+    : []
+  const sourceLabel = !parent ? 'Sitio recurrente' : parent.url && isDofHost(new URL(parent.url).hostname) ? 'DOF' : parent.title.slice(0, 80)
 
   const results = await Promise.all(list.map(async (tenant): Promise<GenerateResult> => {
     const base = { tenantId: tenant.id, name: tenant.name }
@@ -117,7 +123,7 @@ export async function generateObligations(sourceId: string, tenantIds: string[])
         description: source.summary ?? '',
         instrumentType: draft?.instrumentType ?? null,
         authority: source.authority,
-        source: source.parentId ? 'DOF' : source.kind === 'file' ? (source.fileName ?? 'Archivo') : new URL(source.url!).hostname,
+        source: source.parentId ? sourceLabel : source.kind === 'file' ? (source.fileName ?? 'Archivo') : new URL(source.url!).hostname,
         sourceUrl: source.url,
         stage: source.vigenciaStatus === 'proyecto' ? 'proyecto' : source.parentId ? 'publicado' : null,
         stageDetail: source.vigenciaDetail,

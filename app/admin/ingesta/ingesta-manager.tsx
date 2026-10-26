@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AlertCircle, CalendarSearch, CheckCircle2, ExternalLink, FilePlus2, FileText, Globe, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
-import { addSiteSource, addUrlSource, checkSite, deleteIngestSource, processSource, type IngestSourceRow } from '@/app/actions/ingest'
+import { addSiteSource, addUrlSource, checkSite, deleteIngestSource, previewSite, processSource, type IngestSourceRow } from '@/app/actions/ingest'
 import { generateObligations, getObligationTargets, type GenerateResult, type ObligationTarget } from '@/app/actions/ingest-obligations'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from '@/lib/upload-rules'
 import { MATERIAS, VIGENCIAS } from '@/lib/ingest/categories'
@@ -154,17 +154,26 @@ function FileDrop({ onAdded }: { onAdded: (s: IngestSourceRow) => void }) {
 }
 
 // ── Alta de sitio recurrente ──────────────────────────────────────
-function SiteForm({ hasSite, onAdded }: { hasSite: boolean; onAdded: (s: IngestSourceRow) => void }) {
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+const isDofUrl = (u: string) => /^(https?:\/\/)?(www\.)?dof\.gob\.mx(\/|$)/i.test(u.trim())
 
-  async function handleAdd() {
+function SiteForm({ hasDof, onAdded }: { hasDof: boolean; onAdded: (s: IngestSourceRow) => void }) {
+  const [url, setUrl] = useState('')
+  const [title, setTitle] = useState('')
+  const [linkFilter, setLinkFilter] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [testing, setTesting] = useState(false)
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState<{ total: number; blocked: number; sample: { url: string; title: string }[] } | null>(null)
+  const dof = isDofUrl(url)
+
+  async function save(data: { url: string; title?: string; linkFilter?: string }) {
     setSaving(true)
     setError('')
     try {
-      const res = await addSiteSource({ url: 'https://dof.gob.mx/' })
+      const res = await addSiteSource(data)
       if (!res.ok) { setError(res.error); return }
       onAdded(res.source)
+      setUrl(''); setTitle(''); setLinkFilter(''); setPreview(null)
     } catch {
       setError('No se pudo guardar. Intenta de nuevo.')
     } finally {
@@ -172,17 +181,70 @@ function SiteForm({ hasSite, onAdded }: { hasSite: boolean; onAdded: (s: IngestS
     }
   }
 
+  async function handleTest() {
+    setTesting(true)
+    setError('')
+    setPreview(null)
+    try {
+      const res = await previewSite({ url, linkFilter })
+      if (!res.ok) { setError(res.error); return }
+      setPreview(res)
+    } catch {
+      setError('No se pudo probar el listado. Intenta de nuevo.')
+    } finally {
+      setTesting(false)
+    }
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
-        Registra el Diario Oficial de la Federación: con <strong>Revisar ahora</strong> Otero lee el sumario del día y
-        agrega cada publicación como una fuente nueva, sin repetir las que ya tiene.
+        Registra la página donde un sitio publica sus novedades (un listado de avisos, normas o comunicados, o su feed RSS).
+        Con <strong>Revisar ahora</strong> Otero toma los enlaces nuevos y los agrega como fuentes, sin repetir los que ya tiene
+        y respetando el robots.txt del sitio.
       </p>
-      <button onClick={handleAdd} disabled={saving || hasSite}
-        className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
-        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />}
-        {hasSite ? 'Diario Oficial ya registrado' : 'Registrar Diario Oficial'}
-      </button>
+      {!hasDof && (
+        <button onClick={() => save({ url: 'https://dof.gob.mx/' })} disabled={saving}
+          className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary disabled:opacity-40">
+          <Globe className="w-3.5 h-3.5" /> Registrar el Diario Oficial (sumario diario)
+        </button>
+      )}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <input value={url} onChange={e => { setUrl(e.target.value); setPreview(null) }} placeholder="https://www.gob.mx/stps/archivo/prensa" inputMode="url"
+          aria-label="URL del listado o feed" className="sm:col-span-2 bg-background border border-border rounded-xl px-3 py-2 text-sm" />
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Nombre (opcional), p. ej. STPS · Comunicados"
+          aria-label="Nombre del sitio" className="bg-background border border-border rounded-xl px-3 py-2 text-sm" />
+        <input value={linkFilter} onChange={e => { setLinkFilter(e.target.value); setPreview(null) }} disabled={dof}
+          placeholder="Filtro de enlaces (opcional), p. ej. */prensa/*"
+          title="Solo se toman los enlaces cuya URL contenga este texto; * vale por cualquier cosa. Vacío = enlaces del mismo dominio con título."
+          aria-label="Filtro de enlaces" className="bg-background border border-border rounded-xl px-3 py-2 text-sm disabled:opacity-40" />
+      </div>
+      {dof && <p className="text-xs text-muted-foreground">El Diario Oficial se lee por su sumario del día; el filtro no aplica.</p>}
+      <div className="flex flex-wrap gap-2">
+        <button onClick={handleTest} disabled={testing || saving || !url.trim()}
+          className="flex items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-secondary disabled:opacity-40">
+          {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />} Probar
+        </button>
+        <button onClick={() => save({ url, title, linkFilter })} disabled={saving || testing || !url.trim()}
+          className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />} Registrar sitio
+        </button>
+      </div>
+      {preview && (
+        <div className="rounded-xl border border-border bg-secondary/40 p-3 text-xs">
+          <p className="font-semibold text-foreground mb-1">
+            {preview.total === 1 ? 'Tomaría 1 enlace' : `Tomaría ${preview.total} enlaces`}
+            {preview.blocked > 0 && ` (${preview.blocked} descartados por robots.txt)`}
+            {preview.total > 8 && '; los primeros:'}
+          </p>
+          <ul className="space-y-0.5">
+            {preview.sample.map(l => (
+              <li key={l.url} className="truncate"><a href={l.url} target="_blank" rel="noreferrer" className="hover:underline">{decodeEntities(l.title)}</a></li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground mt-1">Si salen enlaces de menú o que no son publicaciones, agrega un filtro y vuelve a probar.</p>
+        </div>
+      )}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   )
@@ -601,7 +663,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
             </button>
           ))}
         </div>
-        {mode === 'url' ? <UrlForm onAdded={addSource} /> : mode === 'file' ? <FileDrop onAdded={addSource} /> : <SiteForm hasSite={sites.length > 0} onAdded={addSource} />}
+        {mode === 'url' ? <UrlForm onAdded={addSource} /> : mode === 'file' ? <FileDrop onAdded={addSource} /> : <SiteForm hasDof={sites.some(x => isDofUrl(x.url ?? ''))} onAdded={addSource} />}
       </section>
 
       {/* Alerta: fuentes que no se pudieron leer */}
@@ -724,7 +786,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                     {s.matchCount === 0 ? 'No aplica a clientes' : s.matchCount === 1 ? 'Aplica a 1 cliente' : `Aplica a ${s.matchCount} clientes`}
                   </span>
                 )}
-                {s.kind === 'site' && (
+                {s.kind === 'site' && isDofUrl(s.url ?? '') && (
                   <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)}
                     aria-label="Fecha del sumario (vacío = hoy)" title="Fecha del sumario (vacío = hoy, hora de la Ciudad de México)"
                     className="w-36 bg-background border border-border rounded-lg px-2 py-1 text-xs" />

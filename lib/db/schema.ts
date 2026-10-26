@@ -258,6 +258,8 @@ export const ingestSources = pgTable('ingest_sources', {
   // kind 'site' = sitio recurrente (p. ej. DOF); sus publicaciones son fuentes 'url' con parentId.
   parentId:       text('parent_id'),
   lastCheckedAt:  timestamp('last_checked_at'),
+  // Solo sitios genéricos: comodín que deben cumplir los enlaces del listado (nulo = automático).
+  linkFilter:     text('link_filter'),
   createdBy:    text('created_by').notNull(),
   createdAt:    timestamp('created_at').notNull().defaultNow(),
   updatedAt:    timestamp('updated_at').notNull().defaultNow(),

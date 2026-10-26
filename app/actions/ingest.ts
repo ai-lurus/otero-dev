@@ -7,7 +7,8 @@ import { db } from '@/lib/db'
 import { ingestMatches, ingestSources, user } from '@/lib/db/schema'
 import { computeMatches } from '@/lib/ingest/matching'
 import { requireAdmin } from './auth-helpers'
-import { DOF_HOSTS, DOF_ORIGIN, fetchDofSummary, todayInMexico } from '@/lib/ingest/dof'
+import { DOF_ORIGIN, fetchDofSummary, todayInMexico } from '@/lib/ingest/dof'
+import { fetchSiteLinks, isDofHost, type SiteLink } from '@/lib/ingest/site'
 import { autoUrlTitle } from '@/lib/ingest/title'
 import { categorize } from '@/lib/ingest/categorize'
 import { extractFromBlob, extractFromUrl, IngestError } from '@/lib/ingest/extract'
@@ -144,27 +145,63 @@ export async function processSource(id: string): Promise<
   return { ok: true, source: { ...row.source, createdByName: row.createdByName, matchCount: hasMatches ? n : null } }
 }
 
-// ── Sitios recurrentes (por ahora solo el DOF) ─────────────────────
+// ── Sitios recurrentes ─────────────────────────────────────────────
+// El DOF se lee por su sumario diario; cualquier otro sitio, por una página de
+// listado o un feed RSS/Atom de la que se toman los enlaces nuevos.
 
 const DOF_TITLE = 'Diario Oficial de la Federación'
 const MAX_NEW_PER_CHECK = 80
 
-export async function addSiteSource(data: { url: string }): Promise<
+type SiteInput = { url: string; title?: string; linkFilter?: string }
+
+function siteFromInput(data: SiteInput): { ok: true; url: URL; dof: boolean; linkFilter: string | null } | { ok: false; error: string } {
+  const url = normalizeUrl(data.url)
+  if (!url) return { ok: false, error: 'Escribe la URL de la página de listado o del feed (https://…)' }
+  const linkFilter = data.linkFilter?.trim().slice(0, 200) || null
+  return { ok: true, url, dof: isDofHost(url.hostname), linkFilter }
+}
+
+/** Prueba el listado antes de guardarlo: cuántos enlaces tomaría y los primeros. */
+export async function previewSite(data: SiteInput): Promise<
+  { ok: true; total: number; blocked: number; sample: SiteLink[] } | { ok: false; error: string }
+> {
+  await requireAdmin()
+  const input = siteFromInput(data)
+  if (!input.ok) return input
+  try {
+    if (input.dof) {
+      const notes = await fetchDofSummary(todayInMexico())
+      return { ok: true, total: notes.length, blocked: 0, sample: notes.slice(0, 8) }
+    }
+    const { links, blocked } = await fetchSiteLinks(input.url.toString(), input.linkFilter)
+    return { ok: true, total: links.length, blocked, sample: links.slice(0, 8) }
+  } catch (e) {
+    if (e instanceof IngestError) return { ok: false, error: e.message }
+    console.error('previewSite', e)
+    return { ok: false, error: 'No se pudo leer esa página' }
+  }
+}
+
+export async function addSiteSource(data: SiteInput): Promise<
   { ok: true; source: IngestSourceRow } | { ok: false; error: string }
 > {
   const userId = await requireAdmin()
-  const url = normalizeUrl(data.url)
-  if (!url || !DOF_HOSTS.includes(url.hostname)) {
-    return { ok: false, error: 'Por ahora solo se puede registrar el Diario Oficial (dof.gob.mx) como sitio recurrente' }
-  }
-  const existing = await db.select({ id: ingestSources.id }).from(ingestSources).where(eq(ingestSources.kind, 'site')).limit(1)
-  if (existing.length) return { ok: false, error: 'El Diario Oficial ya está registrado como sitio recurrente' }
+  const input = siteFromInput(data)
+  if (!input.ok) return input
+  const href = input.dof ? `${DOF_ORIGIN}/` : input.url.toString()
+
+  const sites = await db.select({ url: ingestSources.url }).from(ingestSources).where(eq(ingestSources.kind, 'site'))
+  const taken = input.dof
+    ? sites.some(s => s.url && isDofHost(new URL(s.url).hostname))
+    : sites.some(s => s.url === href)
+  if (taken) return { ok: false, error: input.dof ? 'El Diario Oficial ya está registrado como sitio recurrente' : 'Ese listado ya está registrado como sitio recurrente' }
 
   const [row] = await db.insert(ingestSources).values({
     id: `src-${crypto.randomUUID()}`,
     kind: 'site',
-    title: DOF_TITLE,
-    url: `${DOF_ORIGIN}/`,
+    title: data.title?.trim().slice(0, 200) || (input.dof ? DOF_TITLE : autoUrlTitle(input.url)),
+    url: href,
+    linkFilter: input.dof ? null : input.linkFilter,
     status: 'lista',
     createdBy: userId,
   }).returning()
@@ -180,15 +217,16 @@ export async function checkSite(id: string, date?: string): Promise<
   const userId = await requireAdmin()
   const [site] = await db.select().from(ingestSources).where(and(eq(ingestSources.id, id), eq(ingestSources.kind, 'site'))).limit(1)
   if (!site) return { ok: false, error: 'El sitio no existe' }
+  const dof = isDofHost(new URL(site.url!).hostname)
   const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayInMexico()
 
-  let notes
+  let notes: SiteLink[]
   try {
-    notes = await fetchDofSummary(day)
+    notes = dof ? await fetchDofSummary(day) : (await fetchSiteLinks(site.url!, site.linkFilter)).links
   } catch (e) {
     if (e instanceof IngestError) return { ok: false, error: e.message }
     console.error('checkSite', id, e)
-    return { ok: false, error: 'No se pudo leer el sumario del Diario Oficial' }
+    return { ok: false, error: `No se pudo leer ${dof ? 'el sumario del Diario Oficial' : 'el listado del sitio'}` }
   }
 
   const known = await db.select({ url: ingestSources.url }).from(ingestSources)

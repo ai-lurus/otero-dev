@@ -74,6 +74,11 @@ async function loadRules(origin: string): Promise<Rule[]> {
   return rules
 }
 
+/** Igual que assertAllowedByRobots pero sin lanzar; si el robots.txt no se puede leer, lanza. */
+export async function isAllowedByRobots(url: URL): Promise<boolean> {
+  return isAllowedByRules(await loadRules(url.origin), url.pathname + url.search)
+}
+
 export async function assertAllowedByRobots(url: URL) {
   const rules = await loadRules(url.origin)
   if (!isAllowedByRules(rules, url.pathname + url.search)) {
