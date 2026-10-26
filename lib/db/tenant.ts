@@ -5,38 +5,46 @@ import { db } from './index'
 import * as schema from './schema'
 import { decryptDbUrl } from './tenant-crypto'
 
-// Conexión a la base de un despacho. Todo acceso a datos de un despacho pasa
-// por aquí; en fase 1 solo cambia de dónde sale la URL (Secrets Manager/KMS).
-// Por ahora la base del despacho usa el mismo esquema que la principal.
+// Conexión a la base de un cliente (tenant). Todo acceso a datos de un cliente
+// pasa por aquí; en fase 1 solo cambia de dónde sale la URL (Secrets Manager/KMS).
+// Un cliente sin base propia (dbUrlEncrypted nulo) sigue en la base principal.
+// Por ahora la base del cliente usa el mismo esquema que la principal.
 
-type TenantDb = NodePgDatabase<typeof schema> & { $client: Pool }
+type TenantDb = NodePgDatabase<typeof schema>
 
 // En globalThis para que el hot reload de `next dev` no abra pools nuevos.
 const cache: Map<string, Promise<TenantDb>> =
   ((globalThis as { __tenantDbs?: Map<string, Promise<TenantDb>> }).__tenantDbs ??= new Map())
+const pools = new Map<string, Pool>()
 
-async function connect(firmId: string): Promise<TenantDb> {
-  const [firm] = await db.select().from(schema.firms).where(eq(schema.firms.id, firmId)).limit(1)
-  if (!firm) throw new Error(`Despacho no encontrado: ${firmId}`)
-  if (firm.status !== 'active') throw new Error(`Despacho no activo: ${firm.slug}`)
-  const pool = new Pool({ connectionString: decryptDbUrl(firm.id, firm.dbUrlEncrypted), max: 5 })
+async function connect(tenantId: string): Promise<TenantDb> {
+  const [tenant] = await db
+    .select({ id: schema.tenants.id, dbUrlEncrypted: schema.tenants.dbUrlEncrypted })
+    .from(schema.tenants)
+    .where(eq(schema.tenants.id, tenantId))
+    .limit(1)
+  if (!tenant) throw new Error(`Cliente no encontrado: ${tenantId}`)
+  if (!tenant.dbUrlEncrypted) return db
+  const pool = new Pool({ connectionString: decryptDbUrl(tenant.id, tenant.dbUrlEncrypted), max: 5 })
+  pools.set(tenantId, pool)
   return drizzle(pool, { schema })
 }
 
-export function getTenantDb(firmId: string): Promise<TenantDb> {
-  let conn = cache.get(firmId)
+export function getTenantDb(tenantId: string): Promise<TenantDb> {
+  let conn = cache.get(tenantId)
   if (!conn) {
-    conn = connect(firmId)
-    cache.set(firmId, conn)
+    conn = connect(tenantId)
+    cache.set(tenantId, conn)
     // Si falla, no dejar el error en caché.
-    conn.catch(() => cache.delete(firmId))
+    conn.catch(() => cache.delete(tenantId))
   }
   return conn
 }
 
-// Cierra el pool de un despacho (p. ej. al suspenderlo o rotar su URL).
-export async function closeTenantDb(firmId: string) {
-  const conn = cache.get(firmId)
-  cache.delete(firmId)
-  if (conn) await (await conn.catch(() => null))?.$client.end()
+// Cierra el pool de un cliente (p. ej. al cambiar o quitar su URL).
+export async function closeTenantDb(tenantId: string) {
+  cache.delete(tenantId)
+  const pool = pools.get(tenantId)
+  pools.delete(tenantId)
+  await pool?.end()
 }

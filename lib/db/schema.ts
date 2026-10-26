@@ -67,6 +67,9 @@ export const tenants = pgTable('tenants', {
   slug:      text('slug').unique(),
   rfc:       text('rfc'),
   industry:  text('industry'),
+  // URL de la base propia del cliente, cifrada (ver lib/db/tenant-crypto.ts).
+  // Nula mientras sus datos sigan en la base principal.
+  dbUrlEncrypted: text('db_url_encrypted'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 })
 
@@ -267,16 +270,3 @@ export type DocumentRow   = typeof documents.$inferSelect
 export type Post           = typeof posts.$inferSelect
 export type CompanyProfile = typeof companyProfiles.$inferSelect
 export type IngestSource   = typeof ingestSources.$inferSelect
-
-// Despachos (plano de control). Cada despacho tiene su propia base; aquí solo
-// se guarda su cadena de conexión cifrada (ver lib/db/tenant-crypto.ts). No
-// confundir con `tenants`, que hoy son las empresas cliente.
-export const firms = pgTable('firms', {
-  id:              text('id').primaryKey(),
-  slug:            text('slug').notNull().unique(),
-  name:            text('name').notNull(),
-  dbUrlEncrypted:  text('db_url_encrypted').notNull(),
-  status:          text('status').notNull().default('active'), // active | suspended
-  createdAt:       timestamp('created_at').notNull().defaultNow(),
-  updatedAt:       timestamp('updated_at').notNull().defaultNow(),
-})
