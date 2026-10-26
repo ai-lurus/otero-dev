@@ -13,24 +13,25 @@ import { decryptDbUrl } from './tenant-crypto'
 type TenantDb = NodePgDatabase<typeof schema>
 
 // En globalThis para que el hot reload de `next dev` no abra pools nuevos.
-const cache: Map<string, Promise<TenantDb>> =
-  ((globalThis as { __tenantDbs?: Map<string, Promise<TenantDb>> }).__tenantDbs ??= new Map())
+const cache: Map<string, Promise<TenantDb | null>> =
+  ((globalThis as { __tenantDbs?: Map<string, Promise<TenantDb | null>> }).__tenantDbs ??= new Map())
 const pools = new Map<string, Pool>()
 
-async function connect(tenantId: string): Promise<TenantDb> {
+async function connect(tenantId: string): Promise<TenantDb | null> {
   const [tenant] = await db
     .select({ id: schema.tenants.id, dbUrlEncrypted: schema.tenants.dbUrlEncrypted })
     .from(schema.tenants)
     .where(eq(schema.tenants.id, tenantId))
     .limit(1)
   if (!tenant) throw new Error(`Cliente no encontrado: ${tenantId}`)
-  if (!tenant.dbUrlEncrypted) return db
+  if (!tenant.dbUrlEncrypted) return null
   const pool = new Pool({ connectionString: decryptDbUrl(tenant.id, tenant.dbUrlEncrypted), max: 5 })
   pools.set(tenantId, pool)
   return drizzle(pool, { schema })
 }
 
-export function getTenantDb(tenantId: string): Promise<TenantDb> {
+// Base propia del cliente, o null si todavía vive en la principal.
+export function getOwnTenantDb(tenantId: string): Promise<TenantDb | null> {
   let conn = cache.get(tenantId)
   if (!conn) {
     conn = connect(tenantId)
@@ -39,6 +40,10 @@ export function getTenantDb(tenantId: string): Promise<TenantDb> {
     conn.catch(() => cache.delete(tenantId))
   }
   return conn
+}
+
+export async function getTenantDb(tenantId: string): Promise<TenantDb> {
+  return (await getOwnTenantDb(tenantId)) ?? db
 }
 
 // Cierra el pool de un cliente (p. ej. al cambiar o quitar su URL).

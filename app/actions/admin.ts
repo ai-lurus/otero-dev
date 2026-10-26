@@ -1,7 +1,8 @@
 'use server'
 
 import { db } from '@/lib/db'
-import { tenants, userTenants, user } from '@/lib/db/schema'
+import { tenants, userTenants, user, session as sessionTable } from '@/lib/db/schema'
+import { upsertMember, deactivateMember, renameMember } from '@/lib/db/tenant-members'
 import { eq, desc, and } from 'drizzle-orm'
 import { account } from '@/lib/db/schema'
 import { auth } from '@/lib/auth'
@@ -90,13 +91,21 @@ export async function createUser(data: {
 
   if (!newUser?.user?.id) throw new Error('No se pudo crear el usuario')
 
-  // Assign to tenant
-  await db.insert(userTenants).values({
-    id: `ut-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    userId: newUser.user.id,
-    tenantId: data.tenantId,
-    role: data.role,
-  }).onConflictDoNothing()
+  // Assign to tenant, then mirror in the client's own DB (if any). Otero staff
+  // ('admin') live only in the main DB.
+  try {
+    await db.insert(userTenants).values({
+      id: `ut-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      userId: newUser.user.id,
+      tenantId: data.tenantId,
+      role: data.role,
+    }).onConflictDoNothing()
+    if (data.role === 'client') await upsertMember(data.tenantId, newUser.user)
+  } catch (err) {
+    await db.delete(userTenants).where(eq(userTenants.userId, newUser.user.id))
+    await db.delete(user).where(eq(user.id, newUser.user.id))
+    throw err
+  }
 
   revalidatePath('/admin/users')
   revalidatePath('/admin')
@@ -109,6 +118,11 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
   if (data.name)  updates.name  = data.name.trim()
   if (data.email) updates.email = data.email.trim().toLowerCase()
   await db.update(user).set(updates).where(eq(user.id, userId))
+  if (data.name) {
+    const clientTenants = await db.select({ tenantId: userTenants.tenantId }).from(userTenants)
+      .where(and(eq(userTenants.userId, userId), eq(userTenants.role, 'client')))
+    for (const t of clientTenants) await renameMember(t.tenantId, userId, updates.name as string)
+  }
   revalidatePath('/admin/users')
 }
 
@@ -120,6 +134,12 @@ export async function updateUserRole(userId: string, tenantId: string, role: str
     .update(userTenants)
     .set({ role })
     .where(and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId)))
+  if (role === 'client') {
+    const [u] = await db.select({ id: user.id, name: user.name }).from(user).where(eq(user.id, userId))
+    if (u) await upsertMember(tenantId, u)
+  } else {
+    await deactivateMember(tenantId, userId)
+  }
   revalidatePath('/admin/users')
 }
 
@@ -128,6 +148,8 @@ export async function removeUserFromTenant(userId: string, tenantId: string) {
   await db.delete(userTenants).where(
     and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId))
   )
+  await db.delete(sessionTable).where(eq(sessionTable.userId, userId))
+  await deactivateMember(tenantId, userId)
   revalidatePath('/admin/users')
 }
 
@@ -163,8 +185,11 @@ export async function deleteUser(userId: string) {
   await requireSuper()
   const session = await getSession()
   if (session?.user.id === userId) throw new Error('No puedes eliminar tu propia cuenta')
+  // Primero se corta el acceso en la principal, luego se marca la baja en cada base de cliente.
+  const memberships = await db.select({ tenantId: userTenants.tenantId }).from(userTenants).where(eq(userTenants.userId, userId))
   await db.delete(userTenants).where(eq(userTenants.userId, userId))
   await db.delete(user).where(eq(user.id, userId))
+  for (const m of memberships) await deactivateMember(m.tenantId, userId)
   revalidatePath('/admin/users')
 }
 
