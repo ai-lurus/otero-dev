@@ -6,7 +6,7 @@
 //
 // Requisitos (una vez):  pnpm dlx playwright install chromium   y   pnpm add -D playwright
 //                        vercel env pull .env.local   (DATABASE_URL y el acceso a Blob)
-// Uso:  pnpm pigr:ingest --email tu@correo [--texto "propiedad intelectual"] [--paginas 3] [--max 30]
+// Uso:  pnpm pigr:ingest [--email correo-del-admin] [--texto "propiedad intelectual"] [--paginas 3] [--max 30]
 import { existsSync } from 'node:fs'
 import { put } from '@vercel/blob'
 import pg from 'pg'
@@ -22,7 +22,6 @@ const email = args.email
 const term = args.texto ?? ''
 const maxPages = Number(args.paginas ?? 3)
 const maxNew = Number(args.max ?? 30)
-if (!email) { console.error('Falta --email del admin que queda como autor de las fuentes'); process.exit(1) }
 if (!process.env.DATABASE_URL) { console.error('Falta DATABASE_URL (corre vercel env pull .env.local)'); process.exit(1) }
 
 let chromium
@@ -35,8 +34,13 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms + Math.random() * 400))
 const clean = (s) => s.replace(/[ \t ]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
 
 try {
-  const { rows: [admin] } = await pool.query('select id, name from "user" where lower(email) = lower($1)', [email])
-  if (!admin) throw new Error(`No existe el usuario ${email}`)
+  // Autor de las fuentes: el correo indicado o, si no, un admin/superadmin cualquiera (el que más antiguo es).
+  const { rows: [admin] } = email
+    ? await pool.query('select id, name from "user" where lower(email) = lower($1)', [email])
+    : await pool.query(`select u.id, u.name from "user" u join user_tenants ut on ut."userId" = u.id
+                        where ut.role in ('admin', 'superadmin') order by u."createdAt" limit 1`)
+  if (!admin) throw new Error(email ? `No existe el usuario ${email}` : 'No hay ningún admin; pasa --email con un usuario existente')
+  console.log(`Autor de las fuentes: ${admin.name}`)
 
   // Sitio padre para agrupar las fichas en el panel.
   const siteUrl = `${ORIGIN}/Buscador`
