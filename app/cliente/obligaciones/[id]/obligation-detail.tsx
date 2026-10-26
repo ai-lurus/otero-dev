@@ -4,7 +4,7 @@ import { useMemo, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, CircleDot, Download, ExternalLink, FileSpreadsheet, FileText, ImageIcon, Pencil, Plus, Search } from 'lucide-react'
-import { addItemEvidence, updateItemStatus, type RegulatoryItem as Obligation } from '@/app/actions/regulatory-items'
+import { addItemEvidence, setAdminItemStatus, updateItemStatus, type RegulatoryItem as Obligation } from '@/app/actions/regulatory-items'
 import { ItemFormDialog } from '@/app/admin/obligaciones/item-form'
 import { ImpactBadge, SourceLink } from '@/components/regulatory/items-list'
 import { DIRECTION_LABELS, SCOPE_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
@@ -78,7 +78,9 @@ export function ObligationDetail({
 
   function changeStatus(status: string) {
     startTransition(async () => {
-      await updateItemStatus(obligation.id, status)
+      // Un borrador aún no enviado solo lo puede cambiar el admin, en la base de ese cliente.
+      if (adminMode && tenantId) await setAdminItemStatus(tenantId, obligation.id, status)
+      else await updateItemStatus(obligation.id, status)
       router.refresh()
     })
   }
