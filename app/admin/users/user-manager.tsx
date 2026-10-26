@@ -29,11 +29,13 @@ interface Props {
 const ROLE_LABELS: Record<string, string> = {
   superadmin: 'Superadmin',
   admin:      'Administrador',
+  tenant_admin: 'Admin del cliente',
   client:     'Cliente',
 }
 const ROLE_COLORS: Record<string, string> = {
   superadmin: 'bg-[#1C2B4A] text-white',
   admin:      'bg-[#EEF2F8] text-[#1C2B4A]',
+  tenant_admin: 'bg-[#EAF2EC] text-[#2D5A3D]',
   client:     'bg-secondary text-muted-foreground',
 }
 
@@ -73,7 +75,7 @@ export default function UserManager({ tenants, users }: Props) {
   const [fEmail,    setFEmail]    = useState('')
   const [fPassword, setFPassword] = useState('')
   const [fTenant,   setFTenant]   = useState(tenants[0]?.id ?? '')
-  const [fRole,     setFRole]     = useState<'admin' | 'client'>('client')
+  const [fRole,     setFRole]     = useState<'admin' | 'tenant_admin' | 'client'>('client')
   const [fError,    setFError]    = useState('')
 
   async function handleCreate(e: React.FormEvent) {
@@ -278,10 +280,11 @@ export default function UserManager({ tenants, users }: Props) {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Rol *</label>
-              <select value={fRole} onChange={e => setFRole(e.target.value as 'admin' | 'client')}
+              <select value={fRole} onChange={e => setFRole(e.target.value as 'admin' | 'tenant_admin' | 'client')}
                 className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20">
                 <option value="client">Cliente</option>
-                <option value="admin">Administrador</option>
+                <option value="tenant_admin">Admin del cliente</option>
+                <option value="admin">Administrador de Otero</option>
               </select>
             </div>
           </div>
@@ -338,6 +341,7 @@ export default function UserManager({ tenants, users }: Props) {
                             )}
                           >
                             <option value="client">Cliente</option>
+                            <option value="tenant_admin">Admin del cliente</option>
                             <option value="admin">Admin</option>
                             <option value="superadmin">Superadmin</option>
                           </select>

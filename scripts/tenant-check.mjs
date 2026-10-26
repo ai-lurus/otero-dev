@@ -31,7 +31,7 @@ try {
   if (!tenant.db_url_encrypted) { console.error(`${tenant.name} no tiene base propia.`); process.exit(1) }
   users = (await main.query(
     `select u.id, u.email from user_tenants ut join "user" u on u.id = ut."userId"
-     where ut."tenantId" = $1 and ut.role = 'client'`, [tenant.id])).rows
+     where ut."tenantId" = $1 and ut.role in ('client', 'tenant_admin')`, [tenant.id])).rows
 } finally {
   await main.end()
 }

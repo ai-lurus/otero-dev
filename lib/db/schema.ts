@@ -77,7 +77,7 @@ export const userTenants = pgTable('user_tenants', {
   id:        text('id').primaryKey(),
   userId:    text('userId').notNull(),
   tenantId:  text('tenantId').notNull(),
-  role:      text('role').notNull().default('client'), // 'superadmin' | 'admin' | 'client'
+  role:      text('role').notNull().default('client'), // 'superadmin' | 'admin' (Otero) | 'tenant_admin' | 'client' (empresa cliente)
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 }, (t) => [unique().on(t.userId, t.tenantId)])
 

@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
+import { isTenantAdmin } from "@/app/actions/tenant-users"
 
 const NAV = [
   {
@@ -64,6 +65,17 @@ const NAV = [
   },
 ]
 
+// Solo lo ve el administrador de la empresa cliente (tenant_admin).
+const USUARIOS_NAV: (typeof NAV)[number] = {
+  href: "/cliente/usuarios",
+  label: "Usuarios",
+  icon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  ),
+}
+
 const SECONDARY_NAV: typeof NAV = []
 
 const NOTIFICATIONS: Array<{ id: string; title: string; body: string; time: string; unread: boolean; icon: string }> = []
@@ -90,6 +102,9 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   const [notifOpen, setNotifOpen] = useState(false)
   const [readIds, setReadIds] = useState<Set<string>>(new Set())
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isTA, setIsTA] = useState(false)
+  useEffect(() => { isTenantAdmin().then(setIsTA).catch(() => {}) }, [])
+  const nav = isTA ? [...NAV, USUARIOS_NAV] : NAV
 
   const unreadCount = NOTIFICATIONS.filter(n => n.unread && !readIds.has(n.id)).length
 
@@ -155,7 +170,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         <div>
           <ul className="space-y-0.5">
-            {NAV.map(item => (
+            {nav.map(item => (
               <li key={item.href}>
                 <NavItem {...item} />
               </li>

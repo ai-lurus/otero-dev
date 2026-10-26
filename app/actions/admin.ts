@@ -3,7 +3,8 @@
 import { db } from '@/lib/db'
 import { tenants, userTenants, user, session as sessionTable } from '@/lib/db/schema'
 import { upsertMember, deactivateMember, renameMember } from '@/lib/db/tenant-members'
-import { eq, desc, and } from 'drizzle-orm'
+import { provisionTenantUser, isClientRole } from '@/lib/tenant-users'
+import { eq, desc, and, inArray } from 'drizzle-orm'
 import { account } from '@/lib/db/schema'
 import { auth } from '@/lib/auth'
 import { isSuperAdmin, requireAdmin, getSession } from './auth-helpers'
@@ -78,38 +79,17 @@ export async function createUser(data: {
   email: string
   password: string
   tenantId: string
-  role: 'admin' | 'client'
+  role: 'admin' | 'tenant_admin' | 'client'
 }) {
   await requireAdmin()
-  if (data.role !== 'admin' && data.role !== 'client') throw new Error('Rol inválido')
+  if (!['admin', 'tenant_admin', 'client'].includes(data.role)) throw new Error('Rol inválido')
   if (data.role === 'admin') await requireSuper()
 
-  // Use Better Auth admin API to create the user with a hashed password
-  const newUser = await auth.api.signUpEmail({
-    body: { email: data.email, password: data.password, name: data.name },
-  })
-
-  if (!newUser?.user?.id) throw new Error('No se pudo crear el usuario')
-
-  // Assign to tenant, then mirror in the client's own DB (if any). Otero staff
-  // ('admin') live only in the main DB.
-  try {
-    await db.insert(userTenants).values({
-      id: `ut-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      userId: newUser.user.id,
-      tenantId: data.tenantId,
-      role: data.role,
-    }).onConflictDoNothing()
-    if (data.role === 'client') await upsertMember(data.tenantId, newUser.user)
-  } catch (err) {
-    await db.delete(userTenants).where(eq(userTenants.userId, newUser.user.id))
-    await db.delete(user).where(eq(user.id, newUser.user.id))
-    throw err
-  }
+  const newUser = await provisionTenantUser(data)
 
   revalidatePath('/admin/users')
   revalidatePath('/admin')
-  return newUser.user
+  return newUser
 }
 
 export async function updateUser(userId: string, data: { name?: string; email?: string }) {
@@ -120,7 +100,7 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
   await db.update(user).set(updates).where(eq(user.id, userId))
   if (data.name) {
     const clientTenants = await db.select({ tenantId: userTenants.tenantId }).from(userTenants)
-      .where(and(eq(userTenants.userId, userId), eq(userTenants.role, 'client')))
+      .where(and(eq(userTenants.userId, userId), inArray(userTenants.role, ['client', 'tenant_admin'])))
     for (const t of clientTenants) await renameMember(t.tenantId, userId, updates.name as string)
   }
   revalidatePath('/admin/users')
@@ -129,14 +109,14 @@ export async function updateUser(userId: string, data: { name?: string; email?: 
 export async function updateUserRole(userId: string, tenantId: string, role: string) {
   if (role === 'superadmin' || role === 'admin') await requireSuper()
   else await requireCanManage(userId)
-  if (!['client', 'admin', 'superadmin'].includes(role)) throw new Error('Rol inválido')
+  if (!['client', 'tenant_admin', 'admin', 'superadmin'].includes(role)) throw new Error('Rol inválido')
   await db
     .update(userTenants)
     .set({ role })
     .where(and(eq(userTenants.userId, userId), eq(userTenants.tenantId, tenantId)))
-  if (role === 'client') {
+  if (isClientRole(role)) {
     const [u] = await db.select({ id: user.id, name: user.name }).from(user).where(eq(user.id, userId))
-    if (u) await upsertMember(tenantId, u)
+    if (u) await upsertMember(tenantId, u, role)
   } else {
     await deactivateMember(tenantId, userId)
   }
