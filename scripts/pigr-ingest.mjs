@@ -57,7 +57,7 @@ try {
   await page.waitForLoadState('networkidle').catch(() => {})
   for (let p = 1; p <= maxPages; p++) {
     const cards = await page.evaluate(async ({ term, p }) => {
-      const res = await fetch(`/Buscador/SearchRegulacionResult?search=${encodeURIComponent(term)}&page=${p}`, { credentials: 'include' })
+      const res = await fetch(`/Buscador/SearchRegulacionResult?search=${encodeURIComponent(term)}&Inicio=&Final=&dep=Todos&Rango=undefined&propuesta=propuesta-todos&tab=tab1&page=${p}`, { credentials: 'include' })
       if (!res.ok) return { error: res.status }
       const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
       return { cards: [...doc.querySelectorAll('a[href*="AirConstancia?IdAir="]')].map(a => ({
