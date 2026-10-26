@@ -1,6 +1,7 @@
 import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { getTenants } from '@/app/actions/admin'
 import { getAdminItem } from '@/app/actions/regulatory-items'
 import { ObligationDetail } from '@/app/cliente/obligaciones/[id]/obligation-detail'
 
@@ -18,5 +19,6 @@ export default async function AdminObligationDetailPage({ params, searchParams }
   const item = await getAdminItem(tenant, id).catch(() => null)
   if (!item) notFound()
 
-  return <ObligationDetail obligation={item} adminMode tenantId={item.tenantId} />
+  const tenantName = (await getTenants().catch(() => [])).find((t) => t.id === item.tenantId)?.name
+  return <ObligationDetail obligation={item} adminMode tenantId={item.tenantId} tenantName={tenantName} />
 }

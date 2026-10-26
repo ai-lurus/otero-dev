@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, CheckCircle2, CircleDot, Download, ExternalLink, FileSpreadsheet, FileText, ImageIcon, Pencil, Plus, Search } from 'lucide-react'
 import { addItemEvidence, setAdminItemStatus, setItemSent, updateItemStatus, type RegulatoryItem as Obligation } from '@/app/actions/regulatory-items'
 import { ItemFormDialog } from '@/app/admin/obligaciones/item-form'
-import { ImpactBadge, SourceLink } from '@/components/regulatory/items-list'
+import { ImpactBadge, SentBadge, SourceLink } from '@/components/regulatory/items-list'
 import { DIRECTION_LABELS, SCOPE_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -57,10 +57,12 @@ export function ObligationDetail({
   obligation,
   adminMode = false,
   tenantId,
+  tenantName,
 }: {
   obligation: Obligation & { events?: TimelineEvent[] }
   adminMode?: boolean
   tenantId?: string
+  tenantName?: string
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -124,9 +126,8 @@ export function ObligationDetail({
             <Badge variant="outline">{SCOPE_LABELS[obligation.scope as keyof typeof SCOPE_LABELS] ?? obligation.scope}</Badge>
             <ImpactBadge impact={obligation.impact} />
             <Badge variant="secondary">{STATUS_LABELS[obligation.status] ?? obligation.status}</Badge>
-            {adminMode && (
-              <Badge variant={obligation.sentAt ? 'default' : 'outline'}>{obligation.sentAt ? 'Enviado al cliente' : 'Borrador · el cliente no lo ve'}</Badge>
-            )}
+            {adminMode && <SentBadge sentAt={obligation.sentAt} />}
+            {adminMode && tenantName && <Badge variant="outline">Cliente: {tenantName}</Badge>}
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <h1 className="item-title item-title-lg min-w-0" title={obligation.title}>{obligation.title}</h1>

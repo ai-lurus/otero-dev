@@ -26,7 +26,7 @@ const formatDay = (value: string) =>
   new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(`${value}T00:00:00`))
 
 /** Solo para el admin: si el asunto sigue en borrador o ya se envió al cliente (con la fecha). */
-function SentBadge({ sentAt }: { sentAt: Date | string | null }) {
+export function SentBadge({ sentAt }: { sentAt: Date | string | null }) {
   if (!sentAt) return <Badge variant="outline" className="border-dashed">Borrador · no enviado</Badge>
   const day = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(sentAt))
   return <Badge className="border-transparent bg-emerald-100 text-emerald-800">Enviado al cliente · {day}</Badge>
