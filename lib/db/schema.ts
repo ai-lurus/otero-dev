@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  primaryKey,
   unique,
   uuid,
   numeric,
@@ -261,6 +262,17 @@ export const ingestSources = pgTable('ingest_sources', {
   createdAt:    timestamp('created_at').notNull().defaultNow(),
   updatedAt:    timestamp('updated_at').notNull().defaultNow(),
 })
+
+// A qué clientes aplica cada fuente categorizada (propuesta por reglas, ver
+// lib/ingest/matching.ts). Se calcula al procesar; el socio decide después si
+// genera el borrador. Vive en la principal porque la ingesta es del despacho.
+export const ingestMatches = pgTable('ingest_matches', {
+  sourceId:  text('source_id').notNull(),
+  tenantId:  text('tenant_id').notNull(),
+  applies:   boolean('applies').notNull(),
+  reason:    text('reason').notNull().default(''),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.sourceId, t.tenantId] })])
 
 // ── Type exports ───────────────────────────────────────────────────
 export type User          = typeof user.$inferSelect

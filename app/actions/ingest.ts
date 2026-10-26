@@ -1,17 +1,19 @@
 'use server'
 
 import { del } from '@vercel/blob'
-import { and, desc, eq, inArray, lt, ne, or } from 'drizzle-orm'
+import { and, desc, eq, inArray, lt, ne, or, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
-import { ingestSources, user } from '@/lib/db/schema'
+import { ingestMatches, ingestSources, user } from '@/lib/db/schema'
+import { computeMatches } from '@/lib/ingest/matching'
 import { requireAdmin } from './auth-helpers'
 import { DOF_HOSTS, DOF_ORIGIN, fetchDofSummary, todayInMexico } from '@/lib/ingest/dof'
 import { autoUrlTitle } from '@/lib/ingest/title'
 import { categorize } from '@/lib/ingest/categorize'
 import { extractFromBlob, extractFromUrl, IngestError } from '@/lib/ingest/extract'
 
-export type IngestSourceRow = typeof ingestSources.$inferSelect & { createdByName: string | null }
+// matchCount = clientes a los que aplica (null si aún no se calcula).
+export type IngestSourceRow = typeof ingestSources.$inferSelect & { createdByName: string | null; matchCount?: number | null }
 
 export async function getIngestSources(): Promise<IngestSourceRow[]> {
   await requireAdmin()
@@ -20,7 +22,11 @@ export async function getIngestSources(): Promise<IngestSourceRow[]> {
     .from(ingestSources)
     .leftJoin(user, eq(user.id, ingestSources.createdBy))
     .orderBy(desc(ingestSources.createdAt))
-  return rows.map(r => ({ ...r.source, createdByName: r.createdByName }))
+  const counts = await db
+    .select({ sourceId: ingestMatches.sourceId, n: sql<number>`count(*) filter (where ${ingestMatches.applies})::int` })
+    .from(ingestMatches).groupBy(ingestMatches.sourceId)
+  const byId = new Map(counts.map(c => [c.sourceId, c.n]))
+  return rows.map(r => ({ ...r.source, createdByName: r.createdByName, matchCount: byId.get(r.source.id) ?? null }))
 }
 
 function normalizeUrl(raw: string): URL | null {
@@ -114,6 +120,8 @@ export async function processSource(id: string): Promise<
       processedAt: new Date(),
       updatedAt: new Date(),
     }).where(eq(ingestSources.id, id))
+    // Propuesta de clientes; si falla, se recalcula al abrir el detalle.
+    await computeMatches({ id, materia: result.materia }).catch(e => console.error('computeMatches', id, e))
   } catch (e) {
     const message = e instanceof IngestError ? e.message : 'Ocurrió un error inesperado al procesar'
     if (!(e instanceof IngestError)) console.error('processSource', id, e)
@@ -129,7 +137,11 @@ export async function processSource(id: string): Promise<
     .leftJoin(user, eq(user.id, ingestSources.createdBy))
     .where(eq(ingestSources.id, id))
     .limit(1)
-  return { ok: true, source: { ...row.source, createdByName: row.createdByName } }
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*) filter (where ${ingestMatches.applies})::int` })
+    .from(ingestMatches).where(eq(ingestMatches.sourceId, id))
+  const hasMatches = (await db.select({ t: ingestMatches.tenantId }).from(ingestMatches).where(eq(ingestMatches.sourceId, id)).limit(1)).length > 0
+  return { ok: true, source: { ...row.source, createdByName: row.createdByName, matchCount: hasMatches ? n : null } }
 }
 
 // ── Sitios recurrentes (por ahora solo el DOF) ─────────────────────

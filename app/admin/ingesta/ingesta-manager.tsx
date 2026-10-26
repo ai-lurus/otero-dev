@@ -676,6 +676,12 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                     {STATUS_LABELS[s.status] ?? s.status}
                   </span>}
               <div className="flex flex-wrap items-center gap-1">
+                {s.kind !== 'site' && s.status === 'lista' && s.matchCount != null && (
+                  <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border',
+                    s.matchCount > 0 ? 'bg-[#1C2B4A]/10 text-[#1C2B4A] border-[#1C2B4A]/20' : 'text-muted-foreground border-border')}>
+                    {s.matchCount === 0 ? 'No aplica a clientes' : s.matchCount === 1 ? 'Aplica a 1 cliente' : `Aplica a ${s.matchCount} clientes`}
+                  </span>
+                )}
                 {s.kind === 'site' && (
                   <input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)}
                     aria-label="Fecha del sumario (vacío = hoy)" title="Fecha del sumario (vacío = hoy, hora de la Ciudad de México)"

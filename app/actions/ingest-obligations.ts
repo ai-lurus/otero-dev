@@ -6,9 +6,9 @@ import { and, eq, inArray, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { getTenantDb } from '@/lib/db/tenant'
-import { companyProfiles, ingestSources, regulatoryItemEvents, regulatoryItems, tenants } from '@/lib/db/schema'
+import { companyProfiles, ingestMatches, ingestSources, regulatoryItemEvents, regulatoryItems, tenants } from '@/lib/db/schema'
 import { draftObligation, ITEM_MATERIA, type Company, type Draft } from '@/lib/ingest/draft'
-import { matchTenant } from '@/lib/ingest/match'
+import { computeMatches } from '@/lib/ingest/matching'
 import type { Materia } from '@/lib/ingest/categories'
 import { requireAdmin } from './auth-helpers'
 
@@ -50,11 +50,18 @@ export async function getObligationTargets(sourceId: string): Promise<Obligation
   await requireAdmin()
   const source = await readySource(sourceId)
   const list = await db.select().from(tenants).orderBy(tenants.name)
+  // Usa lo calculado al procesar; si falta algún cliente (fuente anterior o base caída), recalcula.
+  let stored = await db.select().from(ingestMatches).where(eq(ingestMatches.sourceId, sourceId))
+  if (list.some(t => !stored.some(m => m.tenantId === t.id))) {
+    await computeMatches(source)
+    stored = await db.select().from(ingestMatches).where(eq(ingestMatches.sourceId, sourceId))
+  }
+  const matches = new Map(stored.map(m => [m.tenantId, m]))
   return Promise.all(list.map(async (tenant): Promise<ObligationTarget> => {
     try {
-      const { profile, itemId } = await tenantContext(tenant.id, sourceId)
-      const match = matchTenant(source.materia, { ...profile, industry: [tenant.industry, profile?.industry].filter(Boolean).join(' ') })
-      return { tenantId: tenant.id, name: tenant.name, ...match, itemId, error: null }
+      const { itemId } = await tenantContext(tenant.id, sourceId)
+      const match = matches.get(tenant.id)
+      return { tenantId: tenant.id, name: tenant.name, applies: match?.applies ?? false, reason: match?.reason ?? '', itemId, error: null }
     } catch (e) {
       console.error('getObligationTargets', tenant.id, e)
       return { tenantId: tenant.id, name: tenant.name, applies: false, reason: '', itemId: null, error: 'No se pudo leer la base de este cliente' }
