@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { AlertCircle, CalendarSearch, ExternalLink, FileText, Globe, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
+import { AlertCircle, CalendarSearch, CheckCircle2, ExternalLink, FilePlus2, FileText, Globe, Link2, Loader2, Play, RotateCw, Search, Trash2, Upload, X } from 'lucide-react'
 import { addSiteSource, addUrlSource, checkSite, deleteIngestSource, processSource, type IngestSourceRow } from '@/app/actions/ingest'
+import { generateObligations, getObligationTargets, type GenerateResult, type ObligationTarget } from '@/app/actions/ingest-obligations'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from '@/lib/upload-rules'
 import { MATERIAS, VIGENCIAS } from '@/lib/ingest/categories'
 import { decodeEntities } from '@/lib/ingest/title'
@@ -208,6 +209,105 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
+// ── Clientes a los que aplica una publicación ─────────────────────
+// Propone clientes por materia y giro; el socio elige y genera borradores que
+// luego revisa y envía desde la matriz regulatoria.
+function ObligationTargets({ sourceId }: { sourceId: string }) {
+  const [targets, setTargets] = useState<ObligationTarget[] | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [loadError, setLoadError] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState('')
+  const [results, setResults] = useState<GenerateResult[] | null>(null)
+
+  async function load() {
+    try {
+      const list = await getObligationTargets(sourceId)
+      setTargets(list)
+      setSelected(new Set(list.filter(t => t.applies && !t.itemId && !t.error).map(t => t.tenantId)))
+    } catch {
+      setLoadError('No se pudieron cargar los clientes')
+    }
+  }
+  useEffect(() => { load() }, [sourceId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggle(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleGenerate() {
+    setGenerating(true)
+    setError('')
+    try {
+      const res = await generateObligations(sourceId, [...selected])
+      if (!res.ok) { setError(res.error); return }
+      setResults(res.results)
+      await load()
+    } catch {
+      setError('No se pudieron generar las obligaciones')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const reviewHref = (tenantId: string, itemId: string) => `/admin/obligaciones/${itemId}?tenant=${tenantId}`
+
+  return (
+    <div className="border-t border-border pt-5">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">Clientes a los que aplica</p>
+      <p className="text-xs text-muted-foreground mb-3">
+        Propuesta según la materia y el giro de cada cliente. Se generan como borrador; el cliente no los ve hasta que los envías desde la matriz regulatoria.
+      </p>
+      {loadError && <p className="text-xs text-red-600">{loadError}</p>}
+      {!targets && !loadError && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Revisando clientes…</p>}
+      {targets && targets.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay clientes registrados.</p>}
+      {targets && targets.length > 0 && (
+        <ul className="space-y-2">
+          {targets.map(t => (
+            <li key={t.tenantId} className={cn('flex items-start gap-3 rounded-xl border px-3 py-2.5', t.applies ? 'border-[#1C2B4A]/25 bg-[#1C2B4A]/5' : 'border-border')}>
+              {t.itemId ? (
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 shrink-0" />
+              ) : (
+                <input type="checkbox" className="mt-1 shrink-0" aria-label={`Generar para ${t.name}`}
+                  checked={selected.has(t.tenantId)} disabled={Boolean(t.error) || generating} onChange={() => toggle(t.tenantId)} />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{t.name}</p>
+                <p className={cn('text-xs', t.error ? 'text-red-600' : 'text-muted-foreground')}>{t.error ?? t.reason}</p>
+              </div>
+              {t.itemId && (
+                <a href={reviewHref(t.tenantId, t.itemId)} className="text-xs font-semibold text-[#1C2B4A] underline shrink-0">Revisar borrador</a>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {results && results.some(r => r.error || !r.aiDraft) && (
+        <ul className="mt-3 space-y-1 text-xs">
+          {results.filter(r => r.error || !r.aiDraft).map(r => (
+            <li key={r.tenantId} className={r.error ? 'text-red-600' : 'text-amber-700'}>
+              {r.name}: {r.error ?? 'se creó con el resumen, sin redacción de IA; complétalo a mano'}
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+      {targets && targets.some(t => !t.itemId && !t.error) && (
+        <button onClick={handleGenerate} disabled={generating || selected.size === 0}
+          className="mt-3 flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus2 className="w-4 h-4" />}
+          {generating ? 'Redactando borradores…' : `Generar obligaciones${selected.size ? ` (${selected.size})` : ''}`}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
   source: IngestSourceRow; parent?: IngestSourceRow; href?: string; busy: boolean
   onClose: () => void; onProcess: () => void
@@ -257,6 +357,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
               <DetailRow label="Resumen">
                 {source.summary ? <p className="leading-relaxed whitespace-pre-line [overflow-wrap:anywhere]">{source.summary}</p> : none}
               </DetailRow>
+              <ObligationTargets sourceId={source.id} />
             </>
           )}
 

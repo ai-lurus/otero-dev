@@ -15,6 +15,14 @@ export const MATERIAS = [
   'Infraestructura de la calidad',
   'Administrativo y simplificación',
   'Desarrollo urbano',
+  'Datos personales',
+  'Corporativo y mercantil',
+  'Anticorrupción y PLD',
+  'Comercio exterior y aduanas',
+  'Financiero',
+  'Salud y sanitario',
+  'Propiedad intelectual',
+  'Competencia económica',
 ] as const
 
 export const STATUSES = ['identificada', 'aceptada', 'cerrada', 'diferida'] as const
