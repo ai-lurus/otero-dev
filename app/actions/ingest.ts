@@ -5,13 +5,13 @@ import { and, desc, eq, inArray, lt, ne, or, sql } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { ingestMatches, ingestSources, user } from '@/lib/db/schema'
-import { computeMatches } from '@/lib/ingest/matching'
+import { processSourceCore } from '@/lib/ingest/process'
+import { syncSiteCore } from '@/lib/ingest/sync'
 import { requireAdmin } from './auth-helpers'
 import { DOF_ORIGIN, fetchDofSummary, todayInMexico } from '@/lib/ingest/dof'
 import { fetchSiteLinks, isDofHost, type SiteLink } from '@/lib/ingest/site'
 import { autoUrlTitle } from '@/lib/ingest/title'
-import { categorize } from '@/lib/ingest/categorize'
-import { extractFromBlob, extractFromUrl, IngestError } from '@/lib/ingest/extract'
+import { IngestError } from '@/lib/ingest/extract'
 
 // matchCount = clientes a los que aplica (null si aún no se calcula).
 export type IngestSourceRow = typeof ingestSources.$inferSelect & { createdByName: string | null; matchCount?: number | null }
@@ -78,58 +78,12 @@ export async function deleteIngestSource(id: string) {
   revalidatePath('/admin/ingesta')
 }
 
-function isAutoTitle(s: typeof ingestSources.$inferSelect) {
-  if (s.kind === 'file') return s.title === s.fileName?.slice(0, 200)
-  return s.title === autoUrlTitle(new URL(s.url!))
-}
-
-// Una fuente por vez: el plan free de Vercel limita la duración de la función.
-// Un "procesando" de hace más de 5 minutos se considera atorado y se puede reintentar.
-const STUCK_AFTER_MS = 5 * 60 * 1000
-
 export async function processSource(id: string): Promise<
   { ok: true; source: IngestSourceRow } | { ok: false; error: string }
 > {
   await requireAdmin()
-
-  const [claimed] = await db.update(ingestSources)
-    .set({ status: 'procesando', statusDetail: null, updatedAt: new Date() })
-    .where(and(
-      eq(ingestSources.id, id),
-      ne(ingestSources.kind, 'site'),
-      or(ne(ingestSources.status, 'procesando'), lt(ingestSources.updatedAt, new Date(Date.now() - STUCK_AFTER_MS))),
-    ))
-    .returning()
-  if (!claimed) return { ok: false, error: 'La fuente no existe o ya se está procesando' }
-
-  try {
-    const content = claimed.kind === 'url'
-      ? await extractFromUrl(claimed.url!)
-      : await extractFromBlob(claimed.blobPathname!, claimed.mimeType)
-    const result = await categorize(content, claimed.title)
-    await db.update(ingestSources).set({
-      status: 'lista',
-      statusDetail: null,
-      // Solo reemplaza el título si es el automático (dominio/ruta o nombre del archivo).
-      title: isAutoTitle(claimed) ? result.title : claimed.title,
-      materia: result.materia,
-      authority: result.authority,
-      publishedAt: result.publishedAt,
-      vigenciaStatus: result.vigenciaStatus,
-      vigenciaDetail: result.vigenciaDetail,
-      summary: result.summary,
-      processedAt: new Date(),
-      updatedAt: new Date(),
-    }).where(eq(ingestSources.id, id))
-    // Propuesta de clientes; si falla, se recalcula al abrir el detalle.
-    await computeMatches({ id, materia: result.materia }).catch(e => console.error('computeMatches', id, e))
-  } catch (e) {
-    const message = e instanceof IngestError ? e.message : 'Ocurrió un error inesperado al procesar'
-    if (!(e instanceof IngestError)) console.error('processSource', id, e)
-    await db.update(ingestSources)
-      .set({ status: 'error', statusDetail: message, updatedAt: new Date() })
-      .where(eq(ingestSources.id, id))
-  }
+  // Una fuente por vez: el plan free de Vercel limita la duración de la función.
+  if (!(await processSourceCore(id))) return { ok: false, error: 'La fuente no existe o ya se está procesando' }
 
   revalidatePath('/admin/ingesta')
   const [row] = await db
@@ -150,7 +104,6 @@ export async function processSource(id: string): Promise<
 // listado o un feed RSS/Atom de la que se toman los enlaces nuevos.
 
 const DOF_TITLE = 'Diario Oficial de la Federación'
-const MAX_NEW_PER_CHECK = 80
 
 type SiteInput = { url: string; title?: string; linkFilter?: string }
 
@@ -220,44 +173,24 @@ export async function checkSite(id: string, date?: string): Promise<
   const dof = isDofHost(new URL(site.url!).hostname)
   const day = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayInMexico()
 
-  let notes: SiteLink[]
+  let sync: Awaited<ReturnType<typeof syncSiteCore>>
   try {
-    notes = dof ? await fetchDofSummary(day) : (await fetchSiteLinks(site.url!, site.linkFilter)).links
+    sync = await syncSiteCore(site, userId, day)
   } catch (e) {
     if (e instanceof IngestError) return { ok: false, error: e.message }
     console.error('checkSite', id, e)
     return { ok: false, error: `No se pudo leer ${dof ? 'el sumario del Diario Oficial' : 'el listado del sitio'}` }
   }
-
-  const known = await db.select({ url: ingestSources.url }).from(ingestSources)
-    .where(inArray(ingestSources.url, notes.map(n => n.url)))
-  const knownUrls = new Set(known.map(k => k.url))
-  const fresh = notes.filter(n => !knownUrls.has(n.url))
-  const toCreate = fresh.slice(0, MAX_NEW_PER_CHECK)
-
-  const inserted = toCreate.length
-    ? await db.insert(ingestSources).values(toCreate.map(n => ({
-        id: `src-${crypto.randomUUID()}`,
-        kind: 'url',
-        title: n.title,
-        url: n.url,
-        parentId: site.id,
-        createdBy: userId,
-      }))).returning()
-    : []
-  const [updatedSite] = await db.update(ingestSources)
-    .set({ lastCheckedAt: new Date(), updatedAt: new Date() })
-    .where(eq(ingestSources.id, site.id)).returning()
   revalidatePath('/admin/ingesta')
 
   const [me] = await db.select({ name: user.name }).from(user).where(eq(user.id, userId)).limit(1)
   const withName = (r: typeof ingestSources.$inferSelect) => ({ ...r, createdByName: me?.name ?? null })
   return {
     ok: true,
-    site: withName(updatedSite),
-    created: inserted.map(withName),
-    found: notes.length,
-    skipped: notes.length - fresh.length,
-    remaining: fresh.length - toCreate.length,
+    site: withName(sync.site),
+    created: sync.created.map(withName),
+    found: sync.found,
+    skipped: sync.skipped,
+    remaining: sync.remaining,
   }
 }

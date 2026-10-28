@@ -2,22 +2,17 @@
 
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
-import { getTenantDb } from '@/lib/db/tenant'
-import { companyProfiles, ingestMatches, ingestSources, regulatoryItemEvents, regulatoryItems, tenants } from '@/lib/db/schema'
-import { draftObligation, ITEM_MATERIA, type Company, type Draft } from '@/lib/ingest/draft'
+import { ingestMatches, ingestSources, tenants } from '@/lib/db/schema'
+import { createItemFromSource, sourceLabelOf } from '@/lib/ingest/generate'
 import { computeMatches } from '@/lib/ingest/matching'
-import { isDofHost } from '@/lib/ingest/site'
-import type { Materia } from '@/lib/ingest/categories'
 import { requireAdmin } from './auth-helpers'
 
 // De una publicación ya categorizada en la ingesta a borradores de obligación
 // en la base de cada cliente. Nada llega al cliente hasta que el socio lo
 // envía desde la matriz regulatoria.
-
-const EVENT = 'created_from_ingest'
 
 export type ObligationTarget = {
   tenantId: string
@@ -32,19 +27,6 @@ async function readySource(sourceId: string) {
   const [source] = await db.select().from(ingestSources).where(eq(ingestSources.id, sourceId)).limit(1)
   if (!source || source.kind === 'site' || source.status !== 'lista') throw new Error('La fuente aún no está categorizada')
   return source
-}
-
-async function tenantContext(tenantId: string, sourceId: string) {
-  const tdb = await getTenantDb(tenantId)
-  const [[profile], existing] = await Promise.all([
-    tdb.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId)).limit(1),
-    tdb.select({ itemId: regulatoryItemEvents.itemId }).from(regulatoryItemEvents).where(and(
-      eq(regulatoryItemEvents.tenantId, tenantId),
-      eq(regulatoryItemEvents.eventType, EVENT),
-      sql`${regulatoryItemEvents.metadata}->>'ingestSourceId' = ${sourceId}`,
-    )).limit(1),
-  ])
-  return { tdb, profile: profile ?? null, itemId: existing[0]?.itemId ?? null }
 }
 
 export async function getObligationTargets(sourceId: string): Promise<ObligationTarget[]> {
@@ -89,69 +71,17 @@ export async function generateObligations(sourceId: string, tenantIds: string[])
   const source = await readySource(sourceId).catch(() => null)
   if (!source) return { ok: false, error: 'La fuente aún no está categorizada' }
   const list = await db.select().from(tenants).where(inArray(tenants.id, tenantIds))
-  // Publicación de un sitio recurrente: el origen es el sitio (DOF o el nombre con que se registró).
-  const [parent] = source.parentId
-    ? await db.select({ title: ingestSources.title, url: ingestSources.url }).from(ingestSources).where(eq(ingestSources.id, source.parentId)).limit(1)
-    : []
-  const sourceLabel = !parent ? 'Sitio recurrente' : parent.url && isDofHost(new URL(parent.url).hostname) ? 'DOF' : parent.title.slice(0, 80)
+  const sourceLabel = await sourceLabelOf(source)
 
   const results = await Promise.all(list.map(async (tenant): Promise<GenerateResult> => {
     const base = { tenantId: tenant.id, name: tenant.name }
     try {
-      const { tdb, profile, itemId: existing } = await tenantContext(tenant.id, sourceId)
-      if (existing) {
-        await db.update(ingestMatches).set({ draftItemId: existing }).where(and(eq(ingestMatches.sourceId, source.id), eq(ingestMatches.tenantId, tenant.id)))
-        return { ...base, itemId: existing, aiDraft: false, error: 'Ya tenía un borrador de esta publicación' }
+      const created = await createItemFromSource({ source, sourceLabel, tenant, actorId: session?.user.id ?? userId, send: false })
+      if (created.existing) {
+        await db.update(ingestMatches).set({ draftItemId: created.itemId }).where(and(eq(ingestMatches.sourceId, source.id), eq(ingestMatches.tenantId, tenant.id)))
+        return { ...base, itemId: created.itemId, aiDraft: false, error: 'Ya tenía un borrador de esta publicación' }
       }
-
-      const company: Company = { name: tenant.name, ...profile, industry: profile?.industry || tenant.industry }
-      let draft: Draft | null = null
-      try {
-        draft = await draftObligation(source, company)
-      } catch (e) {
-        // Sin IA queda un borrador con el resumen; el socio lo completa a mano.
-        console.error('draftObligation', tenant.id, e)
-      }
-
-      const itemId = crypto.randomUUID()
-      await tdb.insert(regulatoryItems).values({
-        id: itemId,
-        tenantId: tenant.id,
-        scope: 'regulatorio',
-        origin: 'ingesta',
-        materia: ITEM_MATERIA[(source.materia ?? 'otra') as Materia] ?? 'Administrativo y simplificación',
-        title: draft?.title ?? source.title.slice(0, 150),
-        description: source.summary ?? '',
-        instrumentType: draft?.instrumentType ?? null,
-        authority: source.authority,
-        source: source.parentId ? sourceLabel : source.kind === 'file' ? (source.fileName ?? 'Archivo') : new URL(source.url!).hostname,
-        sourceUrl: source.url,
-        stage: source.vigenciaStatus === 'proyecto' ? 'proyecto' : source.parentId ? 'publicado' : null,
-        stageDetail: source.vigenciaDetail,
-        publishedAt: source.publishedAt,
-        dueDate: draft?.dueDate ?? null,
-        impact: draft?.impact ?? null,
-        impactDirection: draft?.impactDirection ?? null,
-        impactRationale: draft?.impactRationale ?? '',
-        generatesObligation: draft?.generatesObligation ?? false,
-        obligationDetail: draft?.obligationDetail ?? '',
-        comments: 'Borrador generado desde la ingesta. Revísalo antes de enviarlo al cliente.',
-        createdBy: userId,
-      })
-      await tdb.insert(regulatoryItemEvents).values({
-        id: crypto.randomUUID(),
-        itemId,
-        tenantId: tenant.id,
-        eventType: EVENT,
-        title: 'Asunto identificado desde la ingesta',
-        description: draft ? 'Otero propuso el borrador a partir de la publicación y el perfil de la empresa.' : 'Se abrió el expediente con el resumen de la publicación.',
-        metadata: { ingestSourceId: source.id, aiDraft: Boolean(draft) },
-        createdBy: session?.user.id ?? userId,
-      })
-      await db.insert(ingestMatches)
-        .values({ sourceId: source.id, tenantId: tenant.id, applies: true, reason: 'Generado manualmente', draftItemId: itemId })
-        .onConflictDoUpdate({ target: [ingestMatches.sourceId, ingestMatches.tenantId], set: { draftItemId: itemId, updatedAt: new Date() } })
-      return { ...base, itemId, aiDraft: Boolean(draft), error: null }
+      return { ...base, itemId: created.itemId, aiDraft: created.aiDraft, error: null }
     } catch (e) {
       console.error('generateObligations', tenant.id, e)
       return { ...base, itemId: null, aiDraft: false, error: 'No se pudo guardar en la base de este cliente' }
