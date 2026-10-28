@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
-import { updateItemStatus, type RegulatoryItem } from '@/app/actions/regulatory-items'
+import { acceptAndAssign, updateItemStatus, type AssignableMember, type RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,7 @@ import { VIEWS, compareInbox, daysUntil, inView, type ViewId } from '@/lib/inbox
 import { LEGAL_OBJECTS, OBJECT_FAMILIES, isLegalObject } from '@/lib/legal-objects'
 import { IMPACTS, IMPACT_LABELS, MATERIAS } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
+import { AssigneeSelect } from './assignee-select'
 import { InboxPanel } from './inbox-panel'
 import { InboxTable, groupByDay, type Group } from './inbox-table'
 
@@ -74,10 +75,10 @@ function StatCard({ value, label, active, onClick }: { value: number; label: str
   )
 }
 
-type Props = { items: RegulatoryItem[] }
+type Props = { items: RegulatoryItem[]; members: AssignableMember[] }
 
 /** Bandeja de RegWatch: vistas a la izquierda, tabla de asuntos agrupada por día y el asunto abierto en un panel lateral. */
-export function Inbox({ items }: Props) {
+export function Inbox({ items, members }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [view, setView] = useState<ViewId>('bandeja')
@@ -90,6 +91,8 @@ export function Inbox({ items }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [discarding, setDiscarding] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [assignee, setAssignee] = useState('')
   const [reason, setReason] = useState('')
   const [error, setError] = useState('')
 
@@ -142,8 +145,26 @@ export function Inbox({ items }: Props) {
   const resetBulk = () => {
     setSelected(new Set())
     setDiscarding(false)
+    setAssigning(false)
+    setAssignee('')
     setReason('')
     setError('')
+  }
+
+  const assignSelected = () => {
+    if (!assignee) return
+    setError('')
+    startTransition(async () => {
+      try {
+        await Promise.all(selectedIds.map((id) => acceptAndAssign(id, assignee)))
+        resetBulk()
+        router.refresh()
+      } catch (cause) {
+        console.error('assignSelected', cause)
+        setError('No se pudieron asignar todos los asuntos. Intenta de nuevo.')
+        router.refresh()
+      }
+    })
   }
 
   const decideSelected = (status: string, why?: string) => {
@@ -249,9 +270,18 @@ export function Inbox({ items }: Props) {
                 <Button variant="ghost" disabled={isPending} onClick={resetBulk}>Quitar selección</Button>
                 <Button variant="ghost" disabled={isPending} onClick={() => decideSelected('archivada')}>Archivar</Button>
                 <Button variant="outline" disabled={isPending} onClick={() => setDiscarding(true)}>Descartar</Button>
-                <Button disabled={isPending} onClick={() => decideSelected('aceptada')}>Atender</Button>
+                <Button disabled={isPending} onClick={() => (members.length ? setAssigning(true) : decideSelected('aceptada'))}>Atender</Button>
               </div>
             </div>
+            {assigning && (
+              <div className="flex flex-col gap-3 border-t border-border pt-3">
+                <AssigneeSelect members={members} value={assignee} onChange={setAssignee} />
+                <div className="flex justify-end gap-3">
+                  <Button variant="ghost" disabled={isPending} onClick={() => { setAssigning(false); setAssignee('') }}>Cancelar</Button>
+                  <Button disabled={isPending || !assignee} onClick={assignSelected}>Aceptar y asignar</Button>
+                </div>
+              </div>
+            )}
             {discarding && (
               <div className="flex flex-col gap-3 border-t border-border pt-3">
                 <label className="flex flex-col gap-1">
@@ -286,7 +316,7 @@ export function Inbox({ items }: Props) {
         )}
       </section>
 
-      <InboxPanel item={openItem} onClose={() => setOpenId(null)} />
+      <InboxPanel item={openItem} members={members} onClose={() => setOpenId(null)} />
     </div>
   )
 }

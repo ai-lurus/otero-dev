@@ -6,8 +6,10 @@ import { eq, and, desc, isNotNull, inArray, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@/lib/db/schema'
+import { members } from '@/lib/db/tenant-schema'
 import { DIRECTIONS, IMPACTS, MATERIAS, SCOPES, STATUSES, isOneOf } from '@/lib/regulatory'
 import { getFirstTenantId, requireAdmin } from './auth-helpers'
+import { isTenantAdmin } from './tenant-users'
 
 export type ItemEvent = typeof regulatoryItemEvents.$inferSelect
 
@@ -163,6 +165,47 @@ export async function updateItemStatus(id: string, status: string, reason?: stri
     description: reason?.trim() ? `Motivo: ${reason.trim()}` : 'El cliente actualizó el estado del asunto regulatorio.',
     createdBy: (await auth.api.getSession({ headers: await headers() }))?.user.id ?? 'client',
     metadata: { status, ...(reason?.trim() ? { reason: reason.trim() } : {}) },
+  })
+  revalidatePath('/cliente/obligaciones')
+  revalidatePath('/cliente')
+}
+
+export type AssignableMember = { id: string; name: string }
+
+/** Personas activas de la empresa a quienes el admin puede asignar un asunto. Solo el admin del cliente las ve. */
+export async function getAssignableMembers(): Promise<AssignableMember[]> {
+  if (!(await isTenantAdmin())) return []
+  const { db } = await clientContext()
+  const rows = await db.select({ id: members.id, name: members.name }).from(members).where(eq(members.active, true))
+  return rows.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** El admin del cliente acepta un asunto y se lo asigna a una persona de su equipo. Pasa a Por hacer. */
+export async function acceptAndAssign(id: string, memberId: string) {
+  if (!(await isTenantAdmin())) throw new Error('Forbidden')
+  const { userId, tenantId, db } = await clientContext()
+  const [member] = await db.select({ id: members.id, name: members.name }).from(members).where(and(eq(members.id, memberId), eq(members.active, true))).limit(1)
+  if (!member) throw new Error('Persona no encontrada')
+  const updated = await db
+    .update(regulatoryItems)
+    .set({
+      status: 'aceptada',
+      executionStatus: sql`coalesce(${regulatoryItems.executionStatus}, 'por_hacer')`,
+      owner: member.name,
+      assigneeId: member.id,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
+    .returning({ id: regulatoryItems.id })
+  if (!updated.length) throw new Error('Asunto no encontrado')
+  await recordEvent(db, {
+    itemId: id,
+    tenantId,
+    eventType: 'accepted_and_assigned',
+    title: `Aceptado y asignado a ${member.name}`,
+    description: 'El administrador de la empresa aceptó el asunto y lo asignó a su equipo.',
+    createdBy: userId,
+    metadata: { status: 'aceptada', assigneeId: member.id },
   })
   revalidatePath('/cliente/obligaciones')
   revalidatePath('/cliente')

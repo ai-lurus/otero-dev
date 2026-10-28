@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ExternalLink } from 'lucide-react'
-import { updateItemStatus, type RegulatoryItem } from '@/app/actions/regulatory-items'
+import { acceptAndAssign, updateItemStatus, type AssignableMember, type RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -12,10 +12,13 @@ import { Cite, DeadlineChip } from '@/components/ui/status-tag'
 import { DIRECTION_LABELS, IMPACT_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
 import { bandOf, deadlineLabel } from '@/lib/inbox'
 import { LEGAL_OBJECTS, isLegalObject } from '@/lib/legal-objects'
+import { AssigneeSelect } from './assignee-select'
 import { BandTag, sourceCite } from './band-tag'
 
 type Props = {
   item: RegulatoryItem | null
+  /** Personas del equipo; solo llega para el admin del cliente, que es quien asigna. */
+  members: AssignableMember[]
   onClose: () => void
 }
 
@@ -29,17 +32,21 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /** Panel lateral derecho con el asunto abierto y sus decisiones. */
-export function InboxPanel({ item, onClose }: Props) {
+export function InboxPanel({ item, members, onClose }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
   const [discarding, setDiscarding] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [assignee, setAssignee] = useState('')
   const [reason, setReason] = useState('')
 
   const reset = () => {
     setError('')
     setDiscarding(false)
+    setAssigning(false)
+    setAssignee('')
     setReason('')
   }
 
@@ -59,6 +66,23 @@ export function InboxPanel({ item, onClose }: Props) {
     })
   }
 
+  const assign = () => {
+    if (!item || !assignee) return
+    setError('')
+    startTransition(async () => {
+      try {
+        await acceptAndAssign(item.id, assignee)
+        router.refresh()
+        reset()
+        onClose()
+      } catch (error) {
+        console.error('acceptAndAssign', item.id, error)
+        setError('No se pudo asignar el asunto. Intenta de nuevo.')
+      }
+    })
+  }
+
+  const canAssign = members.length > 0
   const band = item ? bandOf(item) : null
   const deadline = item ? deadlineLabel(item.dueDate) : null
   const meta = item
@@ -126,7 +150,7 @@ export function InboxPanel({ item, onClose }: Props) {
                       <Button variant="outline" disabled={isPending} onClick={() => setDiscarding(true)}>Descartar</Button>
                     )}
                     {(item.status === 'identificada' || item.status === 'diferida') && (
-                      <Button disabled={isPending} onClick={() => decide('aceptada')}>Atender</Button>
+                      <Button disabled={isPending} onClick={() => (canAssign ? setAssigning(true) : decide('aceptada'))}>Atender</Button>
                     )}
                     {item.status === 'aceptada' && (
                       <Button disabled={isPending} onClick={() => decide('cerrada')}>Marcar como cerrado</Button>
@@ -134,6 +158,15 @@ export function InboxPanel({ item, onClose }: Props) {
                   </>
                 )}
               </div>
+              {assigning && (
+                <div className="flex w-full flex-col gap-3 border-t border-border pt-4">
+                  <AssigneeSelect members={members} value={assignee} onChange={setAssignee} />
+                  <div className="flex justify-end gap-3">
+                    <Button variant="ghost" disabled={isPending} onClick={() => { setAssigning(false); setAssignee('') }}>Cancelar</Button>
+                    <Button disabled={isPending || !assignee} onClick={assign}>Aceptar y asignar</Button>
+                  </div>
+                </div>
+              )}
               {discarding && (
                 <div className="flex w-full flex-col gap-3 border-t border-border pt-4">
                   <label className="flex flex-col gap-1">

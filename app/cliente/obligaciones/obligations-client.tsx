@@ -1,12 +1,12 @@
 'use client'
 
-import type { RegulatoryItem } from '@/app/actions/regulatory-items'
+import type { AssignableMember, RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Inbox } from '@/components/regulatory/inbox/inbox'
 
-export default function ObligationsClient({ items }: { items: RegulatoryItem[] }) {
+export default function ObligationsClient({ items, members }: { items: RegulatoryItem[]; members: AssignableMember[] }) {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <Inbox items={items} />
+      <Inbox items={items} members={members} />
     </main>
   )
 }

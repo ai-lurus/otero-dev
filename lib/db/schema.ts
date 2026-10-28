@@ -143,6 +143,7 @@ export const regulatoryItems = pgTable('regulatory_items', {
   executionStatus: text('execution_status'), // por_hacer | en_curso | en_revision | cumplido; solo tras aceptar
   status: text('status').notNull().default('identificada'), // identificada | aceptada | cerrada | diferida | descartada | archivada
   owner: text('owner'),
+  assigneeId: text('assignee_id'), // members.id de la persona a quien el admin del cliente asignó el asunto
   sentAt: timestamp('sent_at'),
   createdBy: text('created_by').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
