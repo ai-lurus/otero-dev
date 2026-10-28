@@ -75,10 +75,10 @@ function StatCard({ value, label, active, onClick }: { value: number; label: str
   )
 }
 
-type Props = { items: RegulatoryItem[]; members: AssignableMember[] }
+type Props = { items: RegulatoryItem[]; members: AssignableMember[]; /** Solo el admin del cliente decide: aceptar, descartar, archivar y cerrar. */ canDecide: boolean }
 
 /** Bandeja de RegWatch: vistas a la izquierda, tabla de asuntos agrupada por día y el asunto abierto en un panel lateral. */
-export function Inbox({ items, members }: Props) {
+export function Inbox({ items, members, canDecide }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [view, setView] = useState<ViewId>('bandeja')
@@ -262,7 +262,7 @@ export function Inbox({ items, members }: Props) {
           {visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'} en esta vista. Abre un asunto para decidir.
         </p>
 
-        {selectedIds.length > 0 && (
+        {canDecide && selectedIds.length > 0 && (
           <div role="region" aria-label="Acciones para los seleccionados" className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-4">
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-body-sm text-ink">{selectedIds.length} {selectedIds.length === 1 ? 'seleccionado' : 'seleccionados'}</span>
@@ -311,12 +311,12 @@ export function Inbox({ items, members }: Props) {
           </Empty>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border">
-            <InboxTable groups={groups} selected={selected} openId={openId} onToggle={toggle} onToggleAll={toggleAll} onOpen={setOpenId} />
+            <InboxTable groups={groups} selectable={canDecide} selected={selected} openId={openId} onToggle={toggle} onToggleAll={toggleAll} onOpen={setOpenId} />
           </div>
         )}
       </section>
 
-      <InboxPanel item={openItem} members={members} onClose={() => setOpenId(null)} />
+      <InboxPanel item={openItem} members={members} canDecide={canDecide} onClose={() => setOpenId(null)} />
     </div>
   )
 }

@@ -19,6 +19,8 @@ type Props = {
   item: RegulatoryItem | null
   /** Personas del equipo; solo llega para el admin del cliente, que es quien asigna. */
   members: AssignableMember[]
+  /** Solo el admin del cliente decide; el equipo ve el detalle sin acciones. */
+  canDecide: boolean
   onClose: () => void
 }
 
@@ -32,7 +34,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /** Panel lateral derecho con el asunto abierto y sus decisiones. */
-export function InboxPanel({ item, members, onClose }: Props) {
+export function InboxPanel({ item, members, canDecide, onClose }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
@@ -138,6 +140,7 @@ export function InboxPanel({ item, members, onClose }: Props) {
               <Button variant="ghost" asChild>
                 <Link href={`/cliente/obligaciones/${item.id}`}>Abrir expediente</Link>
               </Button>
+              {canDecide && (
               <div className="ml-auto flex flex-wrap gap-3">
                 {item.status === 'descartada' || item.status === 'archivada' ? (
                   <Button variant="outline" disabled={isPending} onClick={() => decide('identificada')}>Devolver a la bandeja</Button>
@@ -158,6 +161,7 @@ export function InboxPanel({ item, members, onClose }: Props) {
                   </>
                 )}
               </div>
+              )}
               {assigning && (
                 <div className="flex w-full flex-col gap-3 border-t border-border pt-4">
                   <AssigneeSelect members={members} value={assignee} onChange={setAssignee} />

@@ -21,6 +21,8 @@ const folio = (item: RegulatoryItem) => `${item.scope === 'legislativo' ? 'LEG' 
 
 type Props = {
   groups: Group[]
+  /** Muestra las casillas de selección para actuar sobre varios asuntos. */
+  selectable: boolean
   selected: Set<string>
   openId: string | null
   onToggle: (id: string) => void
@@ -40,7 +42,7 @@ export function groupByDay(items: RegulatoryItem[]): Group[] {
 }
 
 /** Tabla de la bandeja: una fila por asunto, agrupada por día si hay encabezado. */
-export function InboxTable({ groups, selected, openId, onToggle, onToggleAll, onOpen }: Props) {
+export function InboxTable({ groups, selectable, selected, openId, onToggle, onToggleAll, onOpen }: Props) {
   const allIds = groups.flatMap((group) => group.items.map((item) => item.id))
   const allChecked = allIds.length > 0 && allIds.every((id) => selected.has(id))
 
@@ -50,7 +52,7 @@ export function InboxTable({ groups, selected, openId, onToggle, onToggleAll, on
         <thead className="bg-surface-sunken">
           <tr>
             <th scope="col" className="w-10 px-3 py-3">
-              <Checkbox aria-label="Seleccionar todos" checked={allChecked} onCheckedChange={(checked) => onToggleAll(allIds, checked === true)} />
+              {selectable && <Checkbox aria-label="Seleccionar todos" checked={allChecked} onCheckedChange={(checked) => onToggleAll(allIds, checked === true)} />}
             </th>
             <th scope="col" className={head}>Fecha</th>
             <th scope="col" className={head}>Fuente</th>
@@ -82,7 +84,7 @@ export function InboxTable({ groups, selected, openId, onToggle, onToggleAll, on
                     className={cn('cursor-pointer border-b border-border bg-surface-raised transition-colors hover:bg-surface-sunken', item.id === openId && 'bg-brand-tint hover:bg-brand-tint')}
                   >
                     <td className={cn(cell, 'w-10')} onClick={(event) => event.stopPropagation()}>
-                      <Checkbox aria-label={`Seleccionar ${item.title}`} checked={selected.has(item.id)} onCheckedChange={() => onToggle(item.id)} />
+                      {selectable && <Checkbox aria-label={`Seleccionar ${item.title}`} checked={selected.has(item.id)} onCheckedChange={() => onToggle(item.id)} />}
                     </td>
                     <td className={cn(cell, 'text-data whitespace-nowrap')}>{shortDate(itemDay(item))}</td>
                     <td className={cell}>

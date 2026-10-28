@@ -143,6 +143,8 @@ export async function getRegulatoryItem(id: string) {
 }
 
 export async function updateItemStatus(id: string, status: string, reason?: string) {
+  // Decidir sobre un asunto es del admin del cliente; el equipo ve y ejecuta lo suyo.
+  if (!(await isTenantAdmin())) throw new Error('Forbidden')
   const { tenantId, db } = await clientContext()
   if (!isOneOf(STATUSES, status)) throw new Error('Estado inválido')
   const updated = await db

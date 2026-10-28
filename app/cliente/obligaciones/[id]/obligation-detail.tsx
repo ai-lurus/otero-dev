@@ -56,11 +56,14 @@ function FileIcon({ pathname }: { pathname: string }) {
 export function ObligationDetail({
   obligation,
   adminMode = false,
+  canDecide = true,
   tenantId,
   tenantName,
 }: {
   obligation: Obligation & { events?: TimelineEvent[] }
   adminMode?: boolean
+  /** En la vista del cliente solo su admin cambia el estado. */
+  canDecide?: boolean
   tenantId?: string
   tenantName?: string
 }) {
@@ -195,7 +198,7 @@ export function ObligationDetail({
               <div className="flex flex-col gap-2 sm:col-span-2">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estado</dt>
                 <dd>
-                  <Select value={obligation.status} onValueChange={changeStatus} disabled={isPending}>
+                  <Select value={obligation.status} onValueChange={changeStatus} disabled={isPending || !canDecide}>
                     <SelectTrigger className="min-h-11 w-full sm:w-64"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
