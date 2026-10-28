@@ -106,7 +106,7 @@ export function Inbox({ items }: Props) {
     () => Object.fromEntries(VIEWS.map((entry) => [entry.id, filtered.filter((item) => inView(item, entry.id)).length])),
     [filtered],
   )
-  const unreviewed = useMemo(() => items.filter((item) => item.origin === 'ingesta' && item.status === 'identificada'), [items])
+  const unreviewed = useMemo(() => items.filter((item) => item.origin === 'regwatch' && item.status === 'identificada'), [items])
   const stats = {
     pending: unreviewed.length,
     high: unreviewed.filter((item) => item.impact === 'alto').length,

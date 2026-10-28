@@ -51,7 +51,7 @@ export function bandOf(item: InboxFields, today = new Date()): Band {
 export function inView(item: InboxFields, view: ViewId, today = new Date()) {
   // RegWatch son los asuntos que generó el match de la ingesta; lo capturado a mano va aparte.
   if (view === 'despacho') return item.origin === 'despacho'
-  if (item.origin !== 'ingesta') return false
+  if (item.origin !== 'regwatch') return false
   switch (view) {
     case 'bandeja':
       return item.status === 'identificada'
