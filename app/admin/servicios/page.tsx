@@ -10,7 +10,7 @@ function FirmPill({ firm }: { firm: Firm }) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1 text-[9px] font-bold px-2 py-0.5 rounded-full",
-      firm === "paulsen" ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+      firm === "paulsen" ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
     )}>
       {firm === "paulsen" ? "Ambiental" : "Corporativo"}
     </span>
@@ -20,11 +20,11 @@ function FirmPill({ firm }: { firm: Firm }) {
 const STATUS_COLS: ServiceStatus[] = ["solicitud", "en_proceso", "revision", "completado"]
 
 const STATUS_CONFIG: Record<ServiceStatus, { label: string; color: string; bg: string; dot: string }> = {
-  solicitud:  { label: "Solicitudes",  color: "#6B7280", bg: "#F3F4F6", dot: "#9CA3AF" },
-  en_proceso: { label: "En proceso",   color: "#1C2B4A", bg: "#EEF2F8", dot: "#1C2B4A" },
-  revision:   { label: "En revision",  color: "#D97706", bg: "#FFFBEB", dot: "#D97706" },
-  completado: { label: "Completados",  color: "#16A34A", bg: "#F0FDF4", dot: "#16A34A" },
-  cancelado:  { label: "Cancelados",   color: "#DC2626", bg: "#FEF2F2", dot: "#DC2626" },
+  solicitud:  { label: "Solicitudes",  color: "var(--ink-muted)", bg: "var(--surface-sunken)", dot: "var(--border-strong)" },
+  en_proceso: { label: "En proceso",   color: "var(--ink)", bg: "var(--surface-sunken)", dot: "var(--ink)" },
+  revision:   { label: "En revision",  color: "var(--warn-text)", bg: "var(--warn-tint)", dot: "var(--warn)" },
+  completado: { label: "Completados",  color: "var(--ok)", bg: "var(--ok-tint)", dot: "var(--ok)" },
+  cancelado:  { label: "Cancelados",   color: "var(--risk)", bg: "var(--risk-tint)", dot: "var(--risk)" },
 }
 
 export default function ServiciosPage() {
@@ -59,8 +59,8 @@ export default function ServiciosPage() {
                 className={cn(
                   "text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all",
                   firmFilter === f
-                    ? f === "paulsen" ? "bg-[#2D5A3D] text-white border-[#2D5A3D]"
-                      : f === "mia" ? "bg-[#1C2B4A] text-white border-[#1C2B4A]"
+                    ? f === "paulsen" ? "bg-paulsen text-surface border-paulsen"
+                      : f === "mia" ? "bg-mia text-surface border-mia"
                       : "bg-foreground text-background border-foreground"
                     : "bg-card border-border text-muted-foreground hover:border-foreground/20"
                 )}
@@ -95,9 +95,9 @@ export default function ServiciosPage() {
               )}
 
               {colServices.map(s => (
-                <div key={s.id} className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-md hover:border-foreground/15 transition-all group overflow-hidden">
+                <div key={s.id} className="bg-card border border-border rounded-2xl   hover:border-foreground/15 transition-all group overflow-hidden">
                   {/* Firm top bar */}
-                  <div className="h-0.5" style={{ background: s.firm === "paulsen" ? "#2D5A3D" : "#1C2B4A" }} />
+                  <div className="h-0.5" style={{ background: s.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)" }} />
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1 min-w-0">
@@ -106,7 +106,7 @@ export default function ServiciosPage() {
                           <span className="text-[9px] text-muted-foreground">{s.category}</span>
                         </div>
                         <Link href={`/admin/servicios/${s.id}`}>
-                          <p className="text-sm font-semibold text-foreground leading-snug group-hover:text-[#1C2B4A] transition-colors">
+                          <p className="text-sm font-semibold text-foreground leading-snug group-hover:text-ink transition-colors">
                             {s.title}
                           </p>
                         </Link>
@@ -119,7 +119,7 @@ export default function ServiciosPage() {
                     <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2.5">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${s.progress}%`, background: s.firm === "paulsen" ? "#2D5A3D" : "#1C2B4A" }}
+                        style={{ width: `${s.progress}%`, background: s.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)" }}
                       />
                     </div>
 
@@ -142,7 +142,7 @@ export default function ServiciosPage() {
                       {col === "solicitud" ? (
                         <button
                           onClick={() => acceptService(s.id)}
-                          className="flex-1 bg-[#1C2B4A] text-white text-xs font-semibold py-2 rounded-xl hover:bg-[#1C2B4A]/90 transition-colors"
+                          className="flex-1 bg-ink text-surface text-xs font-semibold py-2 rounded-xl hover:bg-ink/90 transition-colors"
                         >
                           Aceptar
                         </button>

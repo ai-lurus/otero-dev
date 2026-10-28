@@ -202,14 +202,16 @@ etiqueta Al día, nombre y hora de la última verificación en `text-caption`.
 - [ ] Estados con palabra + ícono; alertas con cita de fuente.
 - [ ] Textos en español de México, de tú, sin exclamaciones ni emojis.
 
-## Migración pendiente
+## Pantallas existentes
 
-Varias pantallas existentes aún tienen colores escritos a mano (sobre todo
-`#1C2B4A`, `#2D5A3D`, `#16A34A`, `#D97706`, `#DC2626` y `#c42a6d` en
-`app/admin` y `app/cliente`) y reglas con hex en `app/otero.css`. Al tocar uno
-de esos archivos, cambia los colores que modifiques por su token. Para
-encontrarlos:
+Las pantallas de `app/admin`, `app/cliente` y `app/login` ya usan tokens: los
+azules de tinta pasaron a `ink`, los verdes a `ok`, los ámbar a `warn`, los
+rojos a `risk` y el rosa a `brand`. Los colores de despacho se usan con
+`mia`/`paulsen` solo donde la pantalla distingue por despacho. Las reglas de la
+landing en `app/otero.css` usan las variables de los tokens.
+
+Para revisar que no vuelvan colores escritos a mano:
 
 ```bash
-grep -rnE '\[#[0-9a-fA-F]{3,8}\]|(emerald|amber|red|green|slate|gray)-[0-9]{2,3}' app components
+grep -rnE '\[#[0-9a-fA-F]{3,8}\]|#[0-9a-fA-F]{6}\b|(emerald|amber|red|green|slate|gray)-[0-9]{2,3}|-(white|black)\b' app components --include='*.tsx'
 ```

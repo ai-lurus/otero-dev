@@ -16,7 +16,7 @@ export function FirmBadge({ firm, className, size = 'md' }: FirmBadgeProps) {
         className={cn(
           'inline-flex items-center rounded font-sans font-medium',
           isSmall ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs',
-          'bg-[#0a1628]/8 text-[#0a1628] border border-[#8badd4]/40',
+          'bg-surface-sunken text-ink border border-surface/28',
           className
         )}
       >
@@ -30,7 +30,7 @@ export function FirmBadge({ firm, className, size = 'md' }: FirmBadgeProps) {
       className={cn(
         'inline-flex items-center rounded font-sans font-medium',
         isSmall ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-xs',
-        'bg-[#1a3a2a]/8 text-[#1a3a2a] border border-[#4ade80]/40',
+        'bg-ok/8 text-ok border border-ok/40',
         className
       )}
     >

@@ -54,21 +54,21 @@ function CompiChatInner() {
     <div className="flex flex-col h-[calc(100vh-64px)] md:h-screen bg-background">
 
       {/* Header */}
-      <div className="shrink-0 bg-[#0F1C2E] px-5 pt-8 pb-5">
+      <div className="shrink-0 bg-ink px-5 pt-8 pb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#2D5A3D] to-[#1C2B4A] flex items-center justify-center shadow-lg shrink-0">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <div className="w-10 h-10 rounded-2xl bg-ink flex items-center justify-center shrink-0">
+            <svg className="w-5 h-5 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="font-serif text-xl font-semibold text-white leading-none">Otero</h1>
-            <p className="text-white/40 text-[11px] mt-0.5">Asistente de compliance · Otero IA</p>
+            <h1 className="font-serif text-xl font-semibold text-surface leading-none">Otero</h1>
+            <p className="text-surface/40 text-[11px] mt-0.5">Asistente de compliance · Otero IA</p>
           </div>
           {isStreaming && (
             <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-emerald-400 text-[10px] font-semibold">Pensando...</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-ok animate-pulse" />
+              <span className="text-ok text-[10px] font-semibold">Pensando...</span>
             </div>
           )}
         </div>
@@ -78,7 +78,7 @@ function CompiChatInner() {
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isEmpty ? (
           <div className="flex flex-col items-center pt-6 pb-8">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[#2D5A3D]/15 to-[#1C2B4A]/15 border border-border flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-3xl bg-surface-sunken border border-border flex items-center justify-center mb-4">
               <svg className="w-7 h-7 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
@@ -112,8 +112,8 @@ function CompiChatInner() {
                 <div key={msg.id} className={cn('flex flex-col gap-1', isUser ? 'items-end' : 'items-start')}>
                   {!isUser && (
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-[#2D5A3D] to-[#1C2B4A] flex items-center justify-center">
-                        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <div className="w-5 h-5 rounded-lg bg-ink flex items-center justify-center">
+                        <svg className="w-2.5 h-2.5 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                         </svg>
                       </div>
@@ -123,7 +123,7 @@ function CompiChatInner() {
                   <div className={cn(
                     'max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
                     isUser
-                      ? 'bg-[#1C2B4A] text-white rounded-br-sm'
+                      ? 'bg-ink text-surface rounded-br-sm'
                       : 'bg-card border border-border text-foreground rounded-bl-sm'
                   )}>
                     {text}
@@ -135,8 +135,8 @@ function CompiChatInner() {
             {/* Typing indicator */}
             {status === 'submitted' && (
               <div className="flex items-start gap-2">
-                <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-[#2D5A3D] to-[#1C2B4A] flex items-center justify-center shrink-0 mt-1">
-                  <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div className="w-5 h-5 rounded-lg bg-ink flex items-center justify-center shrink-0 mt-1">
+                  <svg className="w-2.5 h-2.5 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
@@ -181,7 +181,7 @@ function CompiChatInner() {
           <button
             onClick={submit}
             disabled={!input.trim() || isStreaming}
-            className="w-8 h-8 rounded-xl bg-[#1C2B4A] text-white flex items-center justify-center shrink-0 disabled:opacity-30 transition-opacity"
+            className="w-8 h-8 rounded-xl bg-ink text-surface flex items-center justify-center shrink-0 disabled:opacity-30 transition-opacity"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7" />

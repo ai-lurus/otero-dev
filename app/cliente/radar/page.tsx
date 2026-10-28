@@ -25,8 +25,8 @@ const ARTICLES: Article[] = [
     id: "a1",
     featured: true,
     category: "Ambiental",
-    categoryColor: "#2D5A3D",
-    categoryBg: "#EAF2EC",
+    categoryColor: "var(--ok)",
+    categoryBg: "var(--ok-tint)",
     title: "SEMARNAT endurece requisitos para Licencias Ambientales de Operación industrial en 2025",
     summary: "La nueva circular técnica CT-12/2025 exige monitoreo continuo de emisiones para plantas industriales en Zonas Metropolitanas. Los plazos de resolución se amplían a 90 días hábiles.",
     body: "A partir del 1 de junio de 2025, toda Licencia Ambiental de Operación para instalaciones industriales en Zonas Metropolitanas deberá incluir un sistema de monitoreo continuo de emisiones conforme al Anexo XII de la CT-12/2025. Esto impacta directamente plantas de manufactura, parques logísticos y naves industriales en CDMX, Monterrey y Guadalajara. Las empresas con trámites en curso podrán acogerse al régimen anterior si su expediente fue ingresado antes del 15 de mayo.",
@@ -39,8 +39,8 @@ const ARTICLES: Article[] = [
   {
     id: "a2",
     category: "PROFEPA",
-    categoryColor: "#1C2B4A",
-    categoryBg: "#EEF2F8",
+    categoryColor: "var(--ink)",
+    categoryBg: "var(--surface-sunken)",
     title: "PROFEPA intensifica operativos de verificación en parques industriales del Valle de México",
     summary: "La Procuraduría anuncia 240 visitas de inspección programadas para Q2 2025 en corredores industriales. Empresas sin certificado vigente podrían recibir medidas de seguridad inmediata.",
     body: "PROFEPA comunicó el inicio del Programa de Verificación Industrial 2025 que contempla 240 visitas de inspección en los corredores industriales del Valle de México, Tlalnepantla, Vallejo, Xalostoc y Cuautitlán Izcalli entre abril y junio. Las empresas detectadas con certificado de emisiones vencido o sin cumplir las NOM ambientales vigentes serán sujetas a medidas de seguridad que pueden incluir sellos de clausura parcial o total. Se recomienda verificar el estatus de cumplimiento antes del 15 de mayo.",
@@ -53,8 +53,8 @@ const ARTICLES: Article[] = [
   {
     id: "a3",
     category: "Fiscal",
-    categoryColor: "#D97706",
-    categoryBg: "#FFFBEB",
+    categoryColor: "var(--warn-text)",
+    categoryBg: "var(--warn-tint)",
     title: "SAT amplía plazo de declaración anual para personas morales con ingresos mixtos",
     summary: "La prórroga aplica para contribuyentes con ingresos de fuentes nacionales e internacionales. El nuevo límite es el 31 de julio de 2025 sin recargos.",
     body: "El Servicio de Administración Tributaria emitió el comunicado SAT-2025-123 que otorga una prórroga automática al 31 de julio 2025 para personas morales que reportaron en su última declaración ingresos provenientes tanto de fuentes nacionales como del extranjero. No se requiere solicitud expresa. El beneficio aplica automáticamente si el RFC está en el catálogo de contribuyentes con operaciones internacionales.",
@@ -67,8 +67,8 @@ const ARTICLES: Article[] = [
   {
     id: "a4",
     category: "Inversión",
-    categoryColor: "#6B7280",
-    categoryBg: "#F3F4F6",
+    categoryColor: "var(--ink-muted)",
+    categoryBg: "var(--surface-sunken)",
     title: "ZMVM registra récord de inversión en parques industriales en el primer trimestre 2025",
     summary: "Con $22,800 MDP en proyectos autorizados, el corredor CDMX-Querétaro lidera la inversión industrial nacional. Ecatepec y Toluca concentran el 55% de los nuevos desarrollos.",
     body: "ProMéxico reportó que en el primer trimestre de 2025 se autorizaron proyectos de infraestructura industrial en la Zona Metropolitana del Valle de México por un monto total de $22,800 millones de pesos, un incremento del 28% respecto al mismo periodo de 2024. Los municipios de Ecatepec, Toluca y Cuautitlán Izcalli concentran el 55% de la nueva inversión. El marco regulatorio ambiental — especialmente las Licencias Ambientales de Operación — es el principal cuello de botella señalado por los desarrolladores.",
@@ -81,9 +81,9 @@ const ARTICLES: Article[] = [
 ]
 
 const RELEVANCE_CONFIG = {
-  alta:  { label: "Alta relevancia", color: "#DC2626", bg: "#FEF2F2" },
-  media: { label: "Relevancia media", color: "#D97706", bg: "#FFFBEB" },
-  baja:  { label: "Baja relevancia", color: "#6B7280", bg: "#F3F4F6" },
+  alta:  { label: "Alta relevancia", color: "var(--risk)", bg: "var(--risk-tint)" },
+  media: { label: "Relevancia media", color: "var(--warn-text)", bg: "var(--warn-tint)" },
+  baja:  { label: "Baja relevancia", color: "var(--ink-muted)", bg: "var(--surface-sunken)" },
 }
 
 function ArticleDrawer({ article, onClose }: { article: Article; onClose: () => void }) {
@@ -93,10 +93,10 @@ function ArticleDrawer({ article, onClose }: { article: Article; onClose: () => 
       {/* Header */}
       <div className="relative h-52 shrink-0">
         <Image src={article.image} alt={article.title} fill className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-ink/60" />
         <button
           onClick={onClose}
-          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white"
+          className="absolute top-12 left-4 w-9 h-9 rounded-full bg-ink/40 flex items-center justify-center text-surface"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -107,11 +107,11 @@ function ArticleDrawer({ article, onClose }: { article: Article; onClose: () => 
             <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: article.categoryColor, background: article.categoryBg }}>
               {article.category}
             </span>
-            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: rel.color, background: "rgba(255,255,255,0.15)", backdropFilter: "blur(4px)" }}>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ color: rel.color, background: "var(--surface-raised)" }}>
               {rel.label}
             </span>
           </div>
-          <h2 className="text-white font-serif text-lg font-semibold leading-snug text-balance">{article.title}</h2>
+          <h2 className="text-surface font-serif text-lg font-semibold leading-snug text-balance">{article.title}</h2>
         </div>
       </div>
 
@@ -133,14 +133,14 @@ function ArticleDrawer({ article, onClose }: { article: Article; onClose: () => 
         <p className="text-sm font-semibold text-foreground leading-relaxed mb-4">{article.summary}</p>
         <p className="text-sm text-muted-foreground leading-relaxed">{article.body}</p>
 
-        <div className="mt-6 p-4 bg-[#1C2B4A]/5 border border-[#1C2B4A]/10 rounded-2xl">
+        <div className="mt-6 p-4 bg-surface-sunken border border-border rounded-2xl">
           <div className="flex items-center gap-2 mb-2">
-            <svg className="w-3.5 h-3.5 text-[#1C2B4A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="w-3.5 h-3.5 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
             </svg>
-            <span className="text-[10px] font-bold text-[#1C2B4A] uppercase tracking-wider">Relevancia para tu portafolio</span>
+            <span className="text-[10px] font-bold text-ink uppercase tracking-wider">Relevancia para tu portafolio</span>
           </div>
-          <p className="text-xs text-[#1C2B4A]/70 leading-relaxed">
+          <p className="text-xs text-ink/70 leading-relaxed">
             {article.id === "a1" && "Tu Licencia Ambiental de Operación de la Planta Norte debe renovarse antes del 15 de mayo para acogerse al régimen anterior. Tu área ambiental coordinará el expediente esta semana."}
             {article.id === "a2" && "El certificado PROFEPA de la Nave Industrial 3 vence en 18 días. Este nuevo operativo de verificación incrementa el riesgo de clausura. Atender con carácter urgente."}
             {article.id === "a3" && "Tu empresa podría calificar para la prórroga automática por operaciones internacionales. Tu asesor corporativo validará tu situación fiscal esta semana."}
@@ -168,18 +168,18 @@ export default function RadarPage() {
   return (
     <div className="flex flex-col">
       {/* Dark header */}
-      <div className="bg-[#0F1F0A] px-6 pt-12 pb-7">
-        <p className="text-[#4D7A3A]/60 text-[10px] font-bold tracking-[0.2em] uppercase mb-3">Inteligencia legal</p>
+      <div className="bg-ink px-6 pt-12 pb-7">
+        <p className="text-ok/60 text-[10px] font-bold tracking-[0.2em] uppercase mb-3">Inteligencia legal</p>
         <div className="flex items-end justify-between">
-          <h1 className="font-serif text-4xl font-semibold text-white leading-none">
-            Radar<br /><span className="text-white/30 font-light">Regulatorio</span>
+          <h1 className="font-serif text-4xl font-semibold text-surface leading-none">
+            Radar<br /><span className="text-surface/30 font-light">Regulatorio</span>
           </h1>
           <div className="text-right">
-            <p className="text-3xl font-bold text-white leading-none">{ARTICLES.length}</p>
-            <p className="text-[10px] text-white/40 uppercase tracking-wide mt-1">esta semana</p>
+            <p className="text-3xl font-bold text-surface leading-none">{ARTICLES.length}</p>
+            <p className="text-[10px] text-surface/40 uppercase tracking-wide mt-1">esta semana</p>
           </div>
         </div>
-        <p className="text-white/40 text-xs mt-3">Novedades seleccionadas para tu sector · 30 Abr 2025</p>
+        <p className="text-surface/40 text-xs mt-3">Novedades seleccionadas para tu sector · 30 Abr 2025</p>
       </div>
 
       <div className="bg-background rounded-t-3xl -mt-2 px-5 pt-5 pb-4 flex flex-col gap-5">
@@ -204,21 +204,21 @@ export default function RadarPage() {
           <button onClick={() => setOpenArticle(featured)} className="w-full text-left group">
             <div className="relative h-52 rounded-2xl overflow-hidden">
               <Image src={featured.image} alt={featured.title} fill className="object-cover group-active:scale-[1.02] transition-transform duration-300" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+              <div className="absolute inset-0 bg-ink/60" />
               <div className="absolute top-3 left-3">
-                <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-white text-[#2D5A3D]">
+                <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-surface-raised text-ok">
                   Destacado · {featured.category}
                 </span>
               </div>
               <div className="absolute bottom-0 left-0 right-0 p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full text-[#DC2626] bg-[#DC2626]/15">
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded-full text-risk bg-risk/15">
                     Alta relevancia
                   </span>
-                  <span className="text-[10px] text-white/50">{featured.readTime} de lectura</span>
+                  <span className="text-[10px] text-surface/50">{featured.readTime} de lectura</span>
                 </div>
-                <h2 className="text-white font-serif text-lg font-semibold leading-snug text-balance">{featured.title}</h2>
-                <p className="text-white/60 text-xs mt-1.5 line-clamp-2">{featured.summary}</p>
+                <h2 className="text-surface font-serif text-lg font-semibold leading-snug text-balance">{featured.title}</h2>
+                <p className="text-surface/60 text-xs mt-1.5 line-clamp-2">{featured.summary}</p>
               </div>
             </div>
           </button>

@@ -9,7 +9,7 @@ function FirmPill({ firm }: { firm: Firm }) {
   return (
     <span className={cn(
       "text-[10px] font-bold px-2 py-0.5 rounded-full",
-      firm === "paulsen" ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+      firm === "paulsen" ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
     )}>
       {firm === "paulsen" ? "Ambiental" : "Corporativo"}
     </span>
@@ -78,7 +78,7 @@ export default function PagosPage() {
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-[#1C2B4A] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-[#1C2B4A]/90 transition-colors"
+          className="flex items-center gap-2 bg-ink text-surface text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-ink/90 transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -89,11 +89,11 @@ export default function PagosPage() {
 
       {/* Sent confirm toast */}
       {sentConfirm && (
-        <div className="mb-4 flex items-center gap-3 bg-[#F0FDF4] border border-[#16A34A]/30 rounded-2xl px-4 py-3">
-          <svg className="w-5 h-5 text-[#16A34A] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="mb-4 flex items-center gap-3 bg-ok-tint border border-ok/30 rounded-2xl px-4 py-3">
+          <svg className="w-5 h-5 text-ok shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
           </svg>
-          <p className="text-sm font-semibold text-[#16A34A]">Factura enviada al cliente exitosamente</p>
+          <p className="text-sm font-semibold text-ok">Factura enviada al cliente exitosamente</p>
         </div>
       )}
 
@@ -106,7 +106,7 @@ export default function PagosPage() {
               onClick={() => setFirmFilter(f)}
               className={cn(
                 "text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all",
-                firmFilter === f ? "bg-[#1C2B4A] text-white border-[#1C2B4A]" : "bg-card border-border text-muted-foreground"
+                firmFilter === f ? "bg-mia text-surface border-mia" : "bg-card border-border text-muted-foreground"
               )}
             >
               {f === "all" ? "Todos" : f === "paulsen" ? "Ambiental" : "Corporativo"}
@@ -114,13 +114,13 @@ export default function PagosPage() {
           ))}
         </div>
         {pending.length > 0 && (
-          <div className="flex items-center gap-2 bg-[#FFFBEB] border border-amber-200 rounded-xl px-4 py-2">
-            <svg className="w-4 h-4 text-[#D97706]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="flex items-center gap-2 bg-warn-tint border border-warn/30 rounded-xl px-4 py-2">
+            <svg className="w-4 h-4 text-warn-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
             </svg>
             <div>
-              <p className="text-xs font-bold text-[#D97706]">{fmt(totalPending)}</p>
-              <p className="text-[10px] text-[#D97706]/70">{pending.length} pendiente{pending.length > 1 ? "s" : ""}</p>
+              <p className="text-xs font-bold text-warn-text">{fmt(totalPending)}</p>
+              <p className="text-[10px] text-warn-text/70">{pending.length} pendiente{pending.length > 1 ? "s" : ""}</p>
             </div>
           </div>
         )}
@@ -138,8 +138,8 @@ export default function PagosPage() {
             <div
               key={p.id}
               className={cn(
-                "bg-card border rounded-2xl p-4 shadow-sm",
-                isOverdue ? "border-red-200" : isPaid ? "border-border" : "border-amber-200/70"
+                "bg-card border rounded-2xl p-4 ",
+                isOverdue ? "border-risk/30" : isPaid ? "border-border" : "border-warn/70"
               )}
             >
               <div className="flex items-start justify-between gap-3">
@@ -147,9 +147,9 @@ export default function PagosPage() {
                   <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                     <span className={cn(
                       "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                      isPaid ? "bg-[#F0FDF4] text-[#16A34A]"
-                        : isOverdue ? "bg-[#FEF2F2] text-[#DC2626]"
-                        : "bg-[#FFFBEB] text-[#D97706]"
+                      isPaid ? "bg-ok-tint text-ok"
+                        : isOverdue ? "bg-risk-tint text-risk"
+                        : "bg-warn-tint text-warn-text"
                     )}>
                       {isPaid ? "Pagado" : isOverdue ? "Vencido" : "Pendiente"}
                     </span>
@@ -177,7 +177,7 @@ export default function PagosPage() {
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => setMarkedPaid(prev => [...prev, p.id])}
-                    className="flex-1 flex items-center justify-center gap-1.5 bg-[#1C2B4A] text-white text-xs font-semibold py-2.5 rounded-xl hover:bg-[#1C2B4A]/90 transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-ink text-surface text-xs font-semibold py-2.5 rounded-xl hover:bg-ink/90 transition-colors"
                   >
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -209,8 +209,8 @@ export default function PagosPage() {
       {/* ── New Invoice Modal ── */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-          <div className="relative bg-background rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg mx-auto sm:m-4 max-h-[90vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-ink/50" onClick={() => setShowModal(false)} />
+          <div className="relative bg-background rounded-t-3xl sm:rounded-2xl  w-full max-w-lg mx-auto sm:m-4 max-h-[90vh] overflow-y-auto">
             {/* Modal header */}
             <div className="sticky top-0 bg-background flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
               <div>
@@ -234,7 +234,7 @@ export default function PagosPage() {
                 <select
                   value={newInvoice.clientId}
                   onChange={e => setNewInvoice(v => ({ ...v, clientId: e.target.value }))}
-                  className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#1C2B4A]/30 appearance-none"
+                  className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-border appearance-none"
                 >
                   <option value="">Selecciona un cliente</option>
                   {adminClients.map(c => (
@@ -254,7 +254,7 @@ export default function PagosPage() {
                       className={cn(
                         "flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all",
                         newInvoice.firm === f
-                          ? f === "paulsen" ? "bg-[#2D5A3D] text-white border-[#2D5A3D]" : "bg-[#1C2B4A] text-white border-[#1C2B4A]"
+                          ? f === "paulsen" ? "bg-paulsen text-surface border-paulsen" : "bg-mia text-surface border-mia"
                           : "bg-card border-border text-muted-foreground hover:border-foreground/20"
                       )}
                     >
@@ -272,7 +272,7 @@ export default function PagosPage() {
                   value={newInvoice.concept}
                   onChange={e => setNewInvoice(v => ({ ...v, concept: e.target.value }))}
                   placeholder="Ej. Honorarios — Due Diligence Tulum"
-                  className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#1C2B4A]/30 placeholder:text-muted-foreground/50"
+                  className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-border placeholder:text-muted-foreground/50"
                 />
               </div>
 
@@ -289,7 +289,7 @@ export default function PagosPage() {
                       value={newInvoice.amount}
                       onChange={e => setNewInvoice(v => ({ ...v, amount: e.target.value }))}
                       placeholder="25,000"
-                      className="w-full text-sm bg-muted rounded-xl pl-7 pr-3 py-2.5 outline-none border border-transparent focus:border-[#1C2B4A]/30 placeholder:text-muted-foreground/50"
+                      className="w-full text-sm bg-muted rounded-xl pl-7 pr-3 py-2.5 outline-none border border-transparent focus:border-border placeholder:text-muted-foreground/50"
                     />
                   </div>
                 </div>
@@ -299,7 +299,7 @@ export default function PagosPage() {
                     type="date"
                     value={newInvoice.dueDate}
                     onChange={e => setNewInvoice(v => ({ ...v, dueDate: e.target.value }))}
-                    className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#1C2B4A]/30"
+                    className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-border"
                   />
                 </div>
               </div>
@@ -312,7 +312,7 @@ export default function PagosPage() {
                 <select
                   value={newInvoice.serviceId}
                   onChange={e => setNewInvoice(v => ({ ...v, serviceId: e.target.value }))}
-                  className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#1C2B4A]/30 appearance-none"
+                  className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-border appearance-none"
                 >
                   <option value="">Sin vincular</option>
                   {services.map(s => (
@@ -334,7 +334,7 @@ export default function PagosPage() {
               <button
                 onClick={sendInvoice}
                 disabled={!newInvoice.clientId || !newInvoice.concept || !newInvoice.amount || !newInvoice.dueDate || !newInvoice.firm}
-                className="w-full bg-[#1C2B4A] text-white font-semibold py-3.5 rounded-2xl disabled:opacity-40 transition-opacity flex items-center justify-center gap-2 active:scale-[0.98]"
+                className="w-full bg-ink text-surface font-semibold py-3.5 rounded-2xl disabled:opacity-40 transition-opacity flex items-center justify-center gap-2 active:scale-[0.98]"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />

@@ -94,7 +94,7 @@ export default function UsuariosClient({ users, meId }: { users: Row[]; meId: st
         </form>
       )}
 
-      {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{error}</p>}
+      {error && <p className="text-xs text-risk bg-risk-tint border border-risk/30 rounded-lg px-4 py-2">{error}</p>}
 
       <div className="rounded-2xl border border-border bg-card divide-y divide-border">
         {users.map(u => {
@@ -115,7 +115,7 @@ export default function UsuariosClient({ users, meId }: { users: Row[]; meId: st
                 className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Restablecer contraseña</button>
               {!isMe && (
                 <button onClick={() => handleRemove(u)} disabled={isPending}
-                  className="text-xs font-medium text-red-600 hover:text-red-700 transition-colors">Quitar</button>
+                  className="text-xs font-medium text-risk hover:text-risk transition-colors">Quitar</button>
               )}
             </div>
           )

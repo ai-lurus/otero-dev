@@ -55,8 +55,8 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
         <div key={i} className="flex items-center gap-2">
           <div className={cn(
             "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all",
-            i + 1 < current ? "bg-[#16A34A] text-white" :
-            i + 1 === current ? "bg-[#1C2B4A] text-white" :
+            i + 1 < current ? "bg-ok text-surface" :
+            i + 1 === current ? "bg-ink text-surface" :
             "bg-muted text-muted-foreground"
           )}>
             {i + 1 < current ? (
@@ -66,7 +66,7 @@ function StepIndicator({ current, total }: { current: number; total: number }) {
             ) : i + 1}
           </div>
           {i < total - 1 && (
-            <div className={cn("h-0.5 w-8 rounded-full transition-all", i + 1 < current ? "bg-[#16A34A]" : "bg-muted")} />
+            <div className={cn("h-0.5 w-8 rounded-full transition-all", i + 1 < current ? "bg-ok" : "bg-muted")} />
           )}
         </div>
       ))}
@@ -94,8 +94,8 @@ export default function SolicitarPage() {
   if (submitted) {
     return (
       <div className="px-5 pt-16 pb-4 flex flex-col items-center text-center gap-5">
-        <div className="w-20 h-20 rounded-full bg-[#F0FDF4] flex items-center justify-center">
-          <svg className="w-10 h-10 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="w-20 h-20 rounded-full bg-ok-tint flex items-center justify-center">
+          <svg className="w-10 h-10 text-ok" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
@@ -149,7 +149,7 @@ export default function SolicitarPage() {
               <div key={firm}>
                 <div className={cn(
                   "inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full mb-2.5",
-                  firm === "paulsen" ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+                  firm === "paulsen" ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
                 )}>
                   <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18" />
@@ -167,15 +167,15 @@ export default function SolicitarPage() {
                           "w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-3 active:scale-[0.98]",
                           isSelected
                             ? firm === "paulsen"
-                              ? "border-[#2D5A3D] bg-[#EAF2EC]"
-                              : "border-[#1C2B4A] bg-[#EEF2F8]"
+                              ? "border-ok bg-ok-tint"
+                              : "border-ink bg-surface-sunken"
                             : "border-border bg-card hover:border-foreground/20"
                         )}
                       >
                         <div className={cn(
                           "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors",
                           isSelected
-                            ? firm === "paulsen" ? "bg-[#2D5A3D] text-white" : "bg-[#1C2B4A] text-white"
+                            ? firm === "paulsen" ? "bg-paulsen text-surface" : "bg-mia text-surface"
                             : "bg-muted text-muted-foreground"
                         )}>
                           {CATEGORY_ICONS[s.category] || CATEGORY_ICONS.Otro}
@@ -185,8 +185,8 @@ export default function SolicitarPage() {
                           <p className="text-xs text-muted-foreground mt-0.5">{s.category}</p>
                         </div>
                         {isSelected && (
-                          <div className={cn("w-5 h-5 rounded-full flex items-center justify-center shrink-0", firm === "paulsen" ? "bg-[#2D5A3D]" : "bg-[#1C2B4A]")}>
-                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <div className={cn("w-5 h-5 rounded-full flex items-center justify-center shrink-0", firm === "paulsen" ? "bg-paulsen" : "bg-mia")}>
+                            <svg className="w-3 h-3 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           </div>
@@ -214,7 +214,7 @@ export default function SolicitarPage() {
               placeholder="Describe brevemente el servicio que necesitas..."
               value={customTitle}
               onChange={(e) => { setCustomTitle(e.target.value); setSelectedCatalog(null) }}
-              className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-[#1C2B4A]/30 placeholder:text-muted-foreground/50"
+              className="w-full text-sm bg-muted rounded-xl px-3 py-2.5 outline-none border border-transparent focus:border-border placeholder:text-muted-foreground/50"
             />
             {customTitle && (
               <div className="mt-2.5">
@@ -227,11 +227,11 @@ export default function SolicitarPage() {
                       className={cn(
                         "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-xl border transition-all",
                         customCategory === c
-                          ? "bg-[#1C2B4A] text-white border-[#1C2B4A]"
+                          ? "bg-ink text-surface border-ink"
                           : "border-border text-muted-foreground hover:border-foreground/20"
                       )}
                     >
-                      <span className={customCategory === c ? "text-white/70" : "text-muted-foreground/70"}>
+                      <span className={customCategory === c ? "text-surface/70" : "text-muted-foreground/70"}>
                         {CATEGORY_ICONS[c]}
                       </span>
                       {c}
@@ -245,7 +245,7 @@ export default function SolicitarPage() {
           <button
             onClick={() => setStep(2)}
             disabled={!selectedCatalog && !customTitle}
-            className="w-full bg-[#1C2B4A] text-white font-semibold py-3.5 rounded-2xl disabled:opacity-40 transition-opacity active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full bg-ink text-surface font-semibold py-3.5 rounded-2xl disabled:opacity-40 transition-opacity active:scale-[0.98] flex items-center justify-center gap-2"
           >
             Continuar
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -261,11 +261,11 @@ export default function SolicitarPage() {
           {/* Selected service pill */}
           <div className={cn(
             "rounded-2xl p-3.5 flex items-center gap-3",
-            selectedService?.firm === "paulsen" ? "bg-[#EAF2EC]" : "bg-[#EEF2F8]"
+            selectedService?.firm === "paulsen" ? "bg-paulsen-light" : "bg-mia-light"
           )}>
             <div className={cn(
               "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-              selectedService?.firm === "paulsen" ? "bg-[#2D5A3D] text-white" : "bg-[#1C2B4A] text-white"
+              selectedService?.firm === "paulsen" ? "bg-paulsen text-surface" : "bg-mia text-surface"
             )}>
               {CATEGORY_ICONS[selectedService?.category || "Otro"]}
             </div>
@@ -283,7 +283,7 @@ export default function SolicitarPage() {
               placeholder="Ej. Necesitamos renovar la Licencia Ambiental de Operación antes del 15 de mayo. La licencia original es de 2022 y cubre la Planta Vallejo Norte..."
               value={description}
               onChange={(e) => setDescription(e.target.value.slice(0, 500))}
-              className="w-full text-sm bg-muted rounded-2xl px-4 py-3 outline-none border border-transparent focus:border-[#1C2B4A]/30 placeholder:text-muted-foreground/40 resize-none leading-relaxed"
+              className="w-full text-sm bg-muted rounded-2xl px-4 py-3 outline-none border border-transparent focus:border-border placeholder:text-muted-foreground/40 resize-none leading-relaxed"
             />
             <p className="text-xs text-muted-foreground mt-1.5 text-right tabular-nums">
               {description.length}/500
@@ -292,7 +292,7 @@ export default function SolicitarPage() {
 
           <button
             onClick={() => setStep(3)}
-            className="w-full bg-[#1C2B4A] text-white font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+            className="w-full bg-ink text-surface font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
             Continuar
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -309,11 +309,11 @@ export default function SolicitarPage() {
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className={cn(
               "px-4 py-3 flex items-center gap-3",
-              selectedService?.firm === "paulsen" ? "bg-[#EAF2EC]" : "bg-[#EEF2F8]"
+              selectedService?.firm === "paulsen" ? "bg-paulsen-light" : "bg-mia-light"
             )}>
               <div className={cn(
                 "w-8 h-8 rounded-xl flex items-center justify-center shrink-0",
-                selectedService?.firm === "paulsen" ? "bg-[#2D5A3D] text-white" : "bg-[#1C2B4A] text-white"
+                selectedService?.firm === "paulsen" ? "bg-paulsen text-surface" : "bg-mia text-surface"
               )}>
                 {CATEGORY_ICONS[selectedService?.category || "Otro"]}
               </div>
@@ -329,7 +329,7 @@ export default function SolicitarPage() {
               </div>
             )}
             <div className="px-4 py-3 border-t border-border flex items-center gap-2">
-              <svg className="w-3.5 h-3.5 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-3.5 h-3.5 text-ok" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-xs text-muted-foreground">Respuesta en menos de <span className="font-semibold text-foreground">24 horas hábiles</span></p>
@@ -338,28 +338,28 @@ export default function SolicitarPage() {
 
           {/* AI tip — dismissable */}
           {!aiTipDismissed && (
-            <div className="bg-[#1C2B4A] rounded-2xl p-4 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-[#2D5A3D] opacity-20 blur-2xl -translate-y-4 translate-x-4 pointer-events-none" />
+            <div className="bg-ink rounded-2xl p-4 text-surface relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-ok opacity-20 blur-2xl -translate-y-4 translate-x-4 pointer-events-none" />
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <div className="w-6 h-6 rounded-full bg-surface/15 flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                       </svg>
                     </div>
-                    <span className="text-[10px] font-bold tracking-wider uppercase text-white/70">Sugerencia IA</span>
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-surface/70">Sugerencia IA</span>
                   </div>
                   <button
                     onClick={() => setAiTipDismissed(true)}
-                    className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20"
+                    className="w-6 h-6 rounded-full bg-surface/10 flex items-center justify-center active:bg-surface/20"
                   >
-                    <svg className="w-3 h-3 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <svg className="w-3 h-3 text-surface/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
-                <p className="text-sm text-white/90 leading-relaxed">
+                <p className="text-sm text-surface/90 leading-relaxed">
                   {FIRM_AI_TIPS[selectedService?.firm || "mia"]}
                 </p>
               </div>
@@ -368,7 +368,7 @@ export default function SolicitarPage() {
 
           <button
             onClick={handleSubmit}
-            className="w-full bg-[#2D5A3D] text-white font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+            className="w-full bg-ok text-surface font-semibold py-3.5 rounded-2xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />

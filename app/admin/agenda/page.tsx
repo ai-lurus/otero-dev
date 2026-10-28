@@ -10,8 +10,8 @@ const DAYS_SHORT = ["D", "L", "M", "X", "J", "V", "S"]
 const MONTHS     = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
 const SLOTS      = ["08:00","09:00","10:00","11:00","12:00","13:00","15:00","16:00","17:00","18:00"]
 
-const FIRM_COLOR: Record<Firm, string> = { paulsen: "#2D5A3D", mia: "#1C2B4A" }
-const FIRM_BG:    Record<Firm, string> = { paulsen: "#EAF2EC", mia: "#EEF2F8" }
+const FIRM_COLOR: Record<Firm, string> = { paulsen: "var(--paulsen)", mia: "var(--mia)" }
+const FIRM_BG:    Record<Firm, string> = { paulsen: "var(--paulsen-light)", mia: "var(--mia-light)" }
 const FIRM_LABEL: Record<Firm, string> = { paulsen: "Área Ambiental", mia: "Área Corporativa" }
 
 const ATTORNEYS: Record<Firm, string[]> = {
@@ -58,8 +58,8 @@ function StatusBadge({ status }: { status: string }) {
     <span className={cn(
       "text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap",
       status === "confirmada"
-        ? "bg-[#F0FDF4] text-[#16A34A]"
-        : "bg-[#FFFBEB] text-[#D97706]"
+        ? "bg-ok-tint text-ok"
+        : "bg-warn-tint text-warn-text"
     )}>
       {status === "confirmada" ? "Confirmada" : "Pendiente"}
     </span>
@@ -155,33 +155,33 @@ export default function AdminAgendaPage() {
     <div className="h-screen flex flex-col bg-background overflow-hidden">
 
       {/* ── Top bar ──────────────────────────────────────────── */}
-      <div className="shrink-0 bg-[#0d1e35] px-6 py-3.5 flex items-center justify-between gap-4 border-b border-white/[0.07]">
+      <div className="shrink-0 bg-ink px-6 py-3.5 flex items-center justify-between gap-4 border-b border-surface/[0.07]">
         {/* Left: title + week nav */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowMonth(v => !v)}
             className="flex items-center gap-1.5"
           >
-            <span className="font-serif text-lg font-semibold text-white">
+            <span className="font-serif text-lg font-semibold text-surface">
               {MONTHS[pivot.getMonth()]} {pivot.getFullYear()}
             </span>
-            <svg className={cn("w-4 h-4 text-white/30 transition-transform", showMonth && "rotate-180")}
+            <svg className={cn("w-4 h-4 text-surface/30 transition-transform", showMonth && "rotate-180")}
               fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
           <div className="flex items-center gap-0.5">
             <button onClick={() => shiftWeek(-1)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all">
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-surface/30 hover:text-surface hover:bg-surface/10 transition-all">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
             </button>
             <button
               onClick={() => { setPivot(new Date(BASE)); setSelectedDay(new Date(BASE)) }}
-              className="px-2.5 h-7 rounded-lg text-[10px] font-bold text-white/30 hover:text-white hover:bg-white/10 transition-all tracking-widest">
+              className="px-2.5 h-7 rounded-lg text-[10px] font-bold text-surface/30 hover:text-surface hover:bg-surface/10 transition-all tracking-widest">
               HOY
             </button>
             <button onClick={() => shiftWeek(1)}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all">
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-surface/30 hover:text-surface hover:bg-surface/10 transition-all">
               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
             </button>
           </div>
@@ -190,11 +190,11 @@ export default function AdminAgendaPage() {
         {/* Right: filters + availability */}
         <div className="flex items-center gap-2">
           {/* Firm filter pill group */}
-          <div className="flex rounded-xl border border-white/10 overflow-hidden">
+          <div className="flex rounded-xl border border-surface/10 overflow-hidden">
             {(["all", "mia", "paulsen"] as const).map(f => (
               <button key={f} onClick={() => setFirmFilter(f)}
                 className={cn("px-3 py-1.5 text-[11px] font-bold transition-all",
-                  firmFilter === f ? "bg-white/15 text-white" : "text-white/30 hover:text-white/60"
+                  firmFilter === f ? "bg-surface/15 text-surface" : "text-surface/30 hover:text-surface/60"
                 )}>
                 {f === "all" ? "Todas" : f === "mia" ? "Corp." : "Amb."}
               </button>
@@ -207,8 +207,8 @@ export default function AdminAgendaPage() {
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold border transition-all",
               showAvail
-                ? "bg-[#4ade80]/15 text-[#4ade80] border-[#4ade80]/30"
-                : "border-white/10 text-white/30 hover:text-white/60"
+                ? "bg-ok/15 text-ok border-ok/30"
+                : "border-surface/10 text-surface/30 hover:text-surface/60"
             )}
           >
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -216,7 +216,7 @@ export default function AdminAgendaPage() {
             </svg>
             Disponibilidad
             <span className={cn("text-[10px] font-bold px-1.5 rounded-full",
-              showAvail ? "bg-[#4ade80]/20 text-[#4ade80]" : "bg-white/10 text-white/40"
+              showAvail ? "bg-ok/20 text-ok" : "bg-surface/10 text-surface/40"
             )}>
               {availCount}/{SLOTS.length}
             </span>
@@ -226,22 +226,22 @@ export default function AdminAgendaPage() {
 
       {/* ── Mini month picker (collapsible) ──────────────────── */}
       {showMonth && (
-        <div className="shrink-0 bg-[#0d1e35] border-b border-white/[0.07] px-6 py-4">
+        <div className="shrink-0 bg-ink border-b border-surface/[0.07] px-6 py-4">
           <div className="w-56">
             <div className="flex items-center justify-between mb-2">
               <button onClick={() => shiftMonth(-1)}
-                className="w-6 h-6 rounded-md flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all">
+                className="w-6 h-6 rounded-md flex items-center justify-center text-surface/30 hover:text-surface hover:bg-surface/10 transition-all">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <span className="text-xs font-semibold text-white/50">{MONTHS[monthNav.m]} {monthNav.y}</span>
+              <span className="text-xs font-semibold text-surface/50">{MONTHS[monthNav.m]} {monthNav.y}</span>
               <button onClick={() => shiftMonth(1)}
-                className="w-6 h-6 rounded-md flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all">
+                className="w-6 h-6 rounded-md flex items-center justify-center text-surface/30 hover:text-surface hover:bg-surface/10 transition-all">
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
               </button>
             </div>
             <div className="grid grid-cols-7 mb-1">
               {DAYS_SHORT.map(d => (
-                <div key={d} className="text-center text-[9px] text-white/20 font-bold py-0.5">{d}</div>
+                <div key={d} className="text-center text-[9px] text-surface/20 font-bold py-0.5">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-0.5">
@@ -254,10 +254,10 @@ export default function AdminAgendaPage() {
                   <button key={day}
                     onClick={() => { setSelectedDay(d); setPivot(d); setShowMonth(false) }}
                     className={cn("flex flex-col items-center rounded-lg py-0.5 text-[11px] transition-all",
-                      isSel ? "bg-white text-[#0d1e35] font-bold" : "text-white/50 hover:bg-white/10"
+                      isSel ? "bg-surface-raised text-ink font-bold" : "text-surface/50 hover:bg-surface/10"
                     )}>
                     {day}
-                    {hasA && !isSel && <span className="w-1 h-1 rounded-full bg-[#4ade80] mt-0.5" />}
+                    {hasA && !isSel && <span className="w-1 h-1 rounded-full bg-ok mt-0.5" />}
                   </button>
                 )
               })}
@@ -267,7 +267,7 @@ export default function AdminAgendaPage() {
       )}
 
       {/* ── Week strip ───────────────────────────────────────── */}
-      <div className="shrink-0 bg-[#0d1e35] border-b border-white/[0.07] px-6">
+      <div className="shrink-0 bg-ink border-b border-surface/[0.07] px-6">
         <div className="grid grid-cols-7">
           {weekDays.map((d, i) => {
             const isSel  = isSameDay(d, selectedDay)
@@ -279,20 +279,20 @@ export default function AdminAgendaPage() {
             return (
               <button key={i} onClick={() => setSelectedDay(d)}
                 className={cn("flex flex-col items-center gap-1 py-3 mx-0.5 rounded-xl transition-all",
-                  isSel ? "bg-white" : "hover:bg-white/8"
+                  isSel ? "bg-surface-raised" : "hover:bg-surface/8"
                 )}>
                 <span className={cn("text-[9px] font-bold uppercase tracking-widest",
-                  isSel ? "text-[#0d1e35]" : "text-white/25"
+                  isSel ? "text-ink" : "text-surface/25"
                 )}>
                   {DAYS_SHORT[i]}
                 </span>
                 <span className={cn("text-base font-bold leading-none",
-                  isSel ? "text-[#0d1e35]" : isBase ? "text-white" : "text-white/55"
+                  isSel ? "text-ink" : isBase ? "text-surface" : "text-surface/55"
                 )}>
                   {d.getDate()}
                 </span>
                 {hasA
-                  ? <span className={cn("w-1.5 h-1.5 rounded-full", isSel ? "bg-[#1C2B4A]" : "bg-[#4ade80]")} />
+                  ? <span className={cn("w-1.5 h-1.5 rounded-full", isSel ? "bg-ink" : "bg-ok")} />
                   : <span className="w-1.5 h-1.5" />
                 }
               </button>
@@ -323,7 +323,7 @@ export default function AdminAgendaPage() {
               </span>
               <button
                 onClick={() => setShowNewEvent(true)}
-                className="flex items-center gap-1.5 bg-[#1C2B4A] hover:bg-[#1C2B4A]/90 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors"
+                className="flex items-center gap-1.5 bg-ink hover:bg-ink/90 text-surface text-xs font-bold px-4 py-2 rounded-xl transition-colors"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -385,8 +385,8 @@ export default function AdminAgendaPage() {
                             className={cn(
                               "text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all",
                               status === "confirmada"
-                                ? "border-border text-muted-foreground hover:border-red-200 hover:text-red-500 hover:bg-red-50"
-                                : "border-[#16A34A]/30 text-[#16A34A] bg-[#F0FDF4] hover:bg-[#dcfce7]"
+                                ? "border-border text-muted-foreground hover:border-risk/30 hover:text-risk hover:bg-risk-tint"
+                                : "border-ok/30 text-ok bg-ok-tint hover:bg-ok/20"
                             )}
                           >
                             {status === "confirmada" ? "Cancelar" : "Confirmar"}
@@ -450,8 +450,8 @@ export default function AdminAgendaPage() {
         {/* ── New Event Modal ──────────────────────────────── */}
         {showNewEvent && (
           <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowNewEvent(false)} />
-            <div className="relative bg-background rounded-t-3xl md:rounded-2xl w-full md:max-w-lg p-6 pb-8 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="absolute inset-0 bg-ink/50" onClick={() => setShowNewEvent(false)} />
+            <div className="relative bg-background rounded-t-3xl md:rounded-2xl w-full md:max-w-lg p-6 pb-8 max-h-[90vh] overflow-y-auto ">
               {/* Header */}
               <div className="flex items-start justify-between mb-5">
                 <div>
@@ -475,7 +475,7 @@ export default function AdminAgendaPage() {
                   <select
                     value={newEvent.clientId}
                     onChange={e => setNewEvent(prev => ({ ...prev, clientId: e.target.value }))}
-                    className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[#1C2B4A]/20"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ink/20"
                   >
                     <option value="">Seleccionar cliente...</option>
                     {adminClients.map(c => (
@@ -492,7 +492,7 @@ export default function AdminAgendaPage() {
                       <button key={f}
                         onClick={() => setNewEvent(prev => ({ ...prev, firm: f, attorney: "" }))}
                         className={cn("flex-1 py-2.5 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2",
-                          newEvent.firm === f ? "text-white border-transparent" : "bg-card border-border text-foreground"
+                          newEvent.firm === f ? "text-surface border-transparent" : "bg-card border-border text-foreground"
                         )}
                         style={newEvent.firm === f ? { background: FIRM_COLOR[f] } : undefined}
                       >
@@ -534,7 +534,7 @@ export default function AdminAgendaPage() {
                         onClick={() => setNewEvent(prev => ({ ...prev, type: t }))}
                         className={cn("text-left px-3 py-2.5 rounded-xl text-xs border transition-all font-medium",
                           newEvent.type === t
-                            ? "bg-[#EEF2F8] text-[#1C2B4A] border-[#1C2B4A]/20 font-semibold"
+                            ? "bg-surface-sunken text-ink border-border font-semibold"
                             : "bg-card border-border text-foreground hover:border-foreground/20"
                         )}
                       >
@@ -556,7 +556,7 @@ export default function AdminAgendaPage() {
                           onClick={() => setNewEvent(prev => ({ ...prev, time: slot }))}
                           className={cn("py-2 rounded-xl text-xs font-medium border transition-all",
                             occupied && "opacity-30 cursor-not-allowed border-border text-muted-foreground",
-                            newEvent.time === slot && !occupied && "bg-[#1C2B4A] text-white border-[#1C2B4A]",
+                            newEvent.time === slot && !occupied && "bg-ink text-surface border-ink",
                             newEvent.time !== slot && !occupied && "bg-card border-border text-foreground hover:border-foreground/30"
                           )}
                         >
@@ -575,7 +575,7 @@ export default function AdminAgendaPage() {
                     value={newEvent.notes}
                     onChange={e => setNewEvent(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="Instrucciones, enlace de videollamada, documentos requeridos..."
-                    className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1C2B4A]/20 resize-none"
+                    className="w-full bg-card border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ink/20 resize-none"
                   />
                 </div>
 
@@ -583,7 +583,7 @@ export default function AdminAgendaPage() {
                 <button
                   onClick={submitNewEvent}
                   disabled={!newEvent.clientId || !newEvent.type || !newEvent.firm || !newEvent.attorney || !newEvent.time}
-                  className="w-full bg-[#1C2B4A] text-white text-sm font-bold py-3 rounded-xl transition-all hover:bg-[#1C2B4A]/90 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
+                  className="w-full bg-ink text-surface text-sm font-bold py-3 rounded-xl transition-all hover:bg-ink/90 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
                 >
                   Crear evento
                 </button>
@@ -619,7 +619,7 @@ export default function AdminAgendaPage() {
                   <span className="font-bold text-foreground">{availCount}/{SLOTS.length}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-border overflow-hidden">
-                  <div className="h-full bg-[#16A34A] rounded-full transition-all duration-300"
+                  <div className="h-full bg-ok rounded-full transition-all duration-300"
                     style={{ width: `${(availCount / SLOTS.length) * 100}%` }} />
                 </div>
               </div>
@@ -635,34 +635,34 @@ export default function AdminAgendaPage() {
                     <div key={slot} className={cn(
                       "flex items-center justify-between rounded-xl px-3 py-2.5 border transition-all",
                       hasAppt
-                        ? "bg-[#EEF2F8] border-[#1C2B4A]/20"
+                        ? "bg-surface-sunken border-border"
                         : isAvail
-                          ? "bg-[#F0FDF4] border-[#16A34A]/20"
+                          ? "bg-ok-tint border-ok/20"
                           : "bg-muted/40 border-border"
                     )}>
                       <div className="flex items-center gap-2">
                         <span className={cn("w-1.5 h-1.5 rounded-full shrink-0",
-                          hasAppt ? "bg-[#1C2B4A]" : isAvail ? "bg-[#16A34A]" : "bg-muted-foreground/30"
+                          hasAppt ? "bg-ink" : isAvail ? "bg-ok" : "bg-muted-foreground/30"
                         )} />
                         <span className={cn("text-xs font-semibold tabular-nums",
-                          hasAppt ? "text-[#1C2B4A]" : isAvail ? "text-[#16A34A]" : "text-muted-foreground"
+                          hasAppt ? "text-ink" : isAvail ? "text-ok" : "text-muted-foreground"
                         )}>
                           {slot}
                         </span>
                       </div>
                       {hasAppt ? (
-                        <span className="text-[10px] font-bold text-[#1C2B4A]/50">Ocupado</span>
+                        <span className="text-[10px] font-bold text-ink/50">Ocupado</span>
                       ) : (
                         <button
                           onClick={() => setAvailability(prev => ({ ...prev, [slot]: !prev[slot] }))}
                           className={cn(
                             "relative w-9 h-5 rounded-full transition-colors duration-200",
-                            isAvail ? "bg-[#16A34A]" : "bg-muted-foreground/20"
+                            isAvail ? "bg-ok" : "bg-muted-foreground/20"
                           )}
                           aria-label={isAvail ? "Bloquear" : "Activar"}
                         >
                           <span className={cn(
-                            "absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200",
+                            "absolute top-0.5 w-4 h-4 bg-surface-raised rounded-full  transition-all duration-200",
                             isAvail ? "left-4" : "left-0.5"
                           )} />
                         </button>

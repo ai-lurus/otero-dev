@@ -16,13 +16,13 @@ const PRIORITY_LABELS: Record<string, string> = {
 }
 
 function priorityBar(p: string) {
-  if (p === 'alta') return 'bg-red-500'
-  if (p === 'media') return 'bg-amber-500'
+  if (p === 'alta') return 'bg-risk'
+  if (p === 'media') return 'bg-warn'
   return 'bg-muted-foreground/30'
 }
 function priorityBadge(p: string) {
-  if (p === 'alta') return 'bg-red-50 text-red-700 border-red-200'
-  if (p === 'media') return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (p === 'alta') return 'bg-risk-tint text-risk border-risk/30'
+  if (p === 'media') return 'bg-warn-tint text-warn-text border-warn/30'
   return 'bg-secondary text-muted-foreground border-border'
 }
 
@@ -41,7 +41,7 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
     <div className="bg-card border border-border rounded-2xl p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={cn('font-serif text-3xl font-semibold mt-1',
-        accent === 'red' ? 'text-red-700' : accent === 'amber' ? 'text-amber-700' : accent === 'green' ? 'text-emerald-700' : 'text-foreground'
+        accent === 'red' ? 'text-risk' : accent === 'amber' ? 'text-warn-text' : accent === 'green' ? 'text-ok' : 'text-foreground'
       )}>{value}</p>
     </div>
   )
@@ -52,7 +52,7 @@ function Field({ label, hint, required, children }: { label: string; hint?: stri
   return (
     <div>
       <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-        {label}{required && <span className="text-red-500 ml-1">*</span>}
+        {label}{required && <span className="text-risk ml-1">*</span>}
       </label>
       {hint && <p className="text-[11px] text-muted-foreground mb-1.5">{hint}</p>}
       {children}
@@ -105,8 +105,8 @@ function PostFormModal({ initial, onClose, onSave }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-background w-full max-w-2xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-background w-full max-w-2xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col " onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="font-serif text-xl font-semibold">{initial ? 'Editar publicación' : 'Nueva publicación'}</h2>
           <button onClick={onClose} className="rounded-full bg-secondary p-1.5 text-muted-foreground hover:text-foreground">
@@ -156,16 +156,16 @@ function PostFormModal({ initial, onClose, onSave }: {
               className="w-full flex items-center justify-between border border-border rounded-xl px-4 py-3 hover:bg-secondary/30 transition-colors">
               <div className="flex items-center gap-2.5">
                 {form.published
-                  ? <Globe className="w-4 h-4 text-emerald-600" />
+                  ? <Globe className="w-4 h-4 text-ok" />
                   : <EyeOff className="w-4 h-4 text-muted-foreground" />}
                 <span className="text-sm font-semibold">{form.published ? 'Publicado — visible para clientes' : 'Borrador — no visible aún'}</span>
               </div>
-              <div className={cn('w-10 h-6 rounded-full transition-colors relative', form.published ? 'bg-emerald-500' : 'bg-border')}>
-                <span className={cn('absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all', form.published ? 'left-[18px]' : 'left-0.5')} />
+              <div className={cn('w-10 h-6 rounded-full transition-colors relative', form.published ? 'bg-ok' : 'bg-border')}>
+                <span className={cn('absolute top-0.5 w-5 h-5 bg-surface-raised rounded-full  transition-all', form.published ? 'left-[18px]' : 'left-0.5')} />
               </div>
             </button>
 
-            {error && <p className="text-xs text-red-600">{error}</p>}
+            {error && <p className="text-xs text-risk">{error}</p>}
           </div>
 
           <div className="sticky bottom-0 border-t border-border bg-background px-6 py-4 flex gap-3">
@@ -173,8 +173,8 @@ function PostFormModal({ initial, onClose, onSave }: {
               Cancelar
             </button>
             <button type="submit" disabled={saving || !form.title.trim() || !form.summary.trim()}
-              className="flex-1 text-sm font-semibold text-white bg-[#1C2B4A] py-2.5 rounded-xl disabled:opacity-40 flex items-center justify-center gap-2">
-              {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              className="flex-1 text-sm font-semibold text-surface bg-ink py-2.5 rounded-xl disabled:opacity-40 flex items-center justify-center gap-2">
+              {saving && <div className="w-4 h-4 border-2 border-surface border-t-transparent rounded-full animate-spin" />}
               {saving ? 'Guardando…' : initial ? 'Guardar cambios' : 'Crear publicación'}
             </button>
           </div>
@@ -189,10 +189,10 @@ function DeleteModal({ post, onCancel, onConfirm, pending }: {
   post: Post; onCancel: () => void; onConfirm: () => void; pending: boolean
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-          <Trash2 className="w-5 h-5 text-red-600" />
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 ">
+        <div className="w-10 h-10 rounded-full bg-risk-tint flex items-center justify-center mx-auto mb-4">
+          <Trash2 className="w-5 h-5 text-risk" />
         </div>
         <h3 className="font-serif text-lg font-semibold text-center">Eliminar publicación</h3>
         <p className="text-sm text-muted-foreground text-center mt-2">
@@ -200,8 +200,8 @@ function DeleteModal({ post, onCancel, onConfirm, pending }: {
         </p>
         <div className="flex gap-3 mt-6">
           <button onClick={onCancel} className="flex-1 text-sm font-medium bg-secondary py-2.5 rounded-xl">Cancelar</button>
-          <button onClick={onConfirm} disabled={pending} className="flex-1 text-sm font-semibold text-white bg-red-600 py-2.5 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-            {pending && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+          <button onClick={onConfirm} disabled={pending} className="flex-1 text-sm font-semibold text-surface bg-risk py-2.5 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+            {pending && <div className="w-4 h-4 border-2 border-surface border-t-transparent rounded-full animate-spin" />}
             Eliminar
           </button>
         </div>
@@ -213,8 +213,8 @@ function DeleteModal({ post, onCancel, onConfirm, pending }: {
 // ── PreviewModal ──────────────────────────────────────────────────
 function PreviewModal({ post, onClose }: { post: Post; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-background w-full max-w-lg max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-background w-full max-w-lg max-h-[90vh] rounded-2xl overflow-hidden flex flex-col " onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vista previa del cliente</span>
           <button onClick={onClose} className="rounded-full bg-secondary p-1.5 text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -230,9 +230,9 @@ function PreviewModal({ post, onClose }: { post: Post; onClose: () => void }) {
           <h2 className="font-serif text-xl leading-snug">{post.title}</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">{post.summary}</p>
           {post.affectsNote && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-1">Te afecta porque</p>
-              <p className="text-sm text-amber-900">{post.affectsNote}</p>
+            <div className="rounded-xl bg-warn-tint border border-warn/30 px-4 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-warn-text mb-1">Te afecta porque</p>
+              <p className="text-sm text-warn-text">{post.affectsNote}</p>
             </div>
           )}
           {post.body && (
@@ -319,7 +319,7 @@ export default function NoticiasManager({ initialPosts }: { initialPosts: Post[]
           <p className="mt-1 text-sm text-muted-foreground">Publica notas sobre NOMs, DOF y cambios regulatorios que verán todos los clientes.</p>
         </div>
         <button onClick={() => setCreating(true)}
-          className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity">
+          className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-surface hover:opacity-90 transition-opacity">
           <Plus className="w-4 h-4" />
           Nueva nota
         </button>
@@ -360,7 +360,7 @@ export default function NoticiasManager({ initialPosts }: { initialPosts: Post[]
                   </span>
                   <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{CATEGORY_LABELS[post.category]}</span>
                   <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{post.source}</span>
-                  <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', post.published ? 'bg-emerald-50 text-emerald-700' : 'bg-secondary text-muted-foreground')}>
+                  <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full', post.published ? 'bg-ok-tint text-ok' : 'bg-secondary text-muted-foreground')}>
                     {post.published ? 'Publicado' : 'Borrador'}
                   </span>
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -379,7 +379,7 @@ export default function NoticiasManager({ initialPosts }: { initialPosts: Post[]
                 </button>
                 <button onClick={() => handleTogglePublish(post)}
                   className={cn('flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors',
-                    post.published ? 'text-amber-700 hover:bg-amber-50' : 'text-emerald-700 hover:bg-emerald-50')}>
+                    post.published ? 'text-warn-text hover:bg-warn-tint' : 'text-ok hover:bg-ok-tint')}>
                   {post.published ? <EyeOff className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
                   {post.published ? 'Ocultar' : 'Publicar'}
                 </button>
@@ -388,7 +388,7 @@ export default function NoticiasManager({ initialPosts }: { initialPosts: Post[]
                   <Pencil className="w-3.5 h-3.5" /> Editar
                 </button>
                 <button onClick={() => setDeleting(post)}
-                  className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                  className="flex items-center gap-1.5 text-xs font-medium text-risk hover:bg-risk-tint px-3 py-1.5 rounded-lg transition-colors">
                   <Trash2 className="w-3.5 h-3.5" /> Eliminar
                 </button>
               </div>

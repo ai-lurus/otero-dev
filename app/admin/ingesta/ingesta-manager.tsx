@@ -15,10 +15,10 @@ const STATUS_LABELS: Record<string, string> = {
   en_cola: 'En cola', procesando: 'Procesando', lista: 'Lista', error: 'Error',
 }
 function statusBadge(s: string) {
-  if (s === 'lista') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-  if (s === 'procesando') return 'bg-blue-50 text-blue-700 border-blue-200'
-  if (s === 'error') return 'bg-red-50 text-red-700 border-red-200'
-  return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (s === 'lista') return 'bg-ok-tint text-ok border-ok/30'
+  if (s === 'procesando') return 'bg-brand-tint text-brand-text border-brand/30'
+  if (s === 'error') return 'bg-risk-tint text-risk border-risk/30'
+  return 'bg-warn-tint text-warn-text border-warn/30'
 }
 
 function formatSize(bytes: number | null) {
@@ -37,7 +37,7 @@ function StatCard({ label, value, accent }: { label: string; value: number; acce
     <div className="bg-card border border-border rounded-2xl p-4">
       <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</p>
       <p className={cn('font-serif text-3xl font-semibold mt-1',
-        accent === 'red' ? 'text-red-700' : accent === 'amber' ? 'text-amber-700' : accent === 'green' ? 'text-emerald-700' : 'text-foreground'
+        accent === 'red' ? 'text-risk' : accent === 'amber' ? 'text-warn-text' : accent === 'green' ? 'text-ok' : 'text-foreground'
       )}>{value}</p>
     </div>
   )
@@ -76,12 +76,12 @@ function UrlForm({ onAdded }: { onAdded: (s: IngestSourceRow) => void }) {
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Título (opcional)"
           className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-foreground/40" />
         <button type="submit" disabled={saving || !url.trim()}
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+          className="flex items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface disabled:opacity-40">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
           Agregar enlace
         </button>
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-risk">{error}</p>}
     </form>
   )
 }
@@ -126,7 +126,7 @@ function FileDrop({ onAdded }: { onAdded: (s: IngestSourceRow) => void }) {
         onDragLeave={() => setDragging(false)}
         onDrop={e => { e.preventDefault(); setDragging(false); handleFiles(e.dataTransfer.files) }}
         className={cn('w-full rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors',
-          dragging ? 'border-[#c42a6d] bg-[#c42a6d]/5' : 'border-border hover:bg-secondary/40')}>
+          dragging ? 'border-brand-text bg-brand/5' : 'border-border hover:bg-secondary/40')}>
         <Upload className="w-5 h-5 mx-auto text-muted-foreground mb-2" />
         <p className="text-sm font-medium">Arrastra archivos aquí o haz clic para elegirlos</p>
         <p className="text-xs text-muted-foreground mt-1">PDF, Word, Excel, CSV, TXT o imagen. Hasta 25 MB cada uno.</p>
@@ -137,9 +137,9 @@ function FileDrop({ onAdded }: { onAdded: (s: IngestSourceRow) => void }) {
         <ul className="space-y-1.5">
           {uploads.map(u => (
             <li key={u.key} className="flex items-center gap-2 text-xs">
-              {u.error ? <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" /> : <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+              {u.error ? <AlertCircle className="w-3.5 h-3.5 text-risk shrink-0" /> : <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
               <span className="truncate">{u.name}</span>
-              {u.error && <span className="text-red-600 shrink-0">· {u.error}</span>}
+              {u.error && <span className="text-risk shrink-0">· {u.error}</span>}
               {u.error && (
                 <button onClick={() => setUploads(x => x.filter(y => y.key !== u.key))} aria-label="Quitar" className="ml-auto text-muted-foreground hover:text-foreground">
                   <X className="w-3.5 h-3.5" />
@@ -226,7 +226,7 @@ function SiteForm({ hasDof, onAdded }: { hasDof: boolean; onAdded: (s: IngestSou
           {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />} Probar
         </button>
         <button onClick={() => save({ url, title, linkFilter })} disabled={saving || testing || !url.trim()}
-          className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">
+          className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface disabled:opacity-40">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Globe className="w-4 h-4" />} Registrar sitio
         </button>
       </div>
@@ -245,7 +245,7 @@ function SiteForm({ hasDof, onAdded }: { hasDof: boolean; onAdded: (s: IngestSou
           <p className="text-muted-foreground mt-1">Si salen enlaces de menú o que no son publicaciones, agrega un filtro y vuelve a probar.</p>
         </div>
       )}
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-risk">{error}</p>}
     </div>
   )
 }
@@ -350,7 +350,7 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
       <p className="text-xs text-muted-foreground mb-3">
         Propuesta según la materia y el giro de cada cliente. Se generan como borrador; el cliente no los ve hasta que los envías desde la matriz regulatoria.
       </p>
-      {loadError && <p className="text-xs text-red-600">{loadError}</p>}
+      {loadError && <p className="text-xs text-risk">{loadError}</p>}
       {!targets && !loadError && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /> Revisando clientes…</p>}
       {targets && targets.length === 0 && <p className="text-sm text-muted-foreground">Aún no hay clientes registrados.</p>}
       {targets && targets.length > 8 && (
@@ -373,19 +373,19 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
       {targets && targets.length > 0 && (
         <ul className="max-h-72 space-y-2 overflow-y-auto pr-1">
           {visible.map(t => (
-            <li key={t.tenantId} className={cn('flex items-start gap-3 rounded-xl border px-3 py-2.5', t.applies ? 'border-[#1C2B4A]/25 bg-[#1C2B4A]/5' : 'border-border')}>
+            <li key={t.tenantId} className={cn('flex items-start gap-3 rounded-xl border px-3 py-2.5', t.applies ? 'border-border bg-surface-sunken' : 'border-border')}>
               {t.itemId ? (
-                <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-ok shrink-0" />
               ) : (
                 <input type="checkbox" className="mt-1 shrink-0" aria-label={`Generar para ${t.name}`}
                   checked={selected.has(t.tenantId)} disabled={Boolean(t.error) || generating} onChange={() => toggle(t.tenantId)} />
               )}
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium">{t.name}</p>
-                <p className={cn('text-xs', t.error ? 'text-red-600' : 'text-muted-foreground')}>{t.error ?? t.reason}</p>
+                <p className={cn('text-xs', t.error ? 'text-risk' : 'text-muted-foreground')}>{t.error ?? t.reason}</p>
               </div>
               {t.itemId && (
-                <a href={reviewHref(t.tenantId, t.itemId)} className="text-xs font-semibold text-[#1C2B4A] underline shrink-0">Revisar borrador</a>
+                <a href={reviewHref(t.tenantId, t.itemId)} className="text-xs font-semibold text-ink underline shrink-0">Revisar borrador</a>
               )}
             </li>
           ))}
@@ -394,16 +394,16 @@ function ObligationTargets({ sourceId }: { sourceId: string }) {
       {results && results.some(r => r.error || !r.aiDraft) && (
         <ul className="mt-3 space-y-1 text-xs">
           {results.filter(r => r.error || !r.aiDraft).map(r => (
-            <li key={r.tenantId} className={r.error ? 'text-red-600' : 'text-amber-700'}>
+            <li key={r.tenantId} className={r.error ? 'text-risk' : 'text-warn-text'}>
               {r.name}: {r.error ?? 'se creó con el resumen, sin redacción de IA; complétalo a mano'}
             </li>
           ))}
         </ul>
       )}
-      {error && <p className="mt-3 text-xs text-red-600">{error}</p>}
+      {error && <p className="mt-3 text-xs text-risk">{error}</p>}
       {targets && targets.some(t => !t.itemId && !t.error) && (
         <button onClick={handleGenerate} disabled={generating || selected.size === 0}
-          className="mt-3 flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+          className="mt-3 flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-surface disabled:opacity-40">
           {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FilePlus2 className="w-4 h-4" />}
           {generating ? `Redactando borradores… ${progress}` : `Generar obligaciones${selected.size ? ` (${selected.size})` : ''}`}
         </button>
@@ -421,8 +421,8 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
   const isSite = source.kind === 'site'
   const canProcess = !isSite && (source.status === 'en_cola' || source.status === 'error')
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-background w-full max-w-xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-background w-full max-w-xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col " onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-border shrink-0">
           <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -442,7 +442,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
               <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide', statusBadge(source.status))}>
                 {STATUS_LABELS[source.status] ?? source.status}
               </span>
-              {source.status === 'error' && source.statusDetail && <p className="text-xs text-red-600 mt-1.5">{source.statusDetail}</p>}
+              {source.status === 'error' && source.statusDetail && <p className="text-xs text-risk mt-1.5">{source.statusDetail}</p>}
               {source.processedAt && source.status === 'lista' && (
                 <p className="text-xs text-muted-foreground mt-1.5">Procesada el {formatDate(source.processedAt)}</p>
               )}
@@ -483,7 +483,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
         <div className="border-t border-border bg-background px-6 py-4 flex flex-wrap gap-3 shrink-0">
           {canProcess && (
             <button onClick={onProcess} disabled={busy}
-              className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40">
+              className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-surface disabled:opacity-40">
               {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : source.status === 'error' ? <RotateCw className="w-4 h-4" /> : <Play className="w-4 h-4" />}
               {source.status === 'error' ? 'Reintentar' : 'Procesar'}
             </button>
@@ -505,10 +505,10 @@ function DeleteModal({ source, onCancel, onConfirm, pending }: {
 }) {
   useEscape(onCancel)
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-background w-full max-w-sm rounded-2xl p-6 shadow-2xl">
-        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-          <Trash2 className="w-5 h-5 text-red-600" />
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4">
+      <div className="bg-background w-full max-w-sm rounded-2xl p-6 ">
+        <div className="w-10 h-10 rounded-full bg-risk-tint flex items-center justify-center mx-auto mb-4">
+          <Trash2 className="w-5 h-5 text-risk" />
         </div>
         <h3 className="font-serif text-lg font-semibold text-center">Eliminar fuente</h3>
         <p className="text-sm text-muted-foreground text-center mt-2 break-words">
@@ -517,7 +517,7 @@ function DeleteModal({ source, onCancel, onConfirm, pending }: {
         </p>
         <div className="flex gap-3 mt-6">
           <button onClick={onCancel} className="flex-1 text-sm font-medium bg-secondary py-2.5 rounded-xl">Cancelar</button>
-          <button onClick={onConfirm} disabled={pending} className="flex-1 text-sm font-semibold text-white bg-red-600 py-2.5 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
+          <button onClick={onConfirm} disabled={pending} className="flex-1 text-sm font-semibold text-surface bg-risk py-2.5 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
             {pending && <Loader2 className="w-4 h-4 animate-spin" />}
             Eliminar
           </button>
@@ -673,7 +673,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           {([['url', 'Enlace', Link2], ['file', 'Archivo', FileText], ['site', 'Sitio recurrente', Globe]] as const).map(([value, label, Icon]) => (
             <button key={value} onClick={() => setMode(value)}
               className={cn('flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-                mode === value ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                mode === value ? 'bg-background text-foreground ' : 'text-muted-foreground hover:text-foreground')}>
               <Icon className="w-3.5 h-3.5" /> {label}
             </button>
           ))}
@@ -690,9 +690,9 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
               const state = checkState(s.lastCheckedAt)
               const local = isLocalLoad(s.url)
               return (
-                <article key={s.id} className="flex flex-col gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/40 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+                <article key={s.id} className="flex flex-col gap-3 rounded-2xl border border-brand/30 bg-brand-tint px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-700"><Globe className="w-4 h-4" /></div>
+                    <div className="w-9 h-9 rounded-xl bg-brand-tint flex items-center justify-center shrink-0 text-brand-text"><Globe className="w-4 h-4" /></div>
                     <div className="min-w-0 flex-1">
                       <button onClick={() => setDetailId(s.id)} className="block max-w-full text-left text-sm font-medium text-foreground truncate hover:underline" title={titleOf(s)}>{titleOf(s)}</button>
                       <p className="text-xs text-muted-foreground truncate">{s.url} · {childCount(s.id)} publicaciones</p>
@@ -702,7 +702,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   <div className="flex flex-wrap items-center gap-2 pl-12 sm:pl-0 sm:shrink-0">
                     {!local && (
                       <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border',
-                        state.today ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200')}>
+                        state.today ? 'bg-ok-tint text-ok border-ok/30' : 'bg-warn-tint text-warn-text border-warn/30')}>
                         {state.label}
                       </span>
                     )}
@@ -713,7 +713,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                     )}
                     {!local && (
                       <button onClick={() => handleCheck(s)} disabled={checkingId !== null}
-                        className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+                        className="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40">
                         {checkingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarSearch className="w-3.5 h-3.5" />}
                         Revisar ahora
                       </button>
@@ -721,37 +721,37 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                     <a href={s.url ?? undefined} target="_blank" rel="noopener noreferrer" aria-label="Abrir"
                       className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><ExternalLink className="w-4 h-4" /></a>
                     <button onClick={() => setDeleting(s)} aria-label="Eliminar"
-                      className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                      className="p-2 rounded-lg text-risk hover:bg-risk-tint transition-colors"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 </article>
               )
             })}
           </div>
-          {checkError && <p className="mt-2 text-xs text-red-600">{checkError}</p>}
-          {checkMessage && <p className="mt-2 text-xs text-emerald-700">{checkMessage}</p>}
+          {checkError && <p className="mt-2 text-xs text-risk">{checkError}</p>}
+          {checkMessage && <p className="mt-2 text-xs text-ok">{checkMessage}</p>}
         </section>
       )}
 
       {/* Alerta: fuentes que no se pudieron leer */}
       {failed.length > 0 && (
-        <section role="alert" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 p-5">
+        <section role="alert" className="mb-6 rounded-2xl border border-warn/30 bg-warn-tint p-5">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-warn-text shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-amber-900">
+              <p className="text-sm font-semibold text-warn-text">
                 {failed.length === 1 ? '1 fuente no se pudo leer' : `${failed.length} fuentes no se pudieron leer`}: revísalas a mano
               </p>
-              <p className="text-xs text-amber-800 mt-0.5">Ábrelas, descarga el PDF o copia el texto y súbelo en la pestaña Archivo; luego elimina la fuente fallida. También puedes reintentar.</p>
+              <p className="text-xs text-warn-text mt-0.5">Ábrelas, descarga el PDF o copia el texto y súbelo en la pestaña Archivo; luego elimina la fuente fallida. También puedes reintentar.</p>
               <ul className="mt-3 space-y-1.5">
                 {failed.slice(0, 8).map(f => (
-                  <li key={f.id} className="flex items-center gap-2 text-xs text-amber-900">
+                  <li key={f.id} className="flex items-center gap-2 text-xs text-warn-text">
                     <span className="truncate font-medium">{titleOf(f)}</span>
-                    <span className="shrink-0 text-amber-800">· {f.statusDetail ?? 'Error'}</span>
+                    <span className="shrink-0 text-warn-text">· {f.statusDetail ?? 'Error'}</span>
                     <a href={f.kind === 'url' ? f.url ?? undefined : `/api/ingesta/file?id=${encodeURIComponent(f.id)}`} target="_blank" rel="noopener noreferrer"
                       className="ml-auto shrink-0 underline">Abrir</a>
                   </li>
                 ))}
-                {failed.length > 8 && <li className="text-xs text-amber-800">y {failed.length - 8} más en la lista</li>}
+                {failed.length > 8 && <li className="text-xs text-warn-text">y {failed.length - 8} más en la lista</li>}
               </ul>
             </div>
           </div>
@@ -783,7 +783,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
         <div className="mb-3 flex items-center gap-3">
           {!batchRunning
             ? <button onClick={handleProcessQueued} disabled={processingId !== null}
-                className="flex items-center gap-2 rounded-xl bg-[#1C2B4A] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40">
+                className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2 text-xs font-semibold text-surface disabled:opacity-40">
                 <Play className="w-3.5 h-3.5" /> Procesar pendientes
               </button>
             : <button onClick={() => { stopBatch.current = true }}
@@ -793,7 +793,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
           <span className="text-[11px] text-muted-foreground">Procesa de una en una; no cierres la página mientras corre.</span>
         </div>
       )}
-      {processError && <p className="mb-3 text-xs text-red-600">{processError}</p>}
+      {processError && <p className="mb-3 text-xs text-risk">{processError}</p>}
 
       {/* Lista */}
       <div className="space-y-2">
@@ -823,11 +823,11 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   {s.kind === 'site' && ` · ${childCount(s.id)} publicaciones · ${s.lastCheckedAt ? `revisado ${new Date(s.lastCheckedAt).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}` : 'sin revisar'}`}
                   {s.parentId && siteById.get(s.parentId) && ` · de ${titleOf(siteById.get(s.parentId)!)}`}
                 </p>
-                {s.kind !== 'site' && s.status === 'error' && s.statusDetail && <p className="text-[11px] text-red-600 mt-0.5">{s.statusDetail}</p>}
+                {s.kind !== 'site' && s.status === 'error' && s.statusDetail && <p className="text-[11px] text-risk mt-0.5">{s.statusDetail}</p>}
                 {s.kind !== 'site' && s.status === 'lista' && (
                   <div className="mt-1.5 space-y-1">
                     <div className="flex flex-wrap gap-1.5">
-                      {s.materia && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1C2B4A]/10 text-[#1C2B4A]">{MATERIAS[s.materia as keyof typeof MATERIAS] ?? s.materia}</span>}
+                      {s.materia && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-surface-sunken text-ink">{MATERIAS[s.materia as keyof typeof MATERIAS] ?? s.materia}</span>}
                       {s.authority && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{s.authority}</span>}
                       {s.publishedAt && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">Publicada {formatDate(`${s.publishedAt}T12:00:00`)}</span>}
                       {s.vigenciaStatus && <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5" title={s.vigenciaDetail ?? undefined}>{VIGENCIAS[s.vigenciaStatus as keyof typeof VIGENCIAS] ?? s.vigenciaStatus}</span>}
@@ -839,14 +839,14 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
               </div>
               <div className="flex flex-wrap items-center gap-2 pl-[3.25rem] sm:pl-0 sm:shrink-0">
               {s.kind === 'site'
-                ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0 bg-indigo-50 text-indigo-700 border-indigo-200">Sitio recurrente</span>
+                ? <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0 bg-brand-tint text-brand-text border-brand/30">Sitio recurrente</span>
                 : <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border uppercase tracking-wide shrink-0', statusBadge(s.status))}>
                     {STATUS_LABELS[s.status] ?? s.status}
                   </span>}
               <div className="flex flex-wrap items-center gap-1">
                 {s.kind !== 'site' && s.status === 'lista' && s.matchCount != null && (
                   <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full border',
-                    s.matchCount > 0 ? 'bg-[#1C2B4A]/10 text-[#1C2B4A] border-[#1C2B4A]/20' : 'text-muted-foreground border-border')}>
+                    s.matchCount > 0 ? 'bg-surface-sunken text-ink border-border' : 'text-muted-foreground border-border')}>
                     {s.matchCount === 0 ? 'No aplica a clientes' : s.matchCount === 1 ? 'Aplica a 1 cliente' : `Aplica a ${s.matchCount} clientes`}
                   </span>
                 )}
@@ -857,14 +857,14 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                 )}
                 {s.kind === 'site' && (
                   <button onClick={() => handleCheck(s)} disabled={checkingId !== null}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+                    className="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40">
                     {checkingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CalendarSearch className="w-3.5 h-3.5" />}
                     Revisar ahora
                   </button>
                 )}
                 {s.kind !== 'site' && (s.status === 'en_cola' || s.status === 'error') && (
                   <button onClick={() => handleProcess(s)} disabled={processingId !== null}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#1C2B4A] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">
+                    className="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40">
                     {s.status === 'error' ? <RotateCw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                     {s.status === 'error' ? 'Reintentar' : 'Procesar'}
                   </button>
@@ -875,7 +875,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   <ExternalLink className="w-4 h-4" />
                 </a>
                 <button onClick={() => setDeleting(s)} aria-label="Eliminar"
-                  className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
+                  className="p-2 rounded-lg text-risk hover:bg-risk-tint transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

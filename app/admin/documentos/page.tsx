@@ -130,11 +130,11 @@ export default function AdminDocumentosPage() {
             <button
               key={c.id}
               onClick={() => setSelectedClient(c.id)}
-              className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-[#8badd4]/50 hover:shadow-md active:scale-[0.98]"
+              className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-surface/35  active:scale-[0.98]"
             >
               <div className="flex items-start gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#0a1628]/5 transition-colors group-hover:bg-[#0a1628]/10">
-                  <svg className="h-5 w-5 text-[#8badd4]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-sunken transition-colors group-hover:bg-border">
+                  <svg className="h-5 w-5 text-surface/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                   </svg>
                 </div>
@@ -142,7 +142,7 @@ export default function AdminDocumentosPage() {
                   <p className="font-semibold text-foreground leading-snug">{c.company}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{c.name}</p>
                   <div className="mt-2.5 flex items-center gap-1.5">
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-[#8badd4] bg-[#8badd4]/10 px-2 py-0.5 rounded-md">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-surface/70 bg-surface/7 px-2 py-0.5 rounded-md">
                       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                       </svg>
@@ -182,7 +182,7 @@ export default function AdminDocumentosPage() {
           {docsByService._general && docsByService._general.length > 0 && (
             <button
               onClick={() => setSelectedService('_general')}
-              className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-[#8badd4]/50 hover:shadow-md active:scale-[0.98]"
+              className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-surface/35  active:scale-[0.98]"
             >
               <div className="flex items-start gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted transition-colors group-hover:bg-muted/80">
@@ -210,14 +210,14 @@ export default function AdminDocumentosPage() {
               <button
                 key={sId}
                 onClick={() => setSelectedService(sId)}
-                className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-[#8badd4]/50 hover:shadow-md active:scale-[0.98]"
+                className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-surface/35  active:scale-[0.98]"
               >
                 <div className="flex items-start gap-3">
                   <div className={cn(
                     "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors",
-                    service.firm === 'paulsen' ? "bg-[#2D5A3D]/10 group-hover:bg-[#2D5A3D]/20" : "bg-[#1C2B4A]/10 group-hover:bg-[#1C2B4A]/20"
+                    service.firm === 'paulsen' ? "bg-paulsen/10 group-hover:bg-paulsen/20" : "bg-mia/10 group-hover:bg-mia/20"
                   )}>
-                    <svg className={cn("h-5 w-5", service.firm === 'paulsen' ? "text-[#2D5A3D]" : "text-[#1C2B4A]")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <svg className={cn("h-5 w-5", service.firm === 'paulsen' ? "text-paulsen" : "text-mia")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                     </svg>
                   </div>
@@ -227,7 +227,7 @@ export default function AdminDocumentosPage() {
                     <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
                       <span className={cn(
                         "text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide",
-                        service.firm === 'paulsen' ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+                        service.firm === 'paulsen' ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
                       )}>
                         {service.firm === 'paulsen' ? 'Ambiental' : 'Corporativo'}
                       </span>
@@ -263,7 +263,7 @@ export default function AdminDocumentosPage() {
               <div className="flex items-center gap-2 mt-2">
                 <span className={cn(
                   "text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide",
-                  service.firm === 'paulsen' ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+                  service.firm === 'paulsen' ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
                 )}>
                   {service.firm === 'paulsen' ? 'Ambiental' : 'Corporativo'}
                 </span>
@@ -273,7 +273,7 @@ export default function AdminDocumentosPage() {
           </div>
           <Link
             href={`/admin/servicios/${selectedService}`}
-            className="flex items-center gap-1.5 text-xs font-semibold bg-[#1C2B4A] text-white px-3 py-2 rounded-xl hover:bg-[#1C2B4A]/90 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-semibold bg-ink text-surface px-3 py-2 rounded-xl hover:bg-ink/90 transition-colors"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
@@ -299,7 +299,7 @@ export default function AdminDocumentosPage() {
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
                 filter === f
-                  ? "bg-[#1C2B4A] text-white"
+                  ? "bg-ink text-surface"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -323,16 +323,16 @@ export default function AdminDocumentosPage() {
           {serviceDocs.map(doc => (
             <div
               key={doc.id}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-[#8badd4]/50 hover:shadow-sm"
+              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all hover:border-surface/35 "
             >
               {/* Icon */}
               <div className={cn(
                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
-                doc.direction === 'recibido' ? "bg-[#F0FDF4]" : doc.direction === 'enviado' ? "bg-[#EEF2F8]" : "bg-[#FFFBEB]"
+                doc.direction === 'recibido' ? "bg-ok-tint" : doc.direction === 'enviado' ? "bg-surface-sunken" : "bg-warn-tint"
               )}>
                 <svg className={cn(
                   "h-4 w-4",
-                  doc.direction === 'recibido' ? "text-[#16A34A]" : doc.direction === 'enviado' ? "text-[#1C2B4A]" : "text-[#D97706]"
+                  doc.direction === 'recibido' ? "text-ok" : doc.direction === 'enviado' ? "text-ink" : "text-warn-text"
                 )} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
                 </svg>
@@ -344,9 +344,9 @@ export default function AdminDocumentosPage() {
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   <span className={cn(
                     "text-[10px] font-bold px-2 py-0.5 rounded-md",
-                    doc.direction === 'recibido' ? "bg-[#F0FDF4] text-[#16A34A]" :
-                    doc.direction === 'enviado' ? "bg-[#EEF2F8] text-[#1C2B4A]" :
-                    "bg-[#FFFBEB] text-[#D97706]"
+                    doc.direction === 'recibido' ? "bg-ok-tint text-ok" :
+                    doc.direction === 'enviado' ? "bg-surface-sunken text-ink" :
+                    "bg-warn-tint text-warn-text"
                   )}>
                     {doc.direction === 'recibido' ? 'Recibido' : doc.direction === 'enviado' ? 'Enviado' : 'Pendiente Firma'}
                   </span>

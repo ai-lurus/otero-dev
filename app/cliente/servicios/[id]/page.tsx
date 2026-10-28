@@ -9,18 +9,18 @@ import { ArrowLeft, CheckCircle2, Clock, Circle, FileText, CreditCard, Download,
 import type { Firm } from "@/lib/types"
 
 const STATUS_CONFIG = {
-  solicitud:  { label: "Solicitud",   color: "#6B7280", bg: "#F3F4F6" },
-  en_proceso: { label: "En proceso",  color: "#1C2B4A", bg: "#EEF2F8" },
-  revision:   { label: "En revisión", color: "#D97706", bg: "#FFFBEB" },
-  completado: { label: "Completado",  color: "#16A34A", bg: "#F0FDF4" },
-  cancelado:  { label: "Cancelado",   color: "#DC2626", bg: "#FEF2F2" },
+  solicitud:  { label: "Solicitud",   color: "var(--ink-muted)", bg: "var(--surface-sunken)" },
+  en_proceso: { label: "En proceso",  color: "var(--ink)", bg: "var(--surface-sunken)" },
+  revision:   { label: "En revisión", color: "var(--warn-text)", bg: "var(--warn-tint)" },
+  completado: { label: "Completado",  color: "var(--ok)", bg: "var(--ok-tint)" },
+  cancelado:  { label: "Cancelado",   color: "var(--risk)", bg: "var(--risk-tint)" },
 }
 
 function FirmBadge({ firm }: { firm: Firm }) {
   return (
     <span className={cn(
       "text-[10px] font-bold px-2 py-0.5 rounded-full",
-      firm === "paulsen" ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+      firm === "paulsen" ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
     )}>
       {firm === "paulsen" ? "Área Ambiental" : "Área Corporativa"}
     </span>
@@ -58,7 +58,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
+      <div className="sticky top-0 z-20 bg-background border-b border-border">
         <div className="px-5 py-3 flex items-center gap-3">
           <Link href="/cliente/servicios" className="flex items-center justify-center w-8 h-8 rounded-xl hover:bg-muted transition-colors shrink-0">
             <ArrowLeft className="h-4 w-4 text-muted-foreground" />
@@ -83,7 +83,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
           <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${service.progress}%`, background: service.firm === "paulsen" ? "#2D5A3D" : "#1C2B4A" }}
+              style={{ width: `${service.progress}%`, background: service.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)" }}
             />
           </div>
           <p className="text-[11px] text-muted-foreground mt-1.5">
@@ -93,10 +93,10 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
 
         {/* Pending payment alert */}
         {pendingPayment && (
-          <div className="mx-5 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-            <p className="text-xs text-amber-700 flex-1">Pago pendiente: <strong>{fmt(pendingPayment.amount)}</strong></p>
-            <button onClick={() => setActiveTab("pagos")} className="text-[10px] font-semibold text-amber-700 underline">
+          <div className="mx-5 mb-3 rounded-xl border border-warn/30 bg-warn-tint px-3 py-2 flex items-center gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 text-warn-text shrink-0" />
+            <p className="text-xs text-warn-text flex-1">Pago pendiente: <strong>{fmt(pendingPayment.amount)}</strong></p>
+            <button onClick={() => setActiveTab("pagos")} className="text-[10px] font-semibold text-warn-text underline">
               Ver
             </button>
           </div>
@@ -111,7 +111,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
               className={cn(
                 "flex-1 text-xs font-semibold py-3 border-b-2 transition-all",
                 activeTab === tab.id
-                  ? "border-[#1C2B4A] text-[#1C2B4A]"
+                  ? "border-ink text-ink"
                   : "border-transparent text-muted-foreground"
               )}
             >
@@ -129,15 +129,15 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
           <>
             {/* Next step */}
             {service.nextStep && service.status !== "completado" && (
-              <div className="rounded-2xl border border-[#1C2B4A]/20 bg-[#EEF2F8] p-4 flex items-start gap-3">
-                <div className="w-6 h-6 rounded-full bg-[#1C2B4A] flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <div className="rounded-2xl border border-border bg-surface-sunken p-4 flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-ink flex items-center justify-center shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-[#1C2B4A] mb-0.5">Siguiente paso</p>
-                  <p className="text-xs text-[#1C2B4A]/80">{service.nextStep}</p>
+                  <p className="text-xs font-semibold text-ink mb-0.5">Siguiente paso</p>
+                  <p className="text-xs text-ink/80">{service.nextStep}</p>
                 </div>
               </div>
             )}
@@ -149,13 +149,13 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
                 const isActive = task.status === "en_progreso"
                 return (
                   <div key={task.id} className={cn("flex items-start gap-3 rounded-2xl border p-4",
-                    isDone ? "border-border bg-card opacity-80" : isActive ? "border-[#1C2B4A]/30 bg-[#EEF2F8]" : "border-border bg-card"
+                    isDone ? "border-border bg-card opacity-80" : isActive ? "border-border bg-surface-sunken" : "border-border bg-card"
                   )}>
                     <div className="shrink-0 mt-0.5">
                       {isDone
-                        ? <CheckCircle2 className="h-5 w-5" style={{ color: "#16A34A" }} />
+                        ? <CheckCircle2 className="h-5 w-5" style={{ color: "var(--ok)" }} />
                         : isActive
-                        ? <Clock className="h-5 w-5 text-[#D97706]" />
+                        ? <Clock className="h-5 w-5 text-warn-text" />
                         : <Circle className="h-5 w-5 text-muted-foreground/30" />
                       }
                     </div>
@@ -164,14 +164,14 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
                         {task.title}
                       </p>
                       {isActive && task.note && (
-                        <p className="text-xs text-[#D97706] mt-1">{task.note}</p>
+                        <p className="text-xs text-warn-text mt-1">{task.note}</p>
                       )}
                       {isDone && (
                         <p className="text-[10px] text-muted-foreground mt-0.5">Completado</p>
                       )}
                     </div>
                     {isActive && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 shrink-0">
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warn-tint text-warn-text shrink-0">
                         Activo
                       </span>
                     )}
@@ -187,7 +187,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
                 <div className="space-y-2">
                   {timeline.slice(0, 3).map(event => (
                     <div key={event.id} className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: event.firm === "paulsen" ? "#2D5A3D" : "#1C2B4A" }} />
+                      <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: event.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)" }} />
                       <div className="flex-1">
                         <p className="text-xs font-medium text-foreground">{event.action}</p>
                         {event.detail && <p className="text-[10px] text-muted-foreground">{event.detail}</p>}
@@ -202,13 +202,13 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
             )}
 
             <div className="pt-2 flex flex-col gap-2">
-              <Link href="/cliente/agenda" className="flex items-center justify-center gap-2 w-full text-center text-xs font-semibold bg-[#1C2B4A] text-white rounded-2xl py-3 hover:bg-[#1C2B4A]/90 transition-colors">
+              <Link href="/cliente/agenda" className="flex items-center justify-center gap-2 w-full text-center text-xs font-semibold bg-ink text-surface rounded-2xl py-3 hover:bg-ink/90 transition-colors">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
                 </svg>
                 Agendar cita sobre este servicio
               </Link>
-              <Link href="/cliente/chat" className="block w-full text-center text-xs font-semibold text-[#1C2B4A] border border-[#1C2B4A]/20 rounded-2xl py-3 hover:bg-[#EEF2F8] transition-colors">
+              <Link href="/cliente/chat" className="block w-full text-center text-xs font-semibold text-ink border border-border rounded-2xl py-3 hover:bg-surface-sunken transition-colors">
                 Preguntarle al despacho sobre este servicio
               </Link>
             </div>
@@ -227,7 +227,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
             )}
             {docs.map(doc => {
               const dirLabel = doc.direction === "recibido" ? "Del despacho" : doc.direction === "enviado" ? "Enviado" : "Requiere tu firma"
-              const dirColor = doc.direction === "pendiente_firma" ? "#D97706" : doc.direction === "recibido" ? "#1C2B4A" : "#16A34A"
+              const dirColor = doc.direction === "pendiente_firma" ? "var(--warn-text)" : doc.direction === "recibido" ? "var(--mia)" : "var(--ok)"
               return (
                 <div key={doc.id} className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
@@ -241,7 +241,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
                     </div>
                   </div>
                   {doc.direction === "pendiente_firma" ? (
-                    <button className="text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1.5 rounded-xl">
+                    <button className="text-xs font-semibold bg-warn-tint text-warn-text border border-warn/30 px-3 py-1.5 rounded-xl">
                       Firmar
                     </button>
                   ) : (
@@ -269,7 +269,7 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
               const isOverdue = p.status === "vencido"
               return (
                 <div key={p.id} className={cn("bg-card border rounded-2xl p-4",
-                  isOverdue ? "border-red-200" : isPaid ? "border-border" : "border-amber-200"
+                  isOverdue ? "border-risk/30" : isPaid ? "border-border" : "border-warn/30"
                 )}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
@@ -284,14 +284,14 @@ export default function ClientServiceDetail({ params }: { params: Promise<{ id: 
                     <div className="text-right shrink-0">
                       <p className="text-base font-bold text-foreground">{fmt(p.amount)}</p>
                       <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-                        isPaid ? "bg-[#F0FDF4] text-[#16A34A]" : isOverdue ? "bg-[#FEF2F2] text-[#DC2626]" : "bg-[#FFFBEB] text-[#D97706]"
+                        isPaid ? "bg-ok-tint text-ok" : isOverdue ? "bg-risk-tint text-risk" : "bg-warn-tint text-warn-text"
                       )}>
                         {isPaid ? "Pagado" : isOverdue ? "Vencido" : "Pendiente"}
                       </span>
                     </div>
                   </div>
                   {!isPaid && (
-                    <Link href="/cliente/pagos" className="mt-3 block text-center text-xs font-semibold bg-[#1C2B4A] text-white py-2.5 rounded-xl">
+                    <Link href="/cliente/pagos" className="mt-3 block text-center text-xs font-semibold bg-ink text-surface py-2.5 rounded-xl">
                       Ir a pagar
                     </Link>
                   )}

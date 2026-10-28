@@ -7,15 +7,15 @@ import { deleteDocument } from "@/app/actions/documents"
 
 // ── File type config ──────────────────────────────────────────────
 const EXT_CONFIG: Record<string, { color: string; label: string }> = {
-  pdf:  { color: "#DC2626", label: "PDF" },
-  doc:  { color: "#1C2B4A", label: "DOC" },
-  docx: { color: "#1C2B4A", label: "DOC" },
-  xls:  { color: "#16A34A", label: "XLS" },
-  xlsx: { color: "#16A34A", label: "XLS" },
-  dwg:  { color: "#D97706", label: "DWG" },
-  jpg:  { color: "#8B5CF6", label: "IMG" },
-  jpeg: { color: "#8B5CF6", label: "IMG" },
-  png:  { color: "#8B5CF6", label: "IMG" },
+  pdf:  { color: "var(--risk)", label: "PDF" },
+  doc:  { color: "var(--ink)", label: "DOC" },
+  docx: { color: "var(--ink)", label: "DOC" },
+  xls:  { color: "var(--ok)", label: "XLS" },
+  xlsx: { color: "var(--ok)", label: "XLS" },
+  dwg:  { color: "var(--warn-text)", label: "DWG" },
+  jpg:  { color: "var(--brand-text)", label: "IMG" },
+  jpeg: { color: "var(--brand-text)", label: "IMG" },
+  png:  { color: "var(--brand-text)", label: "IMG" },
 }
 
 function getExt(name: string) {
@@ -25,7 +25,7 @@ function getExt(name: string) {
 
 function FileIcon({ name }: { name: string }) {
   const ext = getExt(name)
-  const cfg = EXT_CONFIG[ext] ?? { color: "#6B7280", label: ext.toUpperCase().slice(0, 3) }
+  const cfg = EXT_CONFIG[ext] ?? { color: "var(--ink-muted)", label: ext.toUpperCase().slice(0, 3) }
   return (
     <div
       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-[10px]"
@@ -37,7 +37,7 @@ function FileIcon({ name }: { name: string }) {
 }
 
 const FOLDER_COLORS: string[] = [
-  "#1C2B4A", "#2D5A3D", "#D97706", "#DC2626", "#8B5CF6", "#0891B2", "#6B7280",
+  "var(--ink)", "var(--ok)", "var(--warn-text)", "var(--risk)", "var(--brand-text)", "var(--ink-muted)",
 ]
 
 function FolderIcon({ category, index }: { category: string; index: number }) {
@@ -126,8 +126,8 @@ function UploadModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm bg-background rounded-2xl p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-ink/50" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-sm bg-background rounded-2xl p-6 ">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-bold text-foreground">Subir archivo</h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition-colors">
@@ -142,7 +142,7 @@ function UploadModal({
           onClick={() => inputRef.current?.click()}
           className={cn(
             "w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 transition-colors mb-4 text-center",
-            file ? "border-[#2D5A3D] bg-[#2D5A3D]/5" : "border-border hover:border-foreground/30"
+            file ? "border-ok bg-ok/5" : "border-border hover:border-foreground/30"
           )}
         >
           {file ? (
@@ -211,7 +211,7 @@ function UploadModal({
           />
         </div>
 
-        {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
+        {error && <p className="text-xs text-risk mb-3">{error}</p>}
 
         <button
           onClick={handleUpload}
@@ -338,7 +338,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
                 <button
                   key={folder}
                   onClick={() => setSelectedFolder(folder)}
-                  className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-foreground/20 hover:shadow-md active:scale-[0.98]"
+                  className="group rounded-2xl border border-border bg-card p-5 text-left transition-all hover:border-foreground/20  active:scale-[0.98]"
                 >
                   <div className="flex items-start gap-3">
                     <FolderIcon category={folder} index={i} />
@@ -428,7 +428,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
               return (
                 <div
                   key={doc.id}
-                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-foreground/20 hover:shadow-sm transition-all"
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 hover:border-foreground/20  transition-all"
                 >
                   <FileIcon name={doc.name} />
                   <div className="min-w-0 flex-1">
@@ -457,7 +457,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
                     <button
                       onClick={() => handleDelete(doc.id)}
                       disabled={deletingId === doc.id}
-                      className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors disabled:opacity-40"
+                      className="rounded-lg p-2 text-muted-foreground hover:bg-risk-tint hover:text-risk transition-colors disabled:opacity-40"
                       title="Eliminar"
                     >
                       {deletingId === doc.id ? (

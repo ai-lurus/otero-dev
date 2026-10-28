@@ -33,9 +33,9 @@ const ROLE_LABELS: Record<string, string> = {
   client:     'Cliente',
 }
 const ROLE_COLORS: Record<string, string> = {
-  superadmin: 'bg-[#1C2B4A] text-white',
-  admin:      'bg-[#EEF2F8] text-[#1C2B4A]',
-  tenant_admin: 'bg-[#EAF2EC] text-[#2D5A3D]',
+  superadmin: 'bg-ink text-surface',
+  admin:      'bg-surface-sunken text-ink',
+  tenant_admin: 'bg-ok-tint text-ok',
   client:     'bg-secondary text-muted-foreground',
 }
 
@@ -149,11 +149,11 @@ export default function UserManager({ tenants, users }: Props) {
 
       {/* Edit user modal */}
       {editUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setEditUser(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4" onClick={() => setEditUser(null)}>
           <form
             onSubmit={handleEditSave}
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4"
+            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6  space-y-4"
           >
             <h2 className="text-sm font-semibold text-foreground">Editar usuario</h2>
             <div className="flex flex-col gap-1.5">
@@ -170,7 +170,7 @@ export default function UserManager({ tenants, users }: Props) {
                 className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20"
               />
             </div>
-            {eError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{eError}</p>}
+            {eError && <p className="text-xs text-risk bg-risk-tint border border-risk/30 rounded-lg px-4 py-2">{eError}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={isPending}
                 className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90 disabled:opacity-50 transition-opacity flex-1">
@@ -185,11 +185,11 @@ export default function UserManager({ tenants, users }: Props) {
         </div>
       )}
       {pwUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setPwUser(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4" onClick={() => setPwUser(null)}>
           <form
             onSubmit={handleResetPassword}
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-xl space-y-4"
+            className="w-full max-w-sm rounded-2xl border border-border bg-card p-6  space-y-4"
           >
             <div>
               <h2 className="text-sm font-semibold text-foreground">Restablecer contraseña</h2>
@@ -203,7 +203,7 @@ export default function UserManager({ tenants, users }: Props) {
                 className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20"
               />
             </div>
-            {pwError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{pwError}</p>}
+            {pwError && <p className="text-xs text-risk bg-risk-tint border border-risk/30 rounded-lg px-4 py-2">{pwError}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={isPending}
                 className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90 disabled:opacity-50 transition-opacity flex-1">
@@ -218,7 +218,7 @@ export default function UserManager({ tenants, users }: Props) {
         </div>
       )}
 
-      {actionError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{actionError}</p>}
+      {actionError && <p className="text-xs text-risk bg-risk-tint border border-risk/30 rounded-lg px-4 py-2">{actionError}</p>}
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
@@ -252,7 +252,7 @@ export default function UserManager({ tenants, users }: Props) {
       {showForm && (
         <form
           onSubmit={handleCreate}
-          className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-5"
+          className="rounded-xl border border-border bg-card p-6  space-y-5"
         >
           <h2 className="text-sm font-semibold text-foreground">Crear nuevo usuario</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -288,7 +288,7 @@ export default function UserManager({ tenants, users }: Props) {
               </select>
             </div>
           </div>
-          {fError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{fError}</p>}
+          {fError && <p className="text-xs text-risk bg-risk-tint border border-risk/30 rounded-lg px-4 py-2">{fError}</p>}
           <div className="flex gap-3">
             <button type="submit" disabled={isPending}
               className="rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90 disabled:opacity-50 transition-opacity">
@@ -303,7 +303,7 @@ export default function UserManager({ tenants, users }: Props) {
       )}
 
       {/* Users table */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-border bg-card  overflow-hidden">
         {filteredUsers.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
@@ -318,8 +318,8 @@ export default function UserManager({ tenants, users }: Props) {
               <div key={u.id} className="px-5 py-4 hover:bg-secondary/20 transition-colors">
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-[#EEF2F8] flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-sm font-bold text-[#1C2B4A]">{u.name?.charAt(0).toUpperCase()}</span>
+                  <div className="w-9 h-9 rounded-full bg-surface-sunken flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-sm font-bold text-ink">{u.name?.charAt(0).toUpperCase()}</span>
                   </div>
                   {/* Info */}
                   <div className="flex-1 min-w-0">
@@ -347,7 +347,7 @@ export default function UserManager({ tenants, users }: Props) {
                           </select>
                           <button
                             onClick={() => handleRemove(u.id, m.tenantId)}
-                            className="text-muted-foreground hover:text-red-500 transition-colors ml-1"
+                            className="text-muted-foreground hover:text-risk transition-colors ml-1"
                             title="Quitar de empresa"
                           >
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
@@ -385,7 +385,7 @@ export default function UserManager({ tenants, users }: Props) {
                     </button>
                     <button
                       onClick={() => handleDelete(u)}
-                      className="p-1.5 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-lg text-muted-foreground hover:text-risk hover:bg-risk-tint transition-colors"
                       title="Eliminar usuario"
                       aria-label="Eliminar usuario"
                     >

@@ -115,7 +115,7 @@ export function ItemFormDialog({ tenantId, item, onClose, onSaved, onDeleted, in
   }
 
   const content = (
-    <div className={inline ? 'w-full rounded-xl border border-border bg-card p-4 shadow-sm sm:p-6' : undefined}>
+    <div className={inline ? 'w-full rounded-xl border border-border bg-card p-4  sm:p-6' : undefined}>
       {inline ? (
         <header className="mb-5 flex flex-col gap-1">
           <h2 className="text-lg font-semibold">{item ? 'Editar resumen del objeto regulativo' : 'Nuevo objeto regulativo'}</h2>

@@ -11,7 +11,7 @@ function FirmPill({ firm }: { firm: Firm }) {
   return (
     <span className={cn(
       'text-[10px] font-bold px-2 py-0.5 rounded-full',
-      firm === 'paulsen' ? 'bg-[#EAF2EC] text-[#2D5A3D]' : 'bg-[#EEF2F8] text-[#1C2B4A]'
+      firm === 'paulsen' ? 'bg-paulsen-light text-paulsen' : 'bg-mia-light text-mia'
     )}>
       {firm === 'paulsen' ? 'Ambiental' : 'Corporativo'}
     </span>
@@ -19,9 +19,9 @@ function FirmPill({ firm }: { firm: Firm }) {
 }
 
 function paymentBadge(pending: number) {
-  if (pending >= 2) return 'bg-red-50 text-red-700 border border-red-200'
-  if (pending === 1) return 'bg-amber-50 text-amber-700 border border-amber-200'
-  return 'bg-green-50 text-green-700 border border-green-200'
+  if (pending >= 2) return 'bg-risk-tint text-risk border border-risk/30'
+  if (pending === 1) return 'bg-warn-tint text-warn-text border border-warn/30'
+  return 'bg-ok-tint text-ok border border-ok/30'
 }
 
 export default function ClientesPage() {
@@ -58,7 +58,7 @@ export default function ClientesPage() {
             />
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <div className="overflow-hidden rounded-xl border border-border bg-card ">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/60">
@@ -91,7 +91,7 @@ export default function ClientesPage() {
                       <span className="font-semibold text-foreground">{client.activeServices}</span>
                     </td>
                     <td className="hidden px-4 py-3 text-center md:table-cell">
-                      <span className={cn('font-bold', client.pendingPayments > 0 ? 'text-amber-600' : 'text-green-600')}>
+                      <span className={cn('font-bold', client.pendingPayments > 0 ? 'text-warn-text' : 'text-ok')}>
                         {client.pendingPayments}
                       </span>
                     </td>
@@ -118,7 +118,7 @@ export default function ClientesPage() {
         {/* Client detail panel */}
         {selected && (
           <div className="w-full lg:w-72 shrink-0">
-            <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="rounded-xl border border-border bg-card ">
               <div className="border-b border-border px-5 py-4">
                 <h2 className="font-serif text-lg font-semibold text-foreground">{selected.name}</h2>
                 <p className="text-sm text-muted-foreground">{selected.company}</p>
@@ -130,7 +130,7 @@ export default function ClientesPage() {
                     <p className="text-[10px] text-muted-foreground">Servicios activos</p>
                   </div>
                   <div className="rounded-lg border border-border bg-secondary/50 p-3 text-center">
-                    <p className={cn('font-serif text-2xl font-bold', selected.pendingPayments > 0 ? 'text-amber-600' : 'text-green-600')}>
+                    <p className={cn('font-serif text-2xl font-bold', selected.pendingPayments > 0 ? 'text-warn-text' : 'text-ok')}>
                       {selected.pendingPayments}
                     </p>
                     <p className="text-[10px] text-muted-foreground">Pagos pendientes</p>
@@ -161,7 +161,7 @@ export default function ClientesPage() {
                   <p className="text-xs text-foreground">{new Date(selected.lastActivity).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
 
-                <Link href={`/admin/clientes/${selected.id}`} className="block w-full rounded-lg border border-[#1C2B4A] bg-[#1C2B4A] px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 text-center">
+                <Link href={`/admin/clientes/${selected.id}`} className="block w-full rounded-lg border border-ink bg-ink px-4 py-2 text-sm font-semibold text-surface transition-opacity hover:opacity-90 text-center">
                   Ver expediente completo
                 </Link>
               </div>

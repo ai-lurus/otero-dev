@@ -16,7 +16,7 @@ function FirmPill({ firm }: { firm: Firm }) {
   return (
     <span className={cn(
       "text-[10px] font-bold px-2 py-0.5 rounded-full",
-      firm === "paulsen" ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+      firm === "paulsen" ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
     )}>
       {firm === "paulsen" ? "Ambiental" : "Corporativo"}
     </span>
@@ -28,11 +28,11 @@ function fmt(cents: number) {
 }
 
 const STATUS_CONFIG = {
-  solicitud:  { label: "Solicitud",   color: "#6B7280", bg: "#F3F4F6" },
-  en_proceso: { label: "En proceso",  color: "#1C2B4A", bg: "#EEF2F8" },
-  revision:   { label: "En revisión", color: "#D97706", bg: "#FFFBEB" },
-  completado: { label: "Completado",  color: "#16A34A", bg: "#F0FDF4" },
-  cancelado:  { label: "Cancelado",   color: "#DC2626", bg: "#FEF2F2" },
+  solicitud:  { label: "Solicitud",   color: "var(--ink-muted)", bg: "var(--surface-sunken)" },
+  en_proceso: { label: "En proceso",  color: "var(--ink)", bg: "var(--surface-sunken)" },
+  revision:   { label: "En revisión", color: "var(--warn-text)", bg: "var(--warn-tint)" },
+  completado: { label: "Completado",  color: "var(--ok)", bg: "var(--ok-tint)" },
+  cancelado:  { label: "Cancelado",   color: "var(--risk)", bg: "var(--risk-tint)" },
 }
 
 type Tab = "servicios" | "pagos" | "documentos" | "agenda"
@@ -75,7 +75,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
             <p className="text-xs text-muted-foreground">Clientes</p>
             <h1 className="text-base font-semibold text-foreground leading-tight">{client.name}</h1>
           </div>
-          <Link href="/admin/chat" className="text-xs font-semibold text-[#1C2B4A] border border-[#1C2B4A]/20 px-3 py-1.5 rounded-xl hover:bg-[#EEF2F8] transition-colors">
+          <Link href="/admin/chat" className="text-xs font-semibold text-ink border border-border px-3 py-1.5 rounded-xl hover:bg-surface-sunken transition-colors">
             Abrir chat
           </Link>
         </div>
@@ -88,14 +88,14 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
               <p className="font-serif text-xl font-bold text-foreground">{activeServices.length}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Servicios activos</p>
             </div>
-            <div className={cn("rounded-2xl p-3 text-center", totalOwed > 0 ? "bg-amber-50" : "bg-[#F0FDF4]")}>
-              <p className={cn("font-serif text-base font-bold leading-none mt-0.5", totalOwed > 0 ? "text-amber-700" : "text-[#16A34A]")}>
+            <div className={cn("rounded-2xl p-3 text-center", totalOwed > 0 ? "bg-warn-tint" : "bg-ok-tint")}>
+              <p className={cn("font-serif text-base font-bold leading-none mt-0.5", totalOwed > 0 ? "text-warn-text" : "text-ok")}>
                 {totalOwed > 0 ? fmt(totalOwed) : "Al día"}
               </p>
               <p className="text-[10px] text-muted-foreground mt-1">{totalOwed > 0 ? "Por cobrar" : "Pagos"}</p>
             </div>
-            <div className={cn("rounded-2xl p-3 text-center", pendingDocs.length > 0 ? "bg-amber-50" : "bg-muted")}>
-              <p className={cn("font-serif text-xl font-bold", pendingDocs.length > 0 ? "text-amber-700" : "text-foreground")}>
+            <div className={cn("rounded-2xl p-3 text-center", pendingDocs.length > 0 ? "bg-warn-tint" : "bg-muted")}>
+              <p className={cn("font-serif text-xl font-bold", pendingDocs.length > 0 ? "text-warn-text" : "text-foreground")}>
                 {pendingDocs.length}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Docs sin firma</p>
@@ -122,7 +122,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
               className={cn(
                 "flex items-center gap-1.5 flex-1 justify-center px-4 py-3 text-xs font-semibold border-b-2 transition-all whitespace-nowrap",
                 activeTab === tab.id
-                  ? "border-[#1C2B4A] text-[#1C2B4A]"
+                  ? "border-ink text-ink"
                   : "border-transparent text-muted-foreground hover:text-foreground"
               )}
             >
@@ -130,7 +130,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
               {tab.count !== undefined && tab.count > 0 && (
                 <span className={cn(
                   "text-[9px] font-bold px-1.5 py-0.5 rounded-full",
-                  activeTab === tab.id ? "bg-[#EEF2F8] text-[#1C2B4A]" : "bg-muted text-muted-foreground"
+                  activeTab === tab.id ? "bg-surface-sunken text-ink" : "bg-muted text-muted-foreground"
                 )}>
                   {tab.count}
                 </span>
@@ -152,7 +152,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
             {clientServices.map(s => {
               const cfg = STATUS_CONFIG[s.status]
               return (
-                <Link key={s.id} href={`/admin/servicios/${s.id}`} className="block bg-card border border-border rounded-2xl p-4 hover:border-foreground/20 hover:shadow-md transition-all group">
+                <Link key={s.id} href={`/admin/servicios/${s.id}`} className="block bg-card border border-border rounded-2xl p-4 hover:border-foreground/20  transition-all group">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1 flex-wrap">
@@ -162,18 +162,18 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
                         <FirmPill firm={s.firm} />
                         <span className="text-[10px] text-muted-foreground">{s.category}</span>
                       </div>
-                      <p className="text-sm font-semibold text-foreground group-hover:text-[#1C2B4A] transition-colors leading-snug">{s.title}</p>
+                      <p className="text-sm font-semibold text-foreground group-hover:text-ink transition-colors leading-snug">{s.title}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">{s.assignedTo}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-xs font-bold text-foreground">{s.progress}%</span>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-[#1C2B4A] transition-colors" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-ink transition-colors" />
                     </div>
                   </div>
                   {s.status !== "completado" && s.status !== "cancelado" && (
                     <>
                       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2">
-                        <div className="h-full rounded-full" style={{ width: `${s.progress}%`, background: s.firm === "paulsen" ? "#2D5A3D" : "#1C2B4A" }} />
+                        <div className="h-full rounded-full" style={{ width: `${s.progress}%`, background: s.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)" }} />
                       </div>
                       <p className="text-xs text-muted-foreground">→ {s.nextStep}</p>
                     </>
@@ -192,7 +192,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-foreground">Pagos del cliente</h2>
-              <Link href="/admin/pagos" className="text-xs text-[#1C2B4A] font-medium flex items-center gap-1">
+              <Link href="/admin/pagos" className="text-xs text-ink font-medium flex items-center gap-1">
                 Gestionar todos <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
@@ -201,12 +201,12 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
               const isOverdue = p.status === "vencido"
               return (
                 <div key={p.id} className={cn("bg-card border rounded-2xl p-4 flex items-center gap-3",
-                  isOverdue ? "border-red-200" : isPaid ? "border-border" : "border-amber-200"
+                  isOverdue ? "border-risk/30" : isPaid ? "border-border" : "border-warn/30"
                 )}>
                   <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                    isPaid ? "bg-[#F0FDF4]" : isOverdue ? "bg-[#FEF2F2]" : "bg-[#FFFBEB]"
+                    isPaid ? "bg-ok-tint" : isOverdue ? "bg-risk-tint" : "bg-warn-tint"
                   )}>
-                    <CreditCard className="h-5 w-5" style={{ color: isPaid ? "#16A34A" : isOverdue ? "#DC2626" : "#D97706" }} />
+                    <CreditCard className="h-5 w-5" style={{ color: isPaid ? "var(--ok)" : isOverdue ? "var(--risk)" : "var(--warn-text)" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{p.concept}</p>
@@ -220,7 +220,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-foreground">{fmt(p.amount)}</p>
                     <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded-full",
-                      isPaid ? "bg-[#F0FDF4] text-[#16A34A]" : isOverdue ? "bg-[#FEF2F2] text-[#DC2626]" : "bg-[#FFFBEB] text-[#D97706]"
+                      isPaid ? "bg-ok-tint text-ok" : isOverdue ? "bg-risk-tint text-risk" : "bg-warn-tint text-warn-text"
                     )}>
                       {isPaid ? "Pagado" : isOverdue ? "Vencido" : "Pendiente"}
                     </span>
@@ -236,7 +236,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-foreground">Documentos</h2>
-              <button className="text-xs font-semibold text-[#1C2B4A] border border-[#1C2B4A]/20 px-3 py-1.5 rounded-xl hover:bg-[#EEF2F8] transition-colors">
+              <button className="text-xs font-semibold text-ink border border-border px-3 py-1.5 rounded-xl hover:bg-surface-sunken transition-colors">
                 + Subir documento
               </button>
             </div>
@@ -248,7 +248,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
             )}
             {clientDocs.map(doc => {
               const dirLabel = doc.direction === "recibido" ? "Recibido" : doc.direction === "enviado" ? "Enviado" : "Pendiente de firma"
-              const dirColor = doc.direction === "pendiente_firma" ? "#D97706" : doc.direction === "recibido" ? "#1C2B4A" : "#16A34A"
+              const dirColor = doc.direction === "pendiente_firma" ? "var(--warn-text)" : doc.direction === "recibido" ? "var(--mia)" : "var(--ok)"
               return (
                 <div key={doc.id} className="bg-card border border-border rounded-2xl p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
@@ -264,8 +264,8 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
                   </div>
                   {doc.direction === "pendiente_firma" ? (
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="text-[10px] font-semibold text-amber-700">Sin firma</span>
+                      <AlertTriangle className="h-3.5 w-3.5 text-warn-text" />
+                      <span className="text-[10px] font-semibold text-warn-text">Sin firma</span>
                     </div>
                   ) : (
                     <button className="p-2 rounded-xl hover:bg-muted transition-colors shrink-0" aria-label="Descargar">
@@ -283,7 +283,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
           <div className="space-y-2 max-w-2xl">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-foreground">Citas</h2>
-              <Link href="/admin/agenda" className="text-xs text-[#1C2B4A] font-medium flex items-center gap-1">
+              <Link href="/admin/agenda" className="text-xs text-ink font-medium flex items-center gap-1">
                 Ver agenda completa <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
@@ -309,7 +309,7 @@ export default function AdminClientDetail({ params }: { params: Promise<{ id: st
                   <FirmPill firm={a.firm} />
                 </div>
                 <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0",
-                  a.status === "confirmada" ? "bg-[#F0FDF4] text-[#16A34A]" : a.status === "cancelada" ? "bg-[#FEF2F2] text-[#DC2626]" : "bg-[#FFFBEB] text-[#D97706]"
+                  a.status === "confirmada" ? "bg-ok-tint text-ok" : a.status === "cancelada" ? "bg-risk-tint text-risk" : "bg-warn-tint text-warn-text"
                 )}>
                   {a.status === "confirmada" ? "Confirmada" : a.status === "cancelada" ? "Cancelada" : "Por confirmar"}
                 </span>

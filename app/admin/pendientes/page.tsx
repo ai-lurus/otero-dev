@@ -15,9 +15,9 @@ const TYPE_HREF: Record<string, string> = {
 }
 
 const PRIORITY_CONFIG = {
-  alta:  { label: "Urgente", color: "#DC2626", bg: "#FEF2F2" },
-  media: { label: "Medio",   color: "#D97706", bg: "#FFFBEB" },
-  baja:  { label: "Normal",  color: "#6B7280", bg: "#F3F4F6" },
+  alta:  { label: "Urgente", color: "var(--risk)", bg: "var(--risk-tint)" },
+  media: { label: "Medio",   color: "var(--warn-text)", bg: "var(--warn-tint)" },
+  baja:  { label: "Normal",  color: "var(--ink-muted)", bg: "var(--surface-sunken)" },
 }
 
 const TYPE_PATH: Record<string, string> = {
@@ -32,7 +32,7 @@ function FirmPill({ firm }: { firm: Firm }) {
   return (
     <span className={cn(
       "text-[10px] font-bold px-2 py-0.5 rounded-full",
-      firm === "paulsen" ? "bg-[#EAF2EC] text-[#2D5A3D]" : "bg-[#EEF2F8] text-[#1C2B4A]"
+      firm === "paulsen" ? "bg-paulsen-light text-paulsen" : "bg-mia-light text-mia"
     )}>
       {firm === "paulsen" ? "Ambiental" : "Corporativo"}
     </span>
@@ -64,11 +64,11 @@ export default function PendientesPage() {
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
-          { label: "Urgentes", count: urgentes, color: "#DC2626" },
-          { label: "Medios",   count: medios,   color: "#D97706" },
-          { label: "Normales", count: normales, color: "#6B7280" },
+          { label: "Urgentes", count: urgentes, color: "var(--risk)" },
+          { label: "Medios",   count: medios,   color: "var(--warn-text)" },
+          { label: "Normales", count: normales, color: "var(--ink-muted)" },
         ].map(s => (
-          <div key={s.label} className="bg-card border border-border rounded-2xl p-3 text-center shadow-sm">
+          <div key={s.label} className="bg-card border border-border rounded-2xl p-3 text-center ">
             <div className="text-2xl font-bold" style={{ color: s.color }}>{s.count}</div>
             <div className="text-[10px] text-muted-foreground mt-0.5">{s.label}</div>
           </div>
@@ -79,7 +79,7 @@ export default function PendientesPage() {
         {(["all", "mia", "paulsen"] as const).map(f => (
           <button key={f} onClick={() => setFirmFilter(f)}
             className={cn("text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all",
-              firmFilter === f ? "bg-[#1C2B4A] text-white border-[#1C2B4A]" : "bg-card border-border text-muted-foreground"
+              firmFilter === f ? "bg-mia text-surface border-mia" : "bg-card border-border text-muted-foreground"
             )}>
             {f === "all" ? "Todos" : f === "paulsen" ? "Ambiental" : "Corporativo"}
           </button>
@@ -88,8 +88,8 @@ export default function PendientesPage() {
 
       {filtered.length === 0 && (
         <div className="flex flex-col items-center py-16 gap-3 text-center">
-          <div className="w-12 h-12 rounded-full bg-[#F0FDF4] flex items-center justify-center">
-            <svg className="w-6 h-6 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="w-12 h-12 rounded-full bg-ok-tint flex items-center justify-center">
+            <svg className="w-6 h-6 text-ok" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
@@ -102,12 +102,12 @@ export default function PendientesPage() {
         {filtered.map(item => {
           const pc = PRIORITY_CONFIG[item.priority]
           return (
-            <div key={item.id} className={cn("bg-card border rounded-2xl p-4 shadow-sm",
-              item.priority === "alta" ? "border-[#DC2626]/25" : item.priority === "media" ? "border-[#D97706]/25" : "border-border"
+            <div key={item.id} className={cn("bg-card border rounded-2xl p-4 ",
+              item.priority === "alta" ? "border-risk/25" : item.priority === "media" ? "border-warn-text/25" : "border-border"
             )}>
               <div className="flex items-start gap-3">
                 <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-                  item.priority === "alta" ? "bg-[#FEF2F2]" : item.priority === "media" ? "bg-[#FFFBEB]" : "bg-muted"
+                  item.priority === "alta" ? "bg-risk-tint" : item.priority === "media" ? "bg-warn-tint" : "bg-muted"
                 )}>
                   <svg style={{ color: pc.color, width: 18, height: 18 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d={TYPE_PATH[item.type]} />
@@ -123,7 +123,7 @@ export default function PendientesPage() {
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
-                <Link href={TYPE_HREF[item.type] ?? "/admin"} className="flex-1 bg-[#1C2B4A] text-white text-xs font-semibold py-2 rounded-xl active:scale-95 transition-transform text-center">Atender</Link>
+                <Link href={TYPE_HREF[item.type] ?? "/admin"} className="flex-1 bg-ink text-surface text-xs font-semibold py-2 rounded-xl active:scale-95 transition-transform text-center">Atender</Link>
                 <button onClick={() => setDone(p => [...p, item.id])} className="flex-1 border border-border text-muted-foreground text-xs font-medium py-2 rounded-xl active:scale-95 transition-transform">Descartar</button>
               </div>
             </div>

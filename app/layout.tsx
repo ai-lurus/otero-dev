@@ -34,7 +34,7 @@ export default function RootLayout({
           href="https://ivolvlab.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-3 right-3 z-[9999] flex items-center gap-1 rounded-full bg-black/5 backdrop-blur-sm border border-black/8 px-2.5 py-1 text-[10px] text-black/30 hover:text-black/50 hover:bg-black/8 transition-all select-none"
+          className="fixed bottom-3 right-3 z-[9999] flex items-center gap-1 rounded-full bg-ink/5 border border-ink/8 px-2.5 py-1 text-[10px] text-ink/30 hover:text-ink/50 hover:bg-ink/8 transition-all select-none"
           aria-label="Hecho por ivolvlab.com"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="opacity-60">

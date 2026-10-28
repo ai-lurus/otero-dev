@@ -33,12 +33,12 @@ function Row({
   onPress?: () => void
 }) {
   const inner = (
-    <div className={cn("flex items-center gap-3 px-4 py-3.5 border-b border-border/50 last:border-0 active:bg-muted/50 transition-colors", danger && "active:bg-[#FEF2F2]/50")}>
-      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", danger ? "bg-[#FEF2F2] text-[#DC2626]" : "bg-muted text-muted-foreground")}>
+    <div className={cn("flex items-center gap-3 px-4 py-3.5 border-b border-border/50 last:border-0 active:bg-muted/50 transition-colors", danger && "active:bg-risk-tint")}>
+      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", danger ? "bg-risk-tint text-risk" : "bg-muted text-muted-foreground")}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={cn("text-sm font-medium", danger ? "text-[#DC2626]" : "text-foreground")}>{label}</p>
+        <p className={cn("text-sm font-medium", danger ? "text-risk" : "text-foreground")}>{label}</p>
         {value && <p className="text-xs text-muted-foreground mt-0.5 truncate">{value}</p>}
       </div>
       {(href || onPress) && !danger && (
@@ -108,16 +108,16 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
   return (
     <div className="flex flex-col">
       {/* Dark header */}
-      <div className="bg-[#1C1A14] px-6 pt-12 pb-8">
+      <div className="bg-ink px-6 pt-12 pb-8">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-[#D97706]/20 border border-[#D97706]/30 flex items-center justify-center shrink-0">
-            <span className="text-2xl font-bold text-[#D97706]">GIM</span>
+          <div className="w-16 h-16 rounded-2xl bg-warn/20 border border-warn-text/30 flex items-center justify-center shrink-0">
+            <span className="text-2xl font-bold text-warn-text">GIM</span>
           </div>
           <div>
-            <h1 className="font-serif text-xl font-semibold text-white leading-snug">{user.name}</h1>
-            <p className="text-white/40 text-xs mt-0.5">Perfil conectado</p>
-            <span className="inline-flex items-center gap-1 mt-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#2D5A3D]/30 text-[#7BC49A]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#7BC49A]" />
+            <h1 className="font-serif text-xl font-semibold text-surface leading-snug">{user.name}</h1>
+            <p className="text-surface/40 text-xs mt-0.5">Perfil conectado</p>
+            <span className="inline-flex items-center gap-1 mt-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-ok/30 text-ok">
+              <span className="w-1.5 h-1.5 rounded-full bg-ok" />
               Cliente activo
             </span>
           </div>
@@ -150,11 +150,11 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 mb-2">Perfil de empresa</p>
           <div className="bg-card border border-border rounded-2xl overflow-hidden">
             {/* Info banner */}
-            <div className="flex items-start gap-2.5 px-4 py-3 border-b border-border bg-[#EEF2F8]/60">
-              <svg className="w-4 h-4 text-[#1C2B4A] shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <div className="flex items-start gap-2.5 px-4 py-3 border-b border-border bg-surface-sunken">
+              <svg className="w-4 h-4 text-ink shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
               </svg>
-              <p className="text-[11px] text-[#1C2B4A] font-medium leading-snug">
+              <p className="text-[11px] text-ink font-medium leading-snug">
                 Otero usa esta información para personalizar sus respuestas según tu empresa y sector.
               </p>
             </div>
@@ -170,7 +170,7 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
                       value={companyForm[f.key]}
                       onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
-                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-[#1C2B4A]/20 resize-none placeholder:text-muted-foreground/40"
+                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ink/20 resize-none placeholder:text-muted-foreground/40"
                     />
                   ) : (
                     <input
@@ -178,7 +178,7 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
                       value={companyForm[f.key]}
                       onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
-                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-[#1C2B4A]/20 placeholder:text-muted-foreground/40"
+                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ink/20 placeholder:text-muted-foreground/40"
                     />
                   )}
                 </div>
@@ -189,8 +189,8 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
                 className={cn(
                   "w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]",
                   companySaved
-                    ? "bg-[#16A34A] text-white"
-                    : "bg-[#1C2B4A] text-white disabled:opacity-50"
+                    ? "bg-ok text-surface"
+                    : "bg-ink text-surface disabled:opacity-50"
                 )}
               >
                 {companySaving ? "Guardando..." : companySaved ? "Guardado — Otero ya lo sabe" : "Guardar perfil de empresa"}
@@ -217,7 +217,7 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
                     type="password"
                     value={pwForm[field as keyof typeof pwForm]}
                     onChange={e => setPwForm(prev => ({ ...prev, [field]: e.target.value }))}
-                    className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-[#1C2B4A]/20"
+                    className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ink/20"
                     placeholder="••••••••"
                   />
                 </div>
@@ -226,7 +226,7 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
                 onClick={savePassword}
                 className={cn(
                   "w-full py-2.5 rounded-xl text-sm font-semibold transition-all",
-                  pwSaved ? "bg-[#16A34A] text-white" : "bg-[#1C2B4A] text-white active:scale-[0.98]"
+                  pwSaved ? "bg-ok text-surface" : "bg-ink text-surface active:scale-[0.98]"
                 )}
               >
                 {pwSaved ? "Contraseña actualizada" : "Guardar contraseña"}
@@ -257,11 +257,11 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
                 onClick={() => setNotifs(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof prev] }))}
                 className={cn(
                   "w-11 h-6 rounded-full relative transition-colors shrink-0",
-                  notifs[item.key as keyof typeof notifs] ? "bg-[#1C2B4A]" : "bg-muted-foreground/30"
+                  notifs[item.key as keyof typeof notifs] ? "bg-ink" : "bg-muted-foreground/30"
                 )}
               >
                 <span className={cn(
-                  "absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all",
+                  "absolute top-0.5 w-5 h-5 bg-surface-raised rounded-full  transition-all",
                   notifs[item.key as keyof typeof notifs] ? "left-[22px]" : "left-0.5"
                 )} />
               </button>

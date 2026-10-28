@@ -25,13 +25,13 @@ const CATEGORY_FILTERS = [
 ] as const
 
 function priorityBadge(p: string) {
-  if (p === 'alta') return 'bg-red-50 text-red-700 border-red-200'
-  if (p === 'media') return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (p === 'alta') return 'bg-risk-tint text-risk border-risk/30'
+  if (p === 'media') return 'bg-warn-tint text-warn-text border-warn/30'
   return 'bg-secondary text-muted-foreground border-border'
 }
 function priorityBar(p: string) {
-  if (p === 'alta') return 'bg-red-500'
-  if (p === 'media') return 'bg-amber-500'
+  if (p === 'alta') return 'bg-risk'
+  if (p === 'media') return 'bg-warn'
   return 'bg-muted-foreground/30'
 }
 
@@ -50,7 +50,7 @@ function relativeTime(d: Date | string) {
 // ── Detail modal ──────────────────────────────────────────────────
 function PostDetail({ post, onClose, onAskCompi }: { post: Post; onClose: () => void; onAskCompi: (post: Post) => void }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-ink/50 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="bg-background w-full max-w-md max-h-[92vh] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-2 pb-1 sm:hidden">
           <span className="block w-10 h-1 rounded-full bg-muted" />
@@ -78,11 +78,11 @@ function PostDetail({ post, onClose, onAskCompi }: { post: Post; onClose: () => 
           </div>
 
           {post.affectsNote && (
-            <div className="mx-5 mb-4 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="mx-5 mb-4 rounded-xl bg-warn-tint border border-warn/30 px-4 py-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-warn-text shrink-0 mt-0.5" />
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Te afecta porque</p>
-                <p className="text-sm text-amber-900 mt-0.5">{post.affectsNote}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-warn-text">Te afecta porque</p>
+                <p className="text-sm text-warn-text mt-0.5">{post.affectsNote}</p>
               </div>
             </div>
           )}
@@ -107,7 +107,7 @@ function PostDetail({ post, onClose, onAskCompi }: { post: Post; onClose: () => 
           </button>
           <button
             onClick={() => { onClose(); onAskCompi(post) }}
-            className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[#1C2B4A] py-2.5 rounded-xl active:scale-[0.98] transition-transform"
+            className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-surface bg-ink py-2.5 rounded-xl active:scale-[0.98] transition-transform"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Pregúntale a Otero
@@ -142,37 +142,37 @@ export default function ClienteNoticiasClient({ posts }: { posts: Post[] }) {
   return (
     <div className="flex flex-col">
       {/* Hero */}
-      <section className="bg-[#0d1e35] text-white px-5 pt-5 pb-6">
+      <section className="bg-ink text-surface px-5 pt-5 pb-6">
         <div className="flex items-center gap-2 mb-3">
-          <Radio className="w-4 h-4 text-[#8badd4]" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8badd4]">Radar Regulatorio</span>
+          <Radio className="w-4 h-4 text-surface/70" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-surface/70">Radar Regulatorio</span>
         </div>
         <h1 className="font-serif text-2xl leading-tight tracking-tight text-balance">
-          Cambios <span className="italic text-[#4ade80]">relevantes</span> para tu operación.
+          Cambios <span className="italic text-ok">relevantes</span> para tu operación.
         </h1>
-        <p className="text-sm text-white/70 mt-2 leading-relaxed">
+        <p className="text-sm text-surface/70 mt-2 leading-relaxed">
           Inteligencia regulatoria curada por nuestro equipo. Solo lo que te afecta.
         </p>
         <div className="grid grid-cols-2 gap-2 mt-5">
-          <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
+          <div className="rounded-xl border border-surface/10 bg-surface/5 px-4 py-3">
             <p className="font-serif text-2xl font-semibold">{counts.total}</p>
-            <p className="text-[11px] text-white/60 mt-0.5">Publicaciones</p>
+            <p className="text-[11px] text-surface/60 mt-0.5">Publicaciones</p>
           </div>
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-            <p className="font-serif text-2xl font-semibold text-red-300">{counts.alta}</p>
-            <p className="text-[11px] text-red-200/80 mt-0.5">Requieren atención</p>
+          <div className="rounded-xl border border-risk/20 bg-risk/10 px-4 py-3">
+            <p className="font-serif text-2xl font-semibold text-risk">{counts.alta}</p>
+            <p className="text-[11px] text-risk/80 mt-0.5">Requieren atención</p>
           </div>
         </div>
       </section>
 
       {/* Category tabs */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border">
+      <div className="sticky top-0 z-20 bg-background border-b border-border">
         <div className="overflow-x-auto scrollbar-none">
           <div className="flex gap-1.5 px-4 py-3 min-w-max">
             {CATEGORY_FILTERS.map(f => (
               <button key={f.value} onClick={() => setCategory(f.value)}
                 className={cn('text-xs font-medium px-3 py-1.5 rounded-full transition-colors whitespace-nowrap',
-                  category === f.value ? 'bg-[#1C2B4A] text-white' : 'bg-secondary text-muted-foreground hover:text-foreground')}>
+                  category === f.value ? 'bg-ink text-surface' : 'bg-secondary text-muted-foreground hover:text-foreground')}>
                 {f.label}
               </button>
             ))}
@@ -211,7 +211,7 @@ export default function ClienteNoticiasClient({ posts }: { posts: Post[] }) {
               <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 mt-1.5">{post.summary}</p>
               {post.affectsNote && (
                 <div className="mt-3 pt-3 border-t border-dashed border-border flex items-start gap-2">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <AlertTriangle className="w-3.5 h-3.5 text-warn-text shrink-0 mt-0.5" />
                   <p className="text-[11px] text-foreground/80">
                     <span className="font-semibold">Te afecta:</span> {post.affectsNote}
                   </p>
@@ -222,7 +222,7 @@ export default function ClienteNoticiasClient({ posts }: { posts: Post[] }) {
             <div className="border-t border-border/60 mx-4 mb-3 pt-3 flex justify-end">
               <button
                 onClick={() => askCompi(post)}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-[#1C2B4A] hover:bg-[#1C2B4A]/5 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-ink hover:bg-surface-sunken px-3 py-1.5 rounded-lg transition-colors"
               >
                 <Sparkles className="w-3 h-3" />
                 Pregúntale a Otero

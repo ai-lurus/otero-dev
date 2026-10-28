@@ -55,9 +55,9 @@ const AI_INSIGHTS = [
 ]
 
 const PRIORITY_CFG = {
-  alta:  { bar: "bg-red-500",   badge: "bg-red-50 text-red-700 border border-red-200",   label: "Urgente",  dot: "bg-red-500"   },
-  media: { bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 border border-amber-200", label: "Atención", dot: "bg-amber-400" },
-  baja:  { bar: "bg-blue-400",  badge: "bg-blue-50 text-blue-700 border border-blue-200",  label: "Info",     dot: "bg-blue-400"  },
+  alta:  { bar: "bg-risk",   badge: "bg-risk-tint text-risk border border-risk/30",   label: "Urgente",  dot: "bg-risk"   },
+  media: { bar: "bg-warn", badge: "bg-warn-tint text-warn-text border border-warn/30", label: "Atención", dot: "bg-warn" },
+  baja:  { bar: "bg-brand",  badge: "bg-brand-tint text-brand-text border border-brand/30",  label: "Info",     dot: "bg-brand"  },
 }
 
 function buildMetrics(items: DashboardItem[], referenceDate: string) {
@@ -66,19 +66,19 @@ function buildMetrics(items: DashboardItem[], referenceDate: string) {
   return [
   {
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>,
-    label: "Vencidos", value: overdue.length, sub: overdue.length ? "requieren acción inmediata" : "sin asuntos vencidos", href: "/admin/obligaciones", accent: "#FEF2F2", iconColor: "#DC2626",
+    label: "Vencidos", value: overdue.length, sub: overdue.length ? "requieren acción inmediata" : "sin asuntos vencidos", href: "/admin/obligaciones", accent: "var(--risk-tint)", iconColor: "var(--risk)",
   },
   {
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-    label: "Por vencer", value: dueSoon.length, sub: "con vencimiento en 30 días", href: "/admin/obligaciones", accent: "#FFFBEB", iconColor: "#D97706",
+    label: "Por vencer", value: dueSoon.length, sub: "con vencimiento en 30 días", href: "/admin/obligaciones", accent: "var(--warn-tint)", iconColor: "var(--warn-text)",
   },
   {
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-    label: "En proceso", value: inProgress.length, sub: `${sent.length} enviados · ${vigentes.length} cerrados`, href: "/admin/obligaciones", accent: "#F0FDF4", iconColor: "#16A34A",
+    label: "En proceso", value: inProgress.length, sub: `${sent.length} enviados · ${vigentes.length} cerrados`, href: "/admin/obligaciones", accent: "var(--ok-tint)", iconColor: "var(--ok)",
   },
   {
     icon: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m6.75 12H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
-    label: "Asuntos", value: items.length, sub: `${sent.length} visibles al cliente`, href: "/admin/documentos", accent: "#EEF2F8", iconColor: "#1C2B4A",
+    label: "Asuntos", value: items.length, sub: `${sent.length} visibles al cliente`, href: "/admin/documentos", accent: "var(--surface-sunken)", iconColor: "var(--ink)",
   },
   ]
 }
@@ -88,16 +88,16 @@ function InsightCard({ insight }: { insight: typeof AI_INSIGHTS[0] }) {
   const [expanded, setExpanded] = useState(true)
   const [dismissed, setDismissed] = useState(false)
   const pc = PRIORITY_CFG[insight.priority as keyof typeof PRIORITY_CFG]
-  const firmColor = insight.firm === "paulsen" ? "#2D5A3D" : "#1C2B4A"
-  const firmBg    = insight.firm === "paulsen" ? "#EAF2EC" : "#EEF2F8"
+  const firmColor = insight.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)"
+  const firmBg    = insight.firm === "paulsen" ? "var(--paulsen-light)" : "var(--mia-light)"
 
   if (dismissed) return null
 
   return (
     <div className={cn(
-      "relative rounded-xl border bg-card shadow-sm overflow-hidden transition-all",
-      insight.priority === "alta"  ? "border-red-200/80"   :
-      insight.priority === "media" ? "border-amber-200/80" : "border-border"
+      "relative rounded-xl border bg-card  overflow-hidden transition-all",
+      insight.priority === "alta"  ? "border-risk/80"   :
+      insight.priority === "media" ? "border-warn/80" : "border-border"
     )}>
       <div className={cn("absolute left-0 top-0 bottom-0 w-1", pc.bar)} />
 
@@ -134,7 +134,7 @@ function InsightCard({ insight }: { insight: typeof AI_INSIGHTS[0] }) {
         <div className="pl-4 pr-4 pb-4 pt-1">
           <p className="text-xs text-muted-foreground leading-relaxed mb-3">{insight.body}</p>
           <Link href={insight.href}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-surface transition-opacity hover:opacity-90"
             style={{ background: firmColor }}>
             {insight.action}
             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -170,35 +170,34 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
           className="object-cover object-center"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#f7f5ef]/95 via-[#f7f5ef]/82 to-[#f7f5ef]/35" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#f7f5ef]/90 via-[#f7f5ef]/35 to-transparent" />
+        <div className="absolute inset-0 bg-surface/85" />
 
         {/* Text on image */}
         <div className="absolute inset-0 flex flex-col justify-end px-4 sm:px-8 xl:px-10 pb-6 sm:pb-7">
           <div className="flex items-end justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <svg className="w-3.5 h-3.5 text-[#8badd4]/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <svg className="w-3.5 h-3.5 text-surface/49" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                 </svg>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#c42a6d]">Asistente Otero</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text">Asistente Otero</span>
               </div>
-              <h1 className="font-serif text-3xl font-semibold tracking-tight text-[#112133] sm:text-4xl xl:text-5xl leading-tight">
+              <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink sm:text-4xl xl:text-5xl leading-tight">
                 Buenos días, {userName}
               </h1>
-              <p className="mt-1 text-sm text-[#112133]/65 capitalize">Centro de cumplimiento regulatorio · {today}</p>
+              <p className="mt-1 text-sm text-ink/65 capitalize">Centro de cumplimiento regulatorio · {today}</p>
             </div>
 
             {/* Quick metric chips on image */}
             <div className="hidden lg:flex items-center gap-3 shrink-0">
               {overdue.length + dueSoon.length > 0 && (
-                <div className="flex items-center gap-2 bg-[#c42a6d]/10 border border-[#c42a6d]/20 rounded-xl px-4 py-2.5">
-                  <span className="w-2 h-2 rounded-full bg-[#c42a6d]" />
-                  <span className="text-[#c42a6d] text-sm font-semibold">{overdue.length + dueSoon.length} asuntos con fecha cercana</span>
+                <div className="flex items-center gap-2 bg-brand/10 border border-brand-text/20 rounded-xl px-4 py-2.5">
+                  <span className="w-2 h-2 rounded-full bg-brand" />
+                  <span className="text-brand-text text-sm font-semibold">{overdue.length + dueSoon.length} asuntos con fecha cercana</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 bg-[#f7f5ef]/80 border border-[#112133]/10 rounded-xl px-4 py-2.5">
-                <span className="text-[#112133]/70 text-sm font-semibold">{items.length} asuntos · {inProgress.length} en proceso</span>
+              <div className="flex items-center gap-2 bg-surface/80 border border-border rounded-xl px-4 py-2.5">
+                <span className="text-ink/70 text-sm font-semibold">{items.length} asuntos · {inProgress.length} en proceso</span>
               </div>
             </div>
           </div>
@@ -216,7 +215,7 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               {metrics.map((m, i) => (
                 <Link key={i} href={m.href}
-                  className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card px-4 py-4 shadow-sm transition-all hover:border-foreground/15 hover:shadow-md sm:gap-4 sm:px-5 sm:py-5">
+                  className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-card px-4 py-4  transition-all hover:border-foreground/15  sm:gap-4 sm:px-5 sm:py-5">
                   <div className="flex items-center justify-between">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: m.accent }}>
                       <span style={{ color: m.iconColor }}>{m.icon}</span>
@@ -237,8 +236,8 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
             {/* AI Insights */}
             <div>
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-6 h-6 rounded-lg bg-[#1C2B4A]/10 flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-[#3D5A8A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <div className="w-6 h-6 rounded-lg bg-surface-sunken flex items-center justify-center">
+                  <svg className="w-3.5 h-3.5 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
@@ -269,22 +268,22 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
           <div className="xl:w-72 2xl:w-80 shrink-0 flex flex-col gap-4">
 
             {/* Urgentes */}
-            <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+            <div className="rounded-xl border border-border bg-card  overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <h3 className="text-sm font-semibold text-foreground">Asuntos regulatorios urgentes</h3>
-                <Link href="/admin/obligaciones" className="text-xs text-[#29465a] font-semibold hover:text-[#1b3140] transition-colors">Ver todas</Link>
+                <Link href="/admin/obligaciones" className="text-xs text-ink font-semibold hover:text-ink transition-colors">Ver todas</Link>
               </div>
               <div className="divide-y divide-border">
 {urgentItems.map(({ item, daysLeft }) => (
                   <Link key={item.id} href={`/admin/obligaciones/${item.id}?tenant=${item.tenantId}`} className="flex items-center gap-3 px-5 py-3.5 hover:bg-secondary/40 transition-colors group">
-                    <div className={cn("w-2 h-2 rounded-full shrink-0", daysLeft !== null && daysLeft < 0 ? "bg-red-500" : "bg-amber-400")} />
+                    <div className={cn("w-2 h-2 rounded-full shrink-0", daysLeft !== null && daysLeft < 0 ? "bg-risk" : "bg-warn")} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-foreground truncate">{item.title}</p>
                       <p className="text-[11px] text-muted-foreground mt-0.5 capitalize">{item.materia} · {item.status}</p>
                     </div>
                     <span className={cn(
                       "text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0",
-                      daysLeft !== null && daysLeft < 0 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                      daysLeft !== null && daysLeft < 0 ? "bg-risk-tint text-risk" : "bg-warn-tint text-warn-text"
                     )}>{daysLeft !== null && daysLeft < 0 ? "Vencido" : `${daysLeft} días`}</span>
                   </Link>
                 ))}
@@ -297,12 +296,12 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
             </div>
 
             {/* Quick links — MVP */}
-            <div className="rounded-xl border border-border bg-card shadow-sm p-4">
+            <div className="rounded-xl border border-border bg-card  p-4">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Accesos rápidos</p>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { label: "Asuntos regulatorios", href: "/admin/obligaciones", color: "#DC2626", bg: "#FEF2F2" },
-                  { label: "Documentos",   href: "/admin/documentos", color: "#1C2B4A", bg: "#EEF2F8" },
+                  { label: "Asuntos regulatorios", href: "/admin/obligaciones", color: "var(--risk)", bg: "var(--risk-tint)" },
+                  { label: "Documentos",   href: "/admin/documentos", color: "var(--ink)", bg: "var(--surface-sunken)" },
                 ].map(q => (
                   <Link key={q.href} href={q.href}
                     className="flex items-center gap-2 rounded-lg border border-border px-3 py-2.5 hover:bg-secondary/50 transition-colors">

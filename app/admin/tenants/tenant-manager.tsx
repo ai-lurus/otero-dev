@@ -81,7 +81,7 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
       {showForm && (
         <form
           onSubmit={handleCreate}
-          className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4"
+          className="rounded-xl border border-border bg-card p-6  space-y-4"
         >
           <h2 className="text-sm font-semibold text-foreground">Nueva empresa</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -111,7 +111,7 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
               </select>
             </div>
           </div>
-          {error && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2">{error}</p>}
+          {error && <p className="text-xs text-risk bg-risk-tint border border-risk/30 rounded-lg px-4 py-2">{error}</p>}
           <div className="flex gap-3">
             <button
               type="submit" disabled={isPending}
@@ -127,7 +127,7 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
       )}
 
       {/* Tenant list */}
-      <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-border bg-card  overflow-hidden">
         {tenants.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
@@ -154,8 +154,8 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
                 <tr key={t.id} className="hover:bg-secondary/20 transition-colors">
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#EEF2F8] flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-[#1C2B4A]">{t.name.charAt(0).toUpperCase()}</span>
+                      <div className="w-8 h-8 rounded-lg bg-surface-sunken flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-ink">{t.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <span className="font-semibold text-foreground">{t.name}</span>
                     </div>
@@ -172,9 +172,9 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
                           placeholder="mi-empresa"
                           autoFocus
                         />
-                        <button onClick={() => handleSlugSave(t.id)} className="text-xs font-semibold text-[#1C2B4A] hover:underline">Guardar</button>
+                        <button onClick={() => handleSlugSave(t.id)} className="text-xs font-semibold text-ink hover:underline">Guardar</button>
                         <button onClick={() => setEditingSlug(null)} className="text-xs text-muted-foreground hover:underline">Cancelar</button>
-                        {slugError && <span className="text-xs text-red-500">{slugError}</span>}
+                        {slugError && <span className="text-xs text-risk">{slugError}</span>}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
                       onClick={() => handleDelete(t.id)}
                       disabled={deleting === t.id}
                       className={cn(
-                        'text-xs text-muted-foreground hover:text-red-600 transition-colors disabled:opacity-40',
+                        'text-xs text-muted-foreground hover:text-risk transition-colors disabled:opacity-40',
                       )}
                     >
                       {deleting === t.id ? 'Eliminando…' : 'Eliminar'}

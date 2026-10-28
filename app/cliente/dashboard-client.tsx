@@ -51,21 +51,21 @@ const pVencido  = total > 0 ? vencidos.length / total : 0
         {/* vencido */}
         <circle
           cx={cx} cy={cy} r={r} fill="none"
-          stroke="#EF4444" strokeWidth={stroke} strokeLinecap="butt"
+          stroke="var(--risk)" strokeWidth={stroke} strokeLinecap="butt"
           strokeDasharray={seg1.dasharray}
           strokeDashoffset={seg1.dashoffset}
         />
         {/* por vencer */}
         <circle
           cx={cx} cy={cy} r={r} fill="none"
-          stroke="#F59E0B" strokeWidth={stroke} strokeLinecap="butt"
+          stroke="var(--warn)" strokeWidth={stroke} strokeLinecap="butt"
           strokeDasharray={seg2.dasharray}
           strokeDashoffset={seg2.dashoffset}
         />
         {/* vigente */}
         <circle
           cx={cx} cy={cy} r={r} fill="none"
-          stroke="#22C55E" strokeWidth={stroke} strokeLinecap="butt"
+          stroke="var(--ok)" strokeWidth={stroke} strokeLinecap="butt"
           strokeDasharray={seg3.dasharray}
           strokeDashoffset={seg3.dashoffset}
         />
@@ -82,9 +82,9 @@ const pVencido  = total > 0 ? vencidos.length / total : 0
 function StatusBar({ className, total, vencidos, porVencer, vigentes }: { className?: string; total: number; vencidos: DashboardObligation[]; porVencer: DashboardObligation[]; vigentes: DashboardObligation[] }) {
   return (
     <div className={cn("flex h-2 rounded-full overflow-hidden gap-px", className)}>
-      <div className="bg-red-500 rounded-l-full transition-all" style={{ width: `${(vencidos.length / total) * 100}%` }} />
-      <div className="bg-amber-400 transition-all"              style={{ width: `${(porVencer.length / total) * 100}%` }} />
-      <div className="bg-emerald-500 rounded-r-full transition-all" style={{ width: `${(vigentes.length / total) * 100}%` }} />
+      <div className="bg-risk rounded-l-full transition-all" style={{ width: `${(vencidos.length / total) * 100}%` }} />
+      <div className="bg-warn transition-all"              style={{ width: `${(porVencer.length / total) * 100}%` }} />
+      <div className="bg-ok rounded-r-full transition-all" style={{ width: `${(vigentes.length / total) * 100}%` }} />
     </div>
   )
 }
@@ -93,7 +93,7 @@ function StatusBar({ className, total, vencidos, porVencer, vigentes }: { classN
 function UrgencyBar({ daysLeft, status }: { daysLeft: number; status: string }) {
   const max = 30
   const pct = status === "vencido" ? 100 : Math.max(0, Math.min(100, ((max - daysLeft) / max) * 100))
-  const color = status === "vencido" ? "#EF4444" : daysLeft <= 7 ? "#EF4444" : daysLeft <= 15 ? "#F59E0B" : "#F59E0B"
+  const color = status === "vencido" ? "var(--risk)" : daysLeft <= 7 ? "var(--risk)" : daysLeft <= 15 ? "var(--warn-text)" : "var(--warn-text)"
   return (
     <div className="w-16 h-1 bg-border rounded-full overflow-hidden shrink-0">
       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
@@ -127,22 +127,21 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
           className="object-cover object-center"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A1628]/85 via-[#0A1628]/60 to-[#0A1628]/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0A1628]/70 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-ink/70" />
 
         <div className="absolute inset-0 flex flex-col justify-end px-5 sm:px-8 xl:px-10 pb-4 sm:pb-5">
           <div className="flex items-end justify-between gap-6">
             <div>
-              <h1 className="font-serif text-2xl sm:text-3xl xl:text-4xl font-semibold text-white leading-tight text-balance">
+              <h1 className="font-serif text-2xl sm:text-3xl xl:text-4xl font-semibold text-surface leading-tight text-balance">
                 {userName}
               </h1>
-              <p className="mt-1 text-sm text-white/55">Cuenta: {accountName} · Otero</p>
+              <p className="mt-1 text-sm text-surface/55">Cuenta: {accountName} · Otero</p>
             </div>
             <div className="hidden lg:flex items-center gap-3 shrink-0">
               {urgent > 0 && (
-                <Link href="/cliente/obligaciones" className="flex items-center gap-2 bg-red-500/20 border border-red-400/30 rounded-xl px-4 py-2.5 backdrop-blur-sm hover:bg-red-500/30 transition-colors">
-                  <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                  <span className="text-red-300 text-sm font-semibold">{urgent} alertas activas</span>
+                <Link href="/cliente/obligaciones" className="flex items-center gap-2 bg-risk/20 border border-risk/30 rounded-xl px-4 py-2.5 hover:bg-risk/30 transition-colors">
+                  <span className="w-2 h-2 rounded-full bg-risk animate-pulse" />
+                  <span className="text-risk text-sm font-semibold">{urgent} alertas activas</span>
                 </Link>
               )}
             </div>
@@ -155,24 +154,24 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
 
         <Link
           href="/cliente/chat"
-          className="group flex items-center gap-3 rounded-2xl border border-[#2D5A3D]/20 bg-[#EAF2EC] px-4 py-3.5 hover:border-[#2D5A3D]/40 hover:bg-[#E2EEE5] transition-colors"
+          className="group flex items-center gap-3 rounded-2xl border border-ok/20 bg-ok-tint px-4 py-3.5 hover:border-ok/40 transition-colors"
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2D5A3D] text-white">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ok text-surface">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
             </svg>
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-[#1C2B4A]">Habla con Otero</span>
-            <span className="block text-xs text-[#2D5A3D]">Resuelve dudas sobre tus obligaciones y regulaciones</span>
+            <span className="block text-sm font-semibold text-ink">Habla con Otero</span>
+            <span className="block text-xs text-ok">Resuelve dudas sobre tus obligaciones y regulaciones</span>
           </span>
-          <svg className="h-4 w-4 shrink-0 text-[#2D5A3D] transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <svg className="h-4 w-4 shrink-0 text-ok transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
           </svg>
         </Link>
 
         {/* ── Compliance score card ── */}
-        <div className="rounded-2xl border border-border bg-card shadow-sm p-6">
+        <div className="rounded-2xl border border-border bg-card  p-6">
           <div className="flex items-start gap-6">
             <ComplianceRing total={total} vencidos={vencidos} porVencer={porVencer} vigentes={vigentes} />
 
@@ -188,19 +187,19 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
               {/* Legend row */}
               <div className="flex items-center gap-4 flex-wrap">
                 <Link href="/cliente/obligaciones" className="flex items-center gap-1.5 group">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-risk shrink-0" />
                   <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     <span className="font-bold text-foreground">{vencidos.length}</span> vencido{vencidos.length !== 1 ? "s" : ""}
                   </span>
                 </Link>
                 <Link href="/cliente/obligaciones" className="flex items-center gap-1.5 group">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-warn shrink-0" />
                   <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     <span className="font-bold text-foreground">{porVencer.length}</span> por vencer
                   </span>
                 </Link>
                 <Link href="/cliente/obligaciones" className="flex items-center gap-1.5 group">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-ok shrink-0" />
                   <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors">
                     <span className="font-bold text-foreground">{vigentes.length}</span> vigentes
                   </span>
@@ -221,13 +220,13 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">{labels[cat]}</span>
                     {bad > 0 && (
-                      <span className="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">{bad}</span>
+                      <span className="text-[9px] font-bold text-risk bg-risk-tint px-1.5 py-0.5 rounded-full">{bad}</span>
                     )}
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
-                      style={{ width: `${pct}%`, background: pct === 100 ? "#22C55E" : pct >= 70 ? "#F59E0B" : "#EF4444" }}
+                      style={{ width: `${pct}%`, background: pct === 100 ? "var(--ok)" : pct >= 70 ? "var(--warn)" : "var(--risk)" }}
                     />
                   </div>
                   <span className="text-[10px] text-muted-foreground">{items.length} docs · {pct}%</span>
@@ -239,29 +238,29 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
 
         {/* ── AI Insight banner ── */}
         {!aiDismissed && urgent > 0 && (
-          <div className="relative rounded-2xl overflow-hidden bg-[#1C2B4A] text-white shadow-sm">
-            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#2D5A3D] opacity-20 blur-3xl -translate-y-16 translate-x-16 pointer-events-none" />
+          <div className="relative rounded-2xl overflow-hidden bg-ink text-surface ">
+            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-ok opacity-20 blur-3xl -translate-y-16 translate-x-16 pointer-events-none" />
             <div className="relative z-10">
               <div className="flex items-center gap-3 px-6 pt-5 pb-3">
-                <div className="w-7 h-7 rounded-lg bg-white/12 flex items-center justify-center shrink-0">
-                  <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <div className="w-7 h-7 rounded-lg bg-surface/12 flex items-center justify-center shrink-0">
+                  <svg className="w-4 h-4 text-surface" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
                   </svg>
                 </div>
-                <span className="text-xs font-bold tracking-wider uppercase text-white/60 flex-1">Resumen IA — Esta semana</span>
+                <span className="text-xs font-bold tracking-wider uppercase text-surface/60 flex-1">Resumen IA — Esta semana</span>
                 <button
                   onClick={() => setAiExpanded(v => !v)}
-                  className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+                  className="w-7 h-7 rounded-full bg-surface/10 flex items-center justify-center hover:bg-surface/15 transition-colors"
                 >
-                  <svg className={cn("w-3.5 h-3.5 text-white/60 transition-transform", aiExpanded && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className={cn("w-3.5 h-3.5 text-surface/60 transition-transform", aiExpanded && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
                 <button
                   onClick={() => setAiDismissed(true)}
-                  className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/15 transition-colors"
+                  className="w-7 h-7 rounded-full bg-surface/10 flex items-center justify-center hover:bg-surface/15 transition-colors"
                 >
-                  <svg className="w-3.5 h-3.5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <svg className="w-3.5 h-3.5 text-surface/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -269,19 +268,19 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
 
               {aiExpanded && (
                 <div className="px-6 pb-6">
-                  <p className="text-sm leading-relaxed text-white/85 mb-4">
+                  <p className="text-sm leading-relaxed text-surface/85 mb-4">
                     Tienes{" "}
-                    <span className="font-bold text-white">
+                    <span className="font-bold text-surface">
                       {vencidos.length} {vencidos.length === 1 ? "documento vencido" : "documentos vencidos"}
                     </span>{" "}
                     y{" "}
-                    <span className="font-bold text-white">{porVencer.length} por vencer</span>{" "}
+                    <span className="font-bold text-surface">{porVencer.length} por vencer</span>{" "}
                     en los próximos 30 días. La Licencia Ambiental de Planta Vallejo Norte tiene solo 17 días de margen — inicia la renovación hoy para evitar operar sin vigencia.
                   </p>
                   <div className="flex gap-3 flex-wrap">
                     <Link
                       href="/cliente/obligaciones"
-                      className="inline-flex items-center gap-2 bg-white text-[#1C2B4A] text-xs font-semibold py-2.5 px-4 rounded-lg hover:bg-white/90 transition-colors"
+                      className="inline-flex items-center gap-2 bg-surface-raised text-ink text-xs font-semibold py-2.5 px-4 rounded-lg hover:bg-surface/90 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -290,7 +289,7 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
                     </Link>
                     <Link
                       href="/cliente/documentos"
-                      className="inline-flex items-center gap-2 bg-white/12 border border-white/15 text-white text-xs font-semibold py-2.5 px-4 rounded-lg hover:bg-white/18 transition-colors"
+                      className="inline-flex items-center gap-2 bg-surface/12 border border-surface/15 text-surface text-xs font-semibold py-2.5 px-4 rounded-lg hover:bg-surface/18 transition-colors"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
@@ -305,18 +304,18 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
         )}
 
         {/* ── Urgentes list ── */}
-        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-2xl border border-border bg-card  overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <h2 className="text-sm font-semibold text-foreground">Requieren atención</h2>
-            <Link href="/cliente/obligaciones" className="text-xs text-[#1C2B4A] font-semibold hover:text-[#3D5A8A] transition-colors">
+            <Link href="/cliente/obligaciones" className="text-xs text-ink font-semibold hover:text-ink-muted transition-colors">
               Ver todas
             </Link>
           </div>
 
           {compliance.filter(c => c.status === "vencido" || c.status === "por_vencer").length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-10 text-center px-6">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                <svg className="w-6 h-6 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <div className="w-12 h-12 rounded-2xl bg-ok-tint flex items-center justify-center">
+                <svg className="w-6 h-6 text-ok" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
@@ -338,7 +337,7 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
                       className={cn(
                         "flex items-center gap-4 px-6 py-4 hover:bg-secondary/30 transition-colors group",
                         "border-l-2",
-                        isVencido ? "border-l-red-500" : "border-l-amber-400"
+                        isVencido ? "border-l-risk" : "border-l-warn"
                       )}
                     >
                       <div className="flex-1 min-w-0">
@@ -346,7 +345,7 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
                         <div className="flex items-center gap-2 mt-1">
                           <span className={cn(
                             "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                            isVencido ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"
+                            isVencido ? "bg-risk-tint text-risk" : "bg-warn-tint text-warn-text"
                           )}>
                             {isVencido
                               ? `Vencido hace ${Math.abs(c.daysLeft)}d`
@@ -370,10 +369,10 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
         <div className="grid grid-cols-2 gap-3">
           <Link
             href="/cliente/obligaciones"
-            className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-[#1C2B4A]/20 transition-all"
+            className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5  hover:border-border-strong transition-all"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#EEF2F8] flex items-center justify-center">
-              <svg className="w-5 h-5 text-[#1C2B4A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <div className="w-10 h-10 rounded-xl bg-surface-sunken flex items-center justify-center">
+              <svg className="w-5 h-5 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
               </svg>
             </div>
@@ -385,10 +384,10 @@ export default function ClienteHome({ obligations, accountName, referenceDate }:
 
           <Link
             href="/cliente/documentos"
-            className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 hover:shadow-md hover:border-[#2D5A3D]/20 transition-all"
+            className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5  hover:border-ok/20 transition-all"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#EAF2EC] flex items-center justify-center">
-              <svg className="w-5 h-5 text-[#2D5A3D]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <div className="w-10 h-10 rounded-xl bg-ok-tint flex items-center justify-center">
+              <svg className="w-5 h-5 text-ok" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
             </div>

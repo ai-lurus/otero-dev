@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { authClient } from '@/lib/auth-client'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 export default function AuthForm() {
   const searchParams = useSearchParams()
@@ -72,19 +72,12 @@ export default function AuthForm() {
           </div>
 
           {error && (
-            <p className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-xs text-red-700">{error}</p>
+            <p className="rounded-lg bg-risk-tint border border-risk/30 px-4 py-3 text-xs text-risk">{error}</p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={cn(
-              'mt-2 rounded-xl bg-foreground py-3 text-sm font-semibold text-background transition-opacity',
-              loading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'
-            )}
-          >
+          <Button type="submit" size="lg" disabled={loading} className="mt-2 w-full">
             {loading ? 'Cargando…' : 'Iniciar sesión'}
-          </button>
+          </Button>
         </form>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">

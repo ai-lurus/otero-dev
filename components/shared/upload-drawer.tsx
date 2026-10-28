@@ -46,9 +46,9 @@ const MAX_SIZE_MB = 50
 
 function fileIcon(name: string) {
   const ext = name.split(".").pop()?.toLowerCase() ?? ""
-  if (ext === "pdf") return <FileText className="h-4 w-4 text-red-500" />
-  if (["doc", "docx"].includes(ext)) return <FileText className="h-4 w-4 text-blue-500" />
-  if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) return <FileImage className="h-4 w-4 text-violet-500" />
+  if (ext === "pdf") return <FileText className="h-4 w-4 text-risk" />
+  if (["doc", "docx"].includes(ext)) return <FileText className="h-4 w-4 text-brand-text" />
+  if (["jpg", "jpeg", "png", "webp", "gif"].includes(ext)) return <FileImage className="h-4 w-4 text-brand-text" />
   return <File className="h-4 w-4 text-muted-foreground" />
 }
 
@@ -198,9 +198,9 @@ export function UploadDrawer({ open, onClose, defaultSede }: UploadDrawerProps) 
   return (
     <Drawer.Root open={open} onOpenChange={(v) => !v && handleClose()} direction="right">
       <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
+        <Drawer.Overlay className="fixed inset-0 z-40 bg-ink/40" />
         <Drawer.Content
-          className="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl flex-col bg-background shadow-2xl outline-none"
+          className="fixed right-0 top-0 z-50 flex h-full w-full max-w-xl flex-col bg-background  outline-none"
           aria-label="Subir documentos"
         >
           {/* Header */}
@@ -357,27 +357,27 @@ function StagedFileCard({ staged: s, onRemove, onPatch, onNameChange, onSedeChan
 
       {/* Duplicate warning */}
       {!s.error && s.duplicate && !s.isRenewal && (
-        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3 py-2.5">
+        <div className="mt-3 rounded-lg border border-warn/30 bg-warn-tint px-3 py-2.5">
           <div className="flex items-start gap-2">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn-text" />
             <div className="flex-1">
-              <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
+              <p className="text-xs font-medium text-warn-text">
                 Ya existe un documento con este nombre en esta sede
               </p>
-              <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+              <p className="mt-0.5 text-xs text-warn-text">
                 &quot;{s.duplicate.name}&quot; — subido el {new Date(s.duplicate.uploadedAt).toLocaleDateString("es-MX")}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <button
                   onClick={() => onPatch({ isRenewal: true })}
-                  className="flex items-center gap-1.5 rounded-md bg-amber-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-amber-700 transition-colors"
+                  className="flex items-center gap-1.5 rounded-md bg-warn px-2.5 py-1 text-xs font-medium text-on-warn hover:bg-warn/90 transition-colors"
                 >
                   <RefreshCw className="h-3 w-3" />
                   Es una renovación
                 </button>
                 <button
                   onClick={() => onPatch({ duplicate: null })}
-                  className="rounded-md px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
+                  className="rounded-md px-2.5 py-1 text-xs font-medium text-warn-text hover:bg-warn-tint transition-colors"
                 >
                   Ignorar
                 </button>
@@ -389,12 +389,12 @@ function StagedFileCard({ staged: s, onRemove, onPatch, onNameChange, onSedeChan
 
       {/* Renewal confirmed */}
       {!s.error && s.isRenewal && s.duplicate && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-400">
+        <div className="mt-3 flex items-center gap-2 rounded-lg border border-ok/30 bg-ok-tint px-3 py-2 text-xs text-ok">
           <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
           <span>El documento anterior se archivará automáticamente al subir.</span>
           <button
             onClick={() => onPatch({ isRenewal: false })}
-            className="ml-auto shrink-0 text-emerald-600 hover:underline"
+            className="ml-auto shrink-0 text-ok hover:underline"
           >
             Deshacer
           </button>

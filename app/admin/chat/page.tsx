@@ -106,10 +106,10 @@ function buildInitialThreads(): ServiceThread[] {
 // ── Sender avatar ─────────────────────────────────────────────────
 function SenderAvatar({ msg }: { msg: Message }) {
   if (msg.from === 'firm' && msg.firm === 'paulsen') {
-    return <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1a3a2a] text-[9px] font-bold text-[#4ade80]">PC</div>
+    return <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ok text-[9px] font-bold text-ok">PC</div>
   }
   if (msg.from === 'firm') {
-    return <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#0a1628] text-[9px] font-bold text-[#8badd4]">MIA</div>
+    return <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-[9px] font-bold text-surface/70">MIA</div>
   }
   return <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary border border-border text-[9px] font-bold text-foreground">{msg.senderName.substring(0, 3)}</div>
 }
@@ -130,11 +130,11 @@ function ThreadItem({ thread, label, firm, isActive, unread, onSelect }: {
     >
       <div className="flex items-start gap-2">
         {/* Firm color dot */}
-        <span className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', firm === 'paulsen' ? 'bg-[#2D5A3D]' : 'bg-[#1C2B4A]')} />
+        <span className={cn('mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full', firm === 'paulsen' ? 'bg-paulsen' : 'bg-mia')} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1">
             <p className={cn('truncate text-[11px]', unread ? 'font-bold text-foreground' : 'font-semibold text-foreground/80')}>{label}</p>
-            {unread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#DC2626]" />}
+            {unread && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-risk" />}
           </div>
           {last && (
             <p className="truncate text-[10px] text-muted-foreground leading-snug mt-0.5">{last.content}</p>
@@ -262,7 +262,7 @@ function AdminChatInner() {
               <p className="text-[11px] text-muted-foreground">{threads.length} threads · {totalUnread} sin leer</p>
             </div>
             {totalUnread > 0 && (
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#DC2626] text-[10px] font-bold text-white px-1.5">
+              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-risk text-[10px] font-bold text-surface px-1.5">
                 {totalUnread}
               </span>
             )}
@@ -284,7 +284,7 @@ function AdminChatInner() {
                   className="flex w-full items-center gap-2 px-3 py-2.5 hover:bg-secondary/40 transition-colors"
                 >
                   {/* Avatar */}
-                  <div className="h-7 w-7 shrink-0 rounded-full bg-[#0F1C2E] flex items-center justify-center text-[9px] font-bold text-[#8badd4]">
+                  <div className="h-7 w-7 shrink-0 rounded-full bg-ink flex items-center justify-center text-[9px] font-bold text-surface/70">
                     {client.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                   </div>
                   <div className="flex-1 min-w-0 text-left">
@@ -292,7 +292,7 @@ function AdminChatInner() {
                     <p className="truncate text-[9px] text-muted-foreground">{clientThreads.length} servicio{clientThreads.length !== 1 ? 's' : ''}</p>
                   </div>
                   {clientUnread > 0 && (
-                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#DC2626] text-[9px] font-bold text-white px-1 shrink-0">
+                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-risk text-[9px] font-bold text-surface px-1 shrink-0">
                       {clientUnread}
                     </span>
                   )}
@@ -338,7 +338,7 @@ function AdminChatInner() {
               <div className="flex items-center gap-2 flex-wrap">
                 <span className={cn(
                   'h-2 w-2 rounded-full shrink-0',
-                  activeMeta.firm === 'paulsen' ? 'bg-[#2D5A3D]' : 'bg-[#1C2B4A]'
+                  activeMeta.firm === 'paulsen' ? 'bg-paulsen' : 'bg-mia'
                 )} />
                 <h3 className="font-serif text-base font-semibold text-foreground leading-tight truncate">
                   {activeMeta.label}
@@ -356,7 +356,7 @@ function AdminChatInner() {
                 {linkedService && (
                   <Link
                     href={`/admin/servicios/${linkedService.id}`}
-                    className="ml-1 text-[10px] font-semibold text-[#1C2B4A] hover:underline"
+                    className="ml-1 text-[10px] font-semibold text-ink hover:underline"
                   >
                     Ver expediente →
                   </Link>
@@ -367,10 +367,10 @@ function AdminChatInner() {
             {/* Reply-as toggle */}
             <div className="flex items-center gap-2 shrink-0">
               <div className="flex rounded-lg border border-border bg-secondary p-0.5">
-                <button onClick={() => setReplyAs('mia')} className={cn('rounded-md px-3 py-1.5 text-xs font-semibold transition-all', replyAs === 'mia' ? 'bg-[#0a1628] text-white shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                <button onClick={() => setReplyAs('mia')} className={cn('rounded-md px-3 py-1.5 text-xs font-semibold transition-all', replyAs === 'mia' ? 'bg-ink text-surface ' : 'text-muted-foreground hover:text-foreground')}>
                   Corp.
                 </button>
-                <button onClick={() => setReplyAs('paulsen')} className={cn('rounded-md px-3 py-1.5 text-xs font-semibold transition-all', replyAs === 'paulsen' ? 'bg-[#1a3a2a] text-white shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                <button onClick={() => setReplyAs('paulsen')} className={cn('rounded-md px-3 py-1.5 text-xs font-semibold transition-all', replyAs === 'paulsen' ? 'bg-ok text-surface ' : 'text-muted-foreground hover:text-foreground')}>
                   Amb.
                 </button>
               </div>
@@ -423,12 +423,12 @@ function AdminChatInner() {
                           </span>
                         </div>
                         <div className={cn(
-                          'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm',
+                          'rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ',
                           msg.from === 'client'
                             ? 'rounded-tr-sm bg-secondary text-foreground border border-border'
                             : msg.firm === 'paulsen'
-                            ? 'rounded-tl-sm bg-[#1a3a2a] text-white'
-                            : 'rounded-tl-sm bg-[#0a1628] text-white'
+                            ? 'rounded-tl-sm bg-ok text-surface'
+                            : 'rounded-tl-sm bg-ink text-surface'
                         )}>
                           {msg.content}
                         </div>
@@ -444,10 +444,10 @@ function AdminChatInner() {
 
         {/* Encryption notice */}
         <div className="flex items-center justify-center gap-1.5 py-1.5 border-t border-border/50 bg-background shrink-0">
-          <svg className="w-3 h-3 text-[#16A34A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg className="w-3 h-3 text-ok" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
-          <p className="text-[9px] font-semibold text-[#16A34A]/80 tracking-wide">Mensajes cifrados · AWS KMS</p>
+          <p className="text-[9px] font-semibold text-ok/80 tracking-wide">Mensajes cifrados · AWS KMS</p>
         </div>
 
         {/* Input */}
@@ -455,7 +455,7 @@ function AdminChatInner() {
           <div className="mx-auto max-w-2xl">
             <div className={cn(
               'flex items-end gap-2 rounded-xl border p-3 transition-colors',
-              replyAs === 'mia' ? 'border-[#8badd4]/40 bg-[#0a1628]/5' : 'border-[#4ade80]/40 bg-[#1a3a2a]/5'
+              replyAs === 'mia' ? 'border-surface/28 bg-surface-sunken' : 'border-ok/40 bg-ok/5'
             )}>
               <textarea
                 value={input}
@@ -469,8 +469,8 @@ function AdminChatInner() {
                 onClick={handleSend}
                 disabled={!input.trim()}
                 className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-opacity hover:opacity-90 disabled:opacity-30',
-                  replyAs === 'mia' ? 'bg-[#0a1628]' : 'bg-[#1a3a2a]'
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-surface transition-opacity hover:opacity-90 disabled:opacity-30',
+                  replyAs === 'mia' ? 'bg-ink' : 'bg-ok'
                 )}
                 aria-label="Enviar"
               >

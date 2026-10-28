@@ -81,11 +81,11 @@ const SECONDARY_NAV: typeof NAV = []
 const NOTIFICATIONS: Array<{ id: string; title: string; body: string; time: string; unread: boolean; icon: string }> = []
 
 const NOTIF_COLORS: Record<string, { bg: string; color: string }> = {
-  doc:     { bg: "#EEF2F8", color: "#1C2B4A" },
-  alert:   { bg: "#FEF2F2", color: "#DC2626" },
-  chat:    { bg: "#EAF2EC", color: "#2D5A3D" },
-  pay:     { bg: "#FFFBEB", color: "#D97706" },
-  service: { bg: "#F0FDF4", color: "#16A34A" },
+  doc:     { bg: "var(--surface-sunken)", color: "var(--ink)" },
+  alert:   { bg: "var(--risk-tint)", color: "var(--risk)" },
+  chat:    { bg: "var(--ok-tint)", color: "var(--ok)" },
+  pay:     { bg: "var(--warn-tint)", color: "var(--warn-text)" },
+  service: { bg: "var(--ok-tint)", color: "var(--ok)" },
 }
 
 function NotifIcon({ type }: { type: string }) {
@@ -123,21 +123,21 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         className={cn(
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all group",
           isActive
-            ? "bg-[#1C2B4A]/8 text-[#1C2B4A] font-semibold"
+            ? "bg-surface-sunken text-ink font-semibold"
             : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
         )}
       >
-        <span className={cn("shrink-0 transition-colors", isActive ? "text-[#1C2B4A]" : "text-muted-foreground/60 group-hover:text-muted-foreground")}>
+        <span className={cn("shrink-0 transition-colors", isActive ? "text-ink" : "text-muted-foreground/60 group-hover:text-muted-foreground")}>
           {icon}
         </span>
         <span className="flex-1 font-medium leading-none">{label}</span>
         {badge && !isActive && (
-          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#DC2626] text-white text-[10px] font-bold px-1">
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-risk text-surface text-[10px] font-bold px-1">
             {badge}
           </span>
         )}
         {isActive && (
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1C2B4A] shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-ink shrink-0" />
         )}
       </Link>
     )
@@ -149,8 +149,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       <div className="px-5 py-5 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <Link href="/cliente" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#1C2B4A] flex items-center justify-center shadow-sm">
-              <span className="text-xs font-bold text-white">GI</span>
+            <div className="w-9 h-9 rounded-xl bg-ink flex items-center justify-center ">
+              <span className="text-xs font-bold text-surface">GI</span>
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground leading-none">Grupo Industrial</p>
@@ -160,9 +160,9 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         </div>
 
         {/* Status label */}
-        <div className="flex items-center gap-1.5 bg-[#EEF2F8] rounded-lg px-2.5 py-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1C2B4A] shrink-0" />
-          <span className="text-[10px] text-[#1C2B4A] font-semibold">Portal activo</span>
+        <div className="flex items-center gap-1.5 bg-surface-sunken rounded-lg px-2.5 py-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-ink shrink-0" />
+          <span className="text-[10px] text-ink font-semibold">Portal activo</span>
         </div>
       </div>
 
@@ -227,10 +227,10 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       </aside>
 
       {/* Mobile top bar */}
-      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between bg-card/95 backdrop-blur-sm border-b border-border px-4 py-3 md:hidden">
+      <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between bg-card border-b border-border px-4 py-3 md:hidden">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#1C2B4A] flex items-center justify-center">
-            <span className="text-[11px] font-bold text-white">GI</span>
+          <div className="w-8 h-8 rounded-lg bg-ink flex items-center justify-center">
+            <span className="text-[11px] font-bold text-surface">GI</span>
           </div>
           <span className="text-sm font-semibold text-foreground">Portal Compliance</span>
         </div>
@@ -244,7 +244,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
               <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
             </svg>
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#DC2626] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-risk text-surface text-[9px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
@@ -264,8 +264,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-card shadow-2xl border-r border-border">
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-card  border-r border-border">
             <SidebarContent />
           </div>
         </div>
@@ -274,7 +274,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       {/* Desktop notification panel */}
       <div className="hidden md:flex flex-col flex-1 min-w-0 relative">
         {/* Top bar for desktop */}
-        <header className="sticky top-0 z-30 flex items-center justify-end gap-3 bg-background/90 backdrop-blur-sm border-b border-border px-8 py-3">
+        <header className="sticky top-0 z-30 flex items-center justify-end gap-3 bg-background border-b border-border px-8 py-3">
           <div className="flex-1" />
           {/* Notification bell desktop */}
           <div className="relative">
@@ -286,7 +286,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
               </svg>
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#DC2626] text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-risk text-surface text-[9px] font-bold rounded-full flex items-center justify-center">
                   {unreadCount}
                 </span>
               )}
@@ -294,16 +294,16 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
 
             {/* Dropdown notifications */}
             {notifOpen && (
-              <div className="absolute right-0 top-11 z-50 w-80 rounded-2xl bg-card border border-border shadow-xl overflow-hidden">
+              <div className="absolute right-0 top-11 z-50 w-80 rounded-2xl bg-card border border-border  overflow-hidden">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">Notificaciones</span>
                     {unreadCount > 0 && (
-                      <span className="text-[10px] font-bold bg-[#DC2626] text-white px-1.5 py-0.5 rounded-full">{unreadCount}</span>
+                      <span className="text-[10px] font-bold bg-risk text-surface px-1.5 py-0.5 rounded-full">{unreadCount}</span>
                     )}
                   </div>
                   {unreadCount > 0 && (
-                    <button onClick={markAllRead} className="text-[11px] text-[#1C2B4A] font-medium hover:text-[#3D5A8A] transition-colors">
+                    <button onClick={markAllRead} className="text-[11px] text-ink font-medium hover:text-ink-muted transition-colors">
                       Marcar todo leído
                     </button>
                   )}
@@ -316,7 +316,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
                       <button
                         key={n.id}
                         onClick={() => setReadIds(prev => new Set([...prev, n.id]))}
-                        className={cn("w-full text-left flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/40", isUnread ? "bg-[#1C2B4A]/[0.03]" : "")}
+                        className={cn("w-full text-left flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-secondary/40", isUnread ? "bg-surface-sunken" : "")}
                       >
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ background: cfg.bg, color: cfg.color }}>
                           <NotifIcon type={n.icon} />
@@ -324,7 +324,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <p className={cn("text-xs leading-snug", isUnread ? "font-semibold text-foreground" : "font-medium text-foreground")}>{n.title}</p>
-                            {isUnread && <span className="w-2 h-2 rounded-full bg-[#DC2626] shrink-0" />}
+                            {isUnread && <span className="w-2 h-2 rounded-full bg-risk shrink-0" />}
                           </div>
                           <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                           <p className="text-[10px] text-muted-foreground/50 mt-1">{n.time}</p>
@@ -338,8 +338,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           </div>
 
           <Link href="/cliente/perfil" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="w-8 h-8 rounded-xl bg-[#1C2B4A] flex items-center justify-center">
-              <span className="text-[11px] font-bold text-white">GI</span>
+            <div className="w-8 h-8 rounded-xl bg-ink flex items-center justify-center">
+              <span className="text-[11px] font-bold text-surface">GI</span>
             </div>
             <span className="text-sm font-medium text-foreground hidden xl:block">Grupo Industrial</span>
           </Link>
@@ -359,20 +359,20 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       {/* Mobile notification overlay */}
       {notifOpen && (
         <div className="fixed inset-0 z-50 flex flex-col md:hidden">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setNotifOpen(false)} />
-          <div className="relative mt-auto bg-background rounded-t-3xl shadow-2xl max-h-[80vh] flex flex-col">
+          <div className="absolute inset-0 bg-ink/40" onClick={() => setNotifOpen(false)} />
+          <div className="relative mt-auto bg-background rounded-t-3xl  max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-foreground">Notificaciones</h2>
                 {unreadCount > 0 && (
-                  <span className="w-5 h-5 bg-[#DC2626] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  <span className="w-5 h-5 bg-risk text-surface text-[10px] font-bold rounded-full flex items-center justify-center">
                     {unreadCount}
                   </span>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-xs text-[#1C2B4A] font-medium">
+                  <button onClick={markAllRead} className="text-xs text-ink font-medium">
                     Marcar todo leído
                   </button>
                 )}
@@ -391,7 +391,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
                   <button
                     key={n.id}
                     onClick={() => setReadIds(prev => new Set([...prev, n.id]))}
-                    className={cn("w-full text-left flex items-start gap-3 px-5 py-3.5 border-b border-border/50 last:border-0 transition-colors", isUnread ? "bg-[#1C2B4A]/[0.03]" : "")}
+                    className={cn("w-full text-left flex items-start gap-3 px-5 py-3.5 border-b border-border/50 last:border-0 transition-colors", isUnread ? "bg-surface-sunken" : "")}
                   >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5" style={{ background: cfg.bg, color: cfg.color }}>
                       <NotifIcon type={n.icon} />
@@ -399,7 +399,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className={cn("text-sm leading-snug", isUnread ? "font-semibold text-foreground" : "font-medium text-foreground")}>{n.title}</p>
-                        {isUnread && <span className="w-2 h-2 rounded-full bg-[#DC2626] shrink-0" />}
+                        {isUnread && <span className="w-2 h-2 rounded-full bg-risk shrink-0" />}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.body}</p>
                       <p className="text-[10px] text-muted-foreground/50 mt-1">{n.time}</p>
