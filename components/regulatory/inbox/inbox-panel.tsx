@@ -1,0 +1,110 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { ExternalLink } from 'lucide-react'
+import { updateItemStatus, type RegulatoryItem } from '@/app/actions/regulatory-items'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Cite, DeadlineChip } from '@/components/ui/status-tag'
+import { DIRECTION_LABELS, IMPACT_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
+import { bandOf, deadlineLabel } from '@/lib/inbox'
+import { BandTag, sourceCite } from './inbox-row'
+
+type Props = {
+  item: RegulatoryItem | null
+  onClose: () => void
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-1">
+      <h3 className="text-label text-ink-muted">{title}</h3>
+      <div className="text-body-sm text-ink whitespace-pre-line">{children}</div>
+    </section>
+  )
+}
+
+/** Panel lateral derecho con el asunto abierto y sus decisiones. */
+export function InboxPanel({ item, onClose }: Props) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [error, setError] = useState('')
+
+  const decide = (status: string) => {
+    if (!item) return
+    setError('')
+    startTransition(async () => {
+      try {
+        await updateItemStatus(item.id, status)
+        router.refresh()
+        onClose()
+      } catch (error) {
+        console.error('updateItemStatus', item.id, error)
+        setError('No se pudo actualizar el asunto. Intenta de nuevo.')
+      }
+    })
+  }
+
+  const band = item ? bandOf(item) : null
+  const deadline = item ? deadlineLabel(item.dueDate) : null
+  const meta = item
+    ? [item.authority, item.instrumentType, item.stage ? STAGE_LABELS[item.stage] ?? item.stage : null, item.materia].filter(Boolean)
+    : []
+
+  return (
+    <Sheet open={!!item} onOpenChange={(open) => { if (!open) { setError(''); onClose() } }}>
+      <SheetContent className="w-full gap-0 bg-surface-raised p-0 shadow-none sm:max-w-xl">
+        {item && band && (
+          <>
+            <SheetHeader className="gap-3 border-b border-border p-6 pr-12">
+              <div className="flex flex-wrap items-center gap-2">
+                <BandTag band={band} />
+                <Cite>{sourceCite(item)}</Cite>
+                {deadline && <DeadlineChip>{deadline}</DeadlineChip>}
+              </div>
+              <SheetTitle asChild className="text-heading text-ink"><p>{item.title}</p></SheetTitle>
+              <SheetDescription className="text-body-sm text-ink-muted">{meta.join(' · ')}</SheetDescription>
+            </SheetHeader>
+
+            <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
+              {item.description && <Section title="Resumen">{item.description}</Section>}
+              {item.impactRationale && (
+                <Section title={[item.impact && IMPACT_LABELS[item.impact], item.impactDirection && DIRECTION_LABELS[item.impactDirection]].filter(Boolean).join(' · ') || 'Impacto'}>
+                  {item.impactRationale}
+                </Section>
+              )}
+              {item.generatesObligation && item.obligationDetail && <Section title="Qué te obliga a hacer">{item.obligationDetail}</Section>}
+              {item.owner && <Section title="Responsable">{item.owner}</Section>}
+              <Section title="Estado">{STATUS_LABELS[item.status] ?? item.status}</Section>
+              {item.sourceUrl && (
+                <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex w-fit items-center gap-1 text-body-sm">
+                  Ver publicación original <ExternalLink className="size-3.5" />
+                </a>
+              )}
+            </div>
+
+            <SheetFooter className="flex-row flex-wrap items-center gap-3 border-t border-border p-6">
+              {error && <p role="alert" className="w-full text-body-sm text-risk">{error}</p>}
+              <Button variant="ghost" asChild>
+                <Link href={`/cliente/obligaciones/${item.id}`}>Abrir expediente</Link>
+              </Button>
+              <div className="ml-auto flex flex-wrap gap-3">
+                {item.status !== 'diferida' && item.status !== 'cerrada' && (
+                  <Button variant="outline" disabled={isPending} onClick={() => decide('diferida')}>Dejar para después</Button>
+                )}
+                {item.status !== 'aceptada' && item.status !== 'cerrada' && (
+                  <Button disabled={isPending} onClick={() => decide('aceptada')}>Atender</Button>
+                )}
+                {item.status === 'aceptada' && (
+                  <Button disabled={isPending} onClick={() => decide('cerrada')}>Marcar como cerrado</Button>
+                )}
+              </div>
+            </SheetFooter>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  )
+}

@@ -103,7 +103,7 @@ export function ObligationDetail({
           className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="size-4" />
-          Matriz regulatoria
+          {adminMode ? 'Matriz regulatoria' : 'Bandeja de asuntos'}
         </Link>
 
         {adminMode && tenantId && isEditOpen ? (
