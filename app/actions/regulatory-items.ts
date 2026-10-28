@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { eq, and, desc, isNotNull, inArray } from 'drizzle-orm'
+import { eq, and, desc, isNotNull, inArray, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@/lib/db/schema'
@@ -145,7 +145,13 @@ export async function updateItemStatus(id: string, status: string, reason?: stri
   if (!isOneOf(STATUSES, status)) throw new Error('Estado inválido')
   const updated = await db
     .update(regulatoryItems)
-    .set({ status, updatedAt: new Date() })
+    .set({
+      status,
+      // Al aceptar entra al tablero de cumplimiento; al devolverlo a la bandeja sale de él.
+      executionStatus:
+        status === 'aceptada' ? sql`coalesce(${regulatoryItems.executionStatus}, 'por_hacer')` : status === 'identificada' ? null : regulatoryItems.executionStatus,
+      updatedAt: new Date(),
+    })
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
     .returning({ id: regulatoryItems.id })
   if (!updated.length) throw new Error('Asunto no encontrado')

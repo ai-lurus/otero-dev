@@ -118,6 +118,7 @@ export async function generateObligations(sourceId: string, tenantIds: string[])
         id: itemId,
         tenantId: tenant.id,
         scope: 'regulatorio',
+        origin: 'ingesta',
         materia: ITEM_MATERIA[(source.materia ?? 'otra') as Materia] ?? 'Administrativo y simplificación',
         title: draft?.title ?? source.title.slice(0, 150),
         description: source.summary ?? '',

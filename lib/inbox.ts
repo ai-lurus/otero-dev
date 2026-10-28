@@ -10,6 +10,7 @@ export const VIEWS = [
   { id: 'todo', label: 'Todo', history: true },
   { id: 'descartados', label: 'Descartados', history: true },
   { id: 'archivo', label: 'Archivo', history: true },
+  { id: 'despacho', label: 'Generado por el despacho', history: false, own: true },
 ] as const
 export type ViewId = (typeof VIEWS)[number]['id']
 
@@ -21,6 +22,7 @@ const DAY_MS = 86_400_000
 
 type InboxFields = {
   status: string
+  origin: string
   impact: string | null
   dueDate: string | null
   publishedAt: string | null
@@ -47,6 +49,9 @@ export function bandOf(item: InboxFields, today = new Date()): Band {
 }
 
 export function inView(item: InboxFields, view: ViewId, today = new Date()) {
+  // RegWatch son los asuntos que generó el match de la ingesta; lo capturado a mano va aparte.
+  if (view === 'despacho') return item.origin === 'despacho'
+  if (item.origin !== 'ingesta') return false
   switch (view) {
     case 'bandeja':
       return item.status === 'identificada'

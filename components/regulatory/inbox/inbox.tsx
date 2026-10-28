@@ -106,7 +106,7 @@ export function Inbox({ items }: Props) {
     () => Object.fromEntries(VIEWS.map((entry) => [entry.id, filtered.filter((item) => inView(item, entry.id)).length])),
     [filtered],
   )
-  const unreviewed = useMemo(() => items.filter((item) => item.status === 'identificada'), [items])
+  const unreviewed = useMemo(() => items.filter((item) => item.origin === 'ingesta' && item.status === 'identificada'), [items])
   const stats = {
     pending: unreviewed.length,
     high: unreviewed.filter((item) => item.impact === 'alto').length,
@@ -164,13 +164,19 @@ export function Inbox({ items }: Props) {
         <nav aria-label="RegWatch" className="-mx-1 flex flex-col gap-1 md:mx-0">
           <p className="px-3 text-label text-ink-muted">RegWatch</p>
           <div className="flex gap-1 overflow-x-auto md:flex-col">
-            {VIEWS.filter((entry) => !entry.history).map((entry) => (
+            {VIEWS.filter((entry) => !entry.history && !('own' in entry)).map((entry) => (
               <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => { setView(entry.id); resetBulk() }} />
             ))}
           </div>
           <p className="mt-2 px-3 text-label text-ink-muted">Historial</p>
           <div className="flex gap-1 overflow-x-auto md:flex-col">
             {VIEWS.filter((entry) => entry.history).map((entry) => (
+              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => { setView(entry.id); resetBulk() }} />
+            ))}
+          </div>
+          <p className="mt-2 px-3 text-label text-ink-muted">Despacho</p>
+          <div className="flex gap-1 overflow-x-auto md:flex-col">
+            {VIEWS.filter((entry) => 'own' in entry).map((entry) => (
               <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => { setView(entry.id); resetBulk() }} />
             ))}
           </div>
@@ -181,7 +187,7 @@ export function Inbox({ items }: Props) {
         <header className="flex flex-col gap-2">
           <p role="heading" aria-level={1} className="text-display-md text-ink">{viewLabel}</p>
           <p className="text-body-sm text-ink-muted">
-            RegWatch · DOF y PIGR. Aquí pescas: aceptas o descartas los asuntos. Lo aceptado pasa a seguimiento.
+            {view === 'despacho' ? 'Asuntos que tu despacho capturó a mano.' : 'RegWatch · asuntos que Otero generó al cruzar la ingesta con tu empresa. Aceptas o descartas; lo aceptado pasa a seguimiento.'}
           </p>
         </header>
 

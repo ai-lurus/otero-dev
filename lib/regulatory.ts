@@ -35,6 +35,17 @@ export const STATUS_LABELS: Record<string, string> = {
   archivada: 'Archivada',
 }
 
+export const ORIGINS = ['ingesta', 'despacho'] as const
+export const ORIGIN_LABELS: Record<string, string> = { ingesta: 'RegWatch', despacho: 'Generado por el despacho' }
+
+export const EXECUTION_STATUSES = ['por_hacer', 'en_curso', 'en_revision', 'cumplido'] as const
+export const EXECUTION_LABELS: Record<string, string> = {
+  por_hacer: 'Por hacer',
+  en_curso: 'En curso',
+  en_revision: 'En revisión',
+  cumplido: 'Cumplido',
+}
+
 export const IMPACTS = ['alto', 'medio', 'bajo'] as const
 export const IMPACT_LABELS: Record<string, string> = { alto: 'Impacto alto', medio: 'Impacto medio', bajo: 'Impacto bajo' }
 
