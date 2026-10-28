@@ -1,9 +1,6 @@
 // Bandeja de asuntos: carpetas, prioridad y orden a partir de los campos que ya
 // tiene cada asunto. Cuando exista el puntaje del matching, `bandOf` lo usa.
 
-const OPEN = ['identificada', 'aceptada'] as const
-const isOpen = (status: string) => (OPEN as readonly string[]).includes(status)
-
 /** Vistas de RegWatch. `history` las agrupa bajo "Historial" en el menú. */
 export const VIEWS = [
   { id: 'bandeja', label: 'Bandeja · sin revisar', history: false },
@@ -54,10 +51,10 @@ export function inView(item: InboxFields, view: ViewId, today = new Date()) {
     case 'bandeja':
       return item.status === 'identificada'
     case 'impacto_alto':
-      return isOpen(item.status) && item.impact === 'alto'
+      return item.status === 'identificada' && item.impact === 'alto'
     case 'vencen_7': {
       const days = daysUntil(item.dueDate, today)
-      return isOpen(item.status) && days !== null && days <= 7
+      return item.status === 'identificada' && days !== null && days <= 7
     }
     case 'seguimiento':
       return item.status === 'aceptada'
