@@ -140,7 +140,7 @@ export async function getRegulatoryItem(id: string) {
   return { ...withEvidence, events }
 }
 
-export async function updateItemStatus(id: string, status: string) {
+export async function updateItemStatus(id: string, status: string, reason?: string) {
   const { tenantId, db } = await clientContext()
   if (!isOneOf(STATUSES, status)) throw new Error('Estado inválido')
   const updated = await db
@@ -154,9 +154,9 @@ export async function updateItemStatus(id: string, status: string) {
     tenantId,
     eventType: 'status_changed',
     title: `Estado cambiado a ${status}`,
-    description: 'El cliente actualizó el estado del asunto regulatorio.',
+    description: reason?.trim() ? `Motivo: ${reason.trim()}` : 'El cliente actualizó el estado del asunto regulatorio.',
     createdBy: (await auth.api.getSession({ headers: await headers() }))?.user.id ?? 'client',
-    metadata: { status },
+    metadata: { status, ...(reason?.trim() ? { reason: reason.trim() } : {}) },
   })
   revalidatePath('/cliente/obligaciones')
   revalidatePath('/cliente')

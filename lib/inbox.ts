@@ -1,14 +1,20 @@
 // Bandeja de asuntos: carpetas, prioridad y orden a partir de los campos que ya
 // tiene cada asunto. Cuando exista el puntaje del matching, `bandOf` lo usa.
 
-export const FOLDERS = [
-  { id: 'por_revisar', label: 'Por revisar', status: 'identificada' },
-  { id: 'en_seguimiento', label: 'En seguimiento', status: 'aceptada' },
-  { id: 'para_despues', label: 'Para después', status: 'diferida' },
-  { id: 'cerrados', label: 'Cerrados', status: 'cerrada' },
-  { id: 'todos', label: 'Todos', status: null },
+const OPEN = ['identificada', 'aceptada'] as const
+const isOpen = (status: string) => (OPEN as readonly string[]).includes(status)
+
+/** Vistas de RegWatch. `history` las agrupa bajo "Historial" en el menú. */
+export const VIEWS = [
+  { id: 'bandeja', label: 'Bandeja · sin revisar', history: false },
+  { id: 'impacto_alto', label: 'Impacto alto', history: false },
+  { id: 'vencen_7', label: 'Vencen en 7 días', history: false },
+  { id: 'seguimiento', label: 'En seguimiento', history: false },
+  { id: 'todo', label: 'Todo', history: true },
+  { id: 'descartados', label: 'Descartados', history: true },
+  { id: 'archivo', label: 'Archivo', history: true },
 ] as const
-export type FolderId = (typeof FOLDERS)[number]['id']
+export type ViewId = (typeof VIEWS)[number]['id']
 
 export const BANDS = ['critica', 'alta', 'media', 'baja'] as const
 export type Band = (typeof BANDS)[number]
@@ -43,9 +49,25 @@ export function bandOf(item: InboxFields, today = new Date()): Band {
   return 'baja'
 }
 
-export function inFolder(item: InboxFields, folder: FolderId) {
-  const status = FOLDERS.find((entry) => entry.id === folder)?.status
-  return status ? item.status === status : true
+export function inView(item: InboxFields, view: ViewId, today = new Date()) {
+  switch (view) {
+    case 'bandeja':
+      return item.status === 'identificada'
+    case 'impacto_alto':
+      return isOpen(item.status) && item.impact === 'alto'
+    case 'vencen_7': {
+      const days = daysUntil(item.dueDate, today)
+      return isOpen(item.status) && days !== null && days <= 7
+    }
+    case 'seguimiento':
+      return item.status === 'aceptada'
+    case 'descartados':
+      return item.status === 'descartada'
+    case 'archivo':
+      return item.status === 'archivada'
+    default:
+      return true
+  }
 }
 
 const time = (value: string | Date | null) => (value ? new Date(value).getTime() : 0)

@@ -6,7 +6,7 @@ import type { RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { BANDS, BAND_LABELS, FOLDERS, bandOf, compareInbox, inFolder, type FolderId } from '@/lib/inbox'
+import { BANDS, BAND_LABELS, VIEWS, bandOf, compareInbox, inView, type ViewId } from '@/lib/inbox'
 import { MATERIAS, SCOPES, SCOPE_LABELS } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
 import { InboxPanel } from './inbox-panel'
@@ -35,11 +35,28 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
   )
 }
 
+function ViewButton({ active, label, count, onClick }: { active: boolean; label: string; count: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active || undefined}
+      className={cn(
+        'flex shrink-0 items-center justify-between gap-3 rounded-md px-3 py-2 text-body-sm text-ink transition-colors hover:bg-surface-sunken',
+        active && 'bg-brand-tint font-medium text-brand-text hover:bg-brand-tint',
+      )}
+    >
+      {label}
+      <span className="text-caption text-ink-muted">{count}</span>
+    </button>
+  )
+}
+
 type Props = { items: RegulatoryItem[] }
 
 /** Bandeja tipo correo: carpetas y filtros a la izquierda, asuntos por prioridad y el asunto abierto en un panel lateral. */
 export function Inbox({ items }: Props) {
-  const [folder, setFolder] = useState<FolderId>('por_revisar')
+  const [view, setView] = useState<ViewId>('bandeja')
   const [scope, setScope] = useState(ALL)
   const [materia, setMateria] = useState(ALL)
   const [band, setBand] = useState(ALL)
@@ -57,35 +74,32 @@ export function Inbox({ items }: Props) {
 
   const filtered = useMemo(() => items.filter(matchesFilters), [items, matchesFilters])
   const counts = useMemo(
-    () => Object.fromEntries(FOLDERS.map((entry) => [entry.id, filtered.filter((item) => inFolder(item, entry.id)).length])),
+    () => Object.fromEntries(VIEWS.map((entry) => [entry.id, filtered.filter((item) => inView(item, entry.id)).length])),
     [filtered],
   )
   const visible = useMemo(
-    () => filtered.filter((item) => inFolder(item, folder)).sort((a, b) => compareInbox(a, b)),
-    [filtered, folder],
+    () => filtered.filter((item) => inView(item, view)).sort((a, b) => compareInbox(a, b)),
+    [filtered, view],
   )
   const openItem = items.find((item) => item.id === openId) ?? null
-  const folderLabel = FOLDERS.find((entry) => entry.id === folder)?.label ?? ''
+  const viewLabel = VIEWS.find((entry) => entry.id === view)?.label.split(' · ')[0] ?? ''
 
   return (
     <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="flex flex-col gap-6 border-b border-border p-4 md:border-r md:border-b-0 md:p-6">
-        <nav aria-label="Carpetas" className="-mx-1 flex gap-1 overflow-x-auto md:mx-0 md:flex-col">
-          {FOLDERS.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              onClick={() => setFolder(entry.id)}
-              aria-current={folder === entry.id || undefined}
-              className={cn(
-                'flex shrink-0 items-center justify-between gap-3 rounded-md px-3 py-2 text-body-sm text-ink transition-colors hover:bg-surface-sunken',
-                folder === entry.id && 'bg-brand-tint font-medium text-brand-text hover:bg-brand-tint',
-              )}
-            >
-              {entry.label}
-              <span className="text-caption text-ink-muted">{counts[entry.id]}</span>
-            </button>
-          ))}
+        <nav aria-label="RegWatch" className="-mx-1 flex flex-col gap-1 md:mx-0">
+          <p className="px-3 text-label text-ink-muted">RegWatch</p>
+          <div className="flex gap-1 overflow-x-auto md:flex-col">
+            {VIEWS.filter((entry) => !entry.history).map((entry) => (
+              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => setView(entry.id)} />
+            ))}
+          </div>
+          <p className="mt-2 px-3 text-label text-ink-muted">Historial</p>
+          <div className="flex gap-1 overflow-x-auto md:flex-col">
+            {VIEWS.filter((entry) => entry.history).map((entry) => (
+              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => setView(entry.id)} />
+            ))}
+          </div>
         </nav>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-1">
@@ -97,10 +111,10 @@ export function Inbox({ items }: Props) {
         </div>
       </aside>
 
-      <section aria-label={folderLabel} className="flex min-w-0 flex-col">
+      <section aria-label={viewLabel} className="flex min-w-0 flex-col">
         <header className="flex flex-col gap-4 border-b border-border p-4 md:px-6 md:py-6">
           <div className="flex items-baseline justify-between gap-3">
-            <p role="heading" aria-level={1} className="text-display-md text-ink">{folderLabel}</p>
+            <p role="heading" aria-level={1} className="text-display-md text-ink">{viewLabel}</p>
             <span className="text-caption text-ink-muted">{visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'}</span>
           </div>
           <div className="relative">

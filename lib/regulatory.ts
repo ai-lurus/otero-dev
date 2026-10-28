@@ -25,12 +25,14 @@ export const MATERIAS = [
   'Competencia económica',
 ] as const
 
-export const STATUSES = ['identificada', 'aceptada', 'cerrada', 'diferida'] as const
+export const STATUSES = ['identificada', 'aceptada', 'cerrada', 'diferida', 'descartada', 'archivada'] as const
 export const STATUS_LABELS: Record<string, string> = {
   identificada: 'Identificada',
   aceptada: 'Aceptada · en proceso',
   cerrada: 'Cerrada',
   diferida: 'Diferida',
+  descartada: 'Descartada',
+  archivada: 'Archivada',
 }
 
 export const IMPACTS = ['alto', 'medio', 'bajo'] as const

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ExternalLink } from 'lucide-react'
 import { updateItemStatus, type RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Cite, DeadlineChip } from '@/components/ui/status-tag'
 import { DIRECTION_LABELS, IMPACT_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
@@ -32,13 +33,23 @@ export function InboxPanel({ item, onClose }: Props) {
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
 
-  const decide = (status: string) => {
+  const [discarding, setDiscarding] = useState(false)
+  const [reason, setReason] = useState('')
+
+  const reset = () => {
+    setError('')
+    setDiscarding(false)
+    setReason('')
+  }
+
+  const decide = (status: string, why?: string) => {
     if (!item) return
     setError('')
     startTransition(async () => {
       try {
-        await updateItemStatus(item.id, status)
+        await updateItemStatus(item.id, status, why)
         router.refresh()
+        reset()
         onClose()
       } catch (error) {
         console.error('updateItemStatus', item.id, error)
@@ -54,7 +65,7 @@ export function InboxPanel({ item, onClose }: Props) {
     : []
 
   return (
-    <Sheet open={!!item} onOpenChange={(open) => { if (!open) { setError(''); onClose() } }}>
+    <Sheet open={!!item} onOpenChange={(open) => { if (!open) { reset(); onClose() } }}>
       <SheetContent className="w-full gap-0 bg-surface-raised p-0 shadow-none sm:max-w-xl">
         {item && band && (
           <>
@@ -91,16 +102,37 @@ export function InboxPanel({ item, onClose }: Props) {
                 <Link href={`/cliente/obligaciones/${item.id}`}>Abrir expediente</Link>
               </Button>
               <div className="ml-auto flex flex-wrap gap-3">
-                {item.status !== 'diferida' && item.status !== 'cerrada' && (
-                  <Button variant="outline" disabled={isPending} onClick={() => decide('diferida')}>Dejar para después</Button>
-                )}
-                {item.status !== 'aceptada' && item.status !== 'cerrada' && (
-                  <Button disabled={isPending} onClick={() => decide('aceptada')}>Atender</Button>
-                )}
-                {item.status === 'aceptada' && (
-                  <Button disabled={isPending} onClick={() => decide('cerrada')}>Marcar como cerrado</Button>
+                {item.status === 'descartada' || item.status === 'archivada' ? (
+                  <Button variant="outline" disabled={isPending} onClick={() => decide('identificada')}>Devolver a la bandeja</Button>
+                ) : (
+                  <>
+                    {item.status !== 'archivada' && (
+                      <Button variant="ghost" disabled={isPending} onClick={() => decide('archivada')}>Archivar</Button>
+                    )}
+                    {item.status !== 'cerrada' && (
+                      <Button variant="outline" disabled={isPending} onClick={() => setDiscarding(true)}>Descartar</Button>
+                    )}
+                    {(item.status === 'identificada' || item.status === 'diferida') && (
+                      <Button disabled={isPending} onClick={() => decide('aceptada')}>Atender</Button>
+                    )}
+                    {item.status === 'aceptada' && (
+                      <Button disabled={isPending} onClick={() => decide('cerrada')}>Marcar como cerrado</Button>
+                    )}
+                  </>
                 )}
               </div>
+              {discarding && (
+                <div className="flex w-full flex-col gap-3 border-t border-border pt-4">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-label text-ink-muted">Motivo para descartarlo</span>
+                    <Textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={2} placeholder="Por ejemplo: no aplica a nuestras instalaciones" />
+                  </label>
+                  <div className="flex justify-end gap-3">
+                    <Button variant="ghost" disabled={isPending} onClick={() => { setDiscarding(false); setReason('') }}>Cancelar</Button>
+                    <Button variant="destructive" disabled={isPending || !reason.trim()} onClick={() => decide('descartada', reason)}>Descartar asunto</Button>
+                  </div>
+                </div>
+              )}
             </SheetFooter>
           </>
         )}

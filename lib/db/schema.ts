@@ -137,7 +137,7 @@ export const regulatoryItems = pgTable('regulatory_items', {
   generatesObligation: boolean('generates_obligation').notNull().default(false),
   obligationDetail: text('obligation_detail').notNull().default(''),
   comments: text('comments').notNull().default(''),
-  status: text('status').notNull().default('identificada'), // identificada | aceptada | cerrada | diferida
+  status: text('status').notNull().default('identificada'), // identificada | aceptada | cerrada | diferida | descartada | archivada
   owner: text('owner'),
   sentAt: timestamp('sent_at'),
   createdBy: text('created_by').notNull(),
