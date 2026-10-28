@@ -90,3 +90,34 @@ export function deadlineLabel(dueDate: string | null, today = new Date()) {
   if (days === 0) return 'Vence hoy'
   return `Vence en ${days} ${days === 1 ? 'día' : 'días'}`
 }
+
+const dayOf = (item: { publishedAt: string | null; updatedAt: Date | string }) =>
+  item.publishedAt ?? new Date(item.updatedAt).toISOString().slice(0, 10)
+
+/** Día del asunto (AAAA-MM-DD) para agrupar la tabla. */
+export const itemDay = dayOf
+
+const SHORT_DAY = new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+
+const shortDay = (day: string) => {
+  const parts = SHORT_DAY.formatToParts(new Date(`${day}T00:00:00`))
+  const pick = (type: string) => parts.find((part) => part.type === type)?.value.replace('.', '') ?? ''
+  return `${pick('weekday')} ${pick('day')} ${pick('month')}`
+}
+
+/** Encabezado de grupo: "Hoy · vie 23 oct", "Ayer · jue 22 oct" o "mar 20 oct". */
+export function dayHeading(day: string, today = new Date()) {
+  const diff = daysUntil(day, today)
+  if (diff === 0) return `Hoy · ${shortDay(day)}`
+  if (diff === -1) return `Ayer · ${shortDay(day)}`
+  return shortDay(day)
+}
+
+/** Plazo para la tabla: "En 29 días", "Vence hoy", "Venció hace 2 días" o null. */
+export function dueShort(dueDate: string | null, today = new Date()) {
+  const days = daysUntil(dueDate, today)
+  if (days === null) return null
+  if (days < 0) return `Venció hace ${-days} ${-days === 1 ? 'día' : 'días'}`
+  if (days === 0) return 'Vence hoy'
+  return `En ${days} ${days === 1 ? 'día' : 'días'}`
+}

@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Cite, DeadlineChip } from '@/components/ui/status-tag'
 import { DIRECTION_LABELS, IMPACT_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
 import { bandOf, deadlineLabel } from '@/lib/inbox'
-import { BandTag, sourceCite } from './inbox-row'
+import { BandTag, sourceCite } from './band-tag'
 
 type Props = {
   item: RegulatoryItem | null

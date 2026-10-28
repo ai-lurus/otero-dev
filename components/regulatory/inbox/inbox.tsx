@@ -1,30 +1,38 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search } from 'lucide-react'
-import type { RegulatoryItem } from '@/app/actions/regulatory-items'
+import { updateItemStatus, type RegulatoryItem } from '@/app/actions/regulatory-items'
+import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { BANDS, BAND_LABELS, VIEWS, bandOf, compareInbox, inView, type ViewId } from '@/lib/inbox'
-import { MATERIAS, SCOPES, SCOPE_LABELS } from '@/lib/regulatory'
+import { Textarea } from '@/components/ui/textarea'
+import { VIEWS, compareInbox, daysUntil, inView, type ViewId } from '@/lib/inbox'
+import { IMPACTS, IMPACT_LABELS, MATERIAS } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
 import { InboxPanel } from './inbox-panel'
-import { InboxRow } from './inbox-row'
+import { InboxTable, groupByDay, type Group } from './inbox-table'
 
 const ALL = 'todas'
+const SOURCES = [
+  { value: ALL, label: 'Todas' },
+  { value: 'DOF', label: 'DOF' },
+  { value: 'PIGR', label: 'PIGR' },
+]
 
 function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) {
   return (
-    <label className="flex flex-col gap-1">
-      <span className="text-label text-ink-muted">{label}</span>
+    <label className="flex items-center gap-2">
+      <span className="text-body-sm text-ink-muted">{label}</span>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger aria-label={label} className="w-full">
+        <SelectTrigger aria-label={label} className="min-w-36">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectItem value={ALL}>Todas</SelectItem>
+            <SelectItem value={ALL}>Todos</SelectItem>
             {options.map((option) => (
               <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
             ))}
@@ -52,94 +60,219 @@ function ViewButton({ active, label, count, onClick }: { active: boolean; label:
   )
 }
 
+function StatCard({ value, label, active, onClick }: { value: number; label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('flex flex-col gap-1 rounded-lg border bg-surface-raised p-4 text-left transition-colors hover:bg-surface-sunken', active ? 'border-ink' : 'border-border')}
+    >
+      <span className="text-display-md text-ink">{value}</span>
+      <span className="text-body-sm text-ink-muted">{label}</span>
+    </button>
+  )
+}
+
 type Props = { items: RegulatoryItem[] }
 
-/** Bandeja tipo correo: carpetas y filtros a la izquierda, asuntos por prioridad y el asunto abierto en un panel lateral. */
+/** Bandeja de RegWatch: vistas a la izquierda, tabla de asuntos agrupada por día y el asunto abierto en un panel lateral. */
 export function Inbox({ items }: Props) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [view, setView] = useState<ViewId>('bandeja')
-  const [scope, setScope] = useState(ALL)
+  const [source, setSource] = useState(ALL)
+  const [impact, setImpact] = useState(ALL)
   const [materia, setMateria] = useState(ALL)
-  const [band, setBand] = useState(ALL)
+  const [grouped, setGrouped] = useState(true)
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [discarding, setDiscarding] = useState(false)
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
 
-  const matchesFilters = useMemo(() => {
+  const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
-    return (item: RegulatoryItem) =>
-      (scope === ALL || item.scope === scope) &&
-      (materia === ALL || item.materia === materia) &&
-      (band === ALL || bandOf(item) === band) &&
-      (!needle || `${item.title} ${item.description} ${item.source}`.toLowerCase().includes(needle))
-  }, [scope, materia, band, query])
+    return items.filter(
+      (item) =>
+        (source === ALL || item.source.toUpperCase().includes(source)) &&
+        (impact === ALL || item.impact === impact) &&
+        (materia === ALL || item.materia === materia) &&
+        (!needle || `${item.title} ${item.authority ?? ''} ${item.materia} ${item.id}`.toLowerCase().includes(needle)),
+    )
+  }, [items, source, impact, materia, query])
 
-  const filtered = useMemo(() => items.filter(matchesFilters), [items, matchesFilters])
   const counts = useMemo(
     () => Object.fromEntries(VIEWS.map((entry) => [entry.id, filtered.filter((item) => inView(item, entry.id)).length])),
     [filtered],
   )
-  const visible = useMemo(
-    () => filtered.filter((item) => inView(item, view)).sort((a, b) => compareInbox(a, b)),
-    [filtered, view],
-  )
+  const unreviewed = useMemo(() => items.filter((item) => item.status === 'identificada'), [items])
+  const stats = {
+    pending: unreviewed.length,
+    high: unreviewed.filter((item) => item.impact === 'alto').length,
+    soon: unreviewed.filter((item) => {
+      const days = daysUntil(item.dueDate)
+      return days !== null && days <= 7
+    }).length,
+  }
+
+  const visible = useMemo(() => filtered.filter((item) => inView(item, view)), [filtered, view])
+  const groups: Group[] = useMemo(() => {
+    if (grouped) {
+      return groupByDay(visible).map((group) => ({ ...group, items: [...group.items].sort((a, b) => compareInbox(a, b)) }))
+    }
+    return [{ key: 'todos', heading: null, items: [...visible].sort((a, b) => compareInbox(a, b)) }]
+  }, [visible, grouped])
+
   const openItem = items.find((item) => item.id === openId) ?? null
-  const viewLabel = VIEWS.find((entry) => entry.id === view)?.label.split(' · ')[0] ?? ''
+  const viewLabel = VIEWS.find((entry) => entry.id === view)?.label ?? ''
+  const selectedIds = [...selected].filter((id) => visible.some((item) => item.id === id))
+
+  const toggle = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const toggleAll = (ids: string[], checked: boolean) => setSelected(checked ? new Set(ids) : new Set())
+  const resetBulk = () => {
+    setSelected(new Set())
+    setDiscarding(false)
+    setReason('')
+    setError('')
+  }
+
+  const decideSelected = (status: string, why?: string) => {
+    setError('')
+    startTransition(async () => {
+      try {
+        await Promise.all(selectedIds.map((id) => updateItemStatus(id, status, why)))
+        resetBulk()
+        router.refresh()
+      } catch (cause) {
+        console.error('decideSelected', status, cause)
+        setError('No se pudieron actualizar todos los asuntos. Intenta de nuevo.')
+        router.refresh()
+      }
+    })
+  }
 
   return (
     <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="flex flex-col gap-6 border-b border-border p-4 md:border-r md:border-b-0 md:p-6">
+      <aside className="border-b border-border p-4 md:border-r md:border-b-0 md:p-6">
         <nav aria-label="RegWatch" className="-mx-1 flex flex-col gap-1 md:mx-0">
           <p className="px-3 text-label text-ink-muted">RegWatch</p>
           <div className="flex gap-1 overflow-x-auto md:flex-col">
             {VIEWS.filter((entry) => !entry.history).map((entry) => (
-              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => setView(entry.id)} />
+              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => { setView(entry.id); resetBulk() }} />
             ))}
           </div>
           <p className="mt-2 px-3 text-label text-ink-muted">Historial</p>
           <div className="flex gap-1 overflow-x-auto md:flex-col">
             {VIEWS.filter((entry) => entry.history).map((entry) => (
-              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => setView(entry.id)} />
+              <ViewButton key={entry.id} active={view === entry.id} label={entry.label} count={counts[entry.id]} onClick={() => { setView(entry.id); resetBulk() }} />
             ))}
           </div>
         </nav>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-1">
-          <FilterSelect label="Prioridad" value={band} onChange={setBand} options={BANDS.map((value) => ({ value, label: BAND_LABELS[value] }))} />
-          <FilterSelect label="Tipo" value={scope} onChange={setScope} options={SCOPES.map((value) => ({ value, label: SCOPE_LABELS[value] }))} />
-          <div className="col-span-2 md:col-span-1">
-            <FilterSelect label="Materia" value={materia} onChange={setMateria} options={MATERIAS.map((value) => ({ value, label: value }))} />
-          </div>
-        </div>
       </aside>
 
-      <section aria-label={viewLabel} className="flex min-w-0 flex-col">
-        <header className="flex flex-col gap-4 border-b border-border p-4 md:px-6 md:py-6">
-          <div className="flex items-baseline justify-between gap-3">
-            <p role="heading" aria-level={1} className="text-display-md text-ink">{viewLabel}</p>
-            <span className="text-caption text-ink-muted">{visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'}</span>
-          </div>
-          <div className="relative">
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busca por título, resumen o fuente" aria-label="Buscar asuntos" className="pl-9" />
-          </div>
+      <section aria-label={viewLabel} className="flex min-w-0 flex-col gap-6 p-4 md:p-6">
+        <header className="flex flex-col gap-2">
+          <p role="heading" aria-level={1} className="text-display-md text-ink">{viewLabel}</p>
+          <p className="text-body-sm text-ink-muted">
+            RegWatch · DOF y PIGR. Aquí pescas: aceptas o descartas los asuntos. Lo aceptado pasa a seguimiento.
+          </p>
         </header>
 
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard value={stats.pending} label="sin revisar" active={view === 'bandeja'} onClick={() => setView('bandeja')} />
+          <StatCard value={stats.high} label="de impacto alto sin revisar" active={view === 'impacto_alto'} onClick={() => setView('impacto_alto')} />
+          <StatCard value={stats.soon} label="sin revisar vencen en 7 días" active={view === 'vencen_7'} onClick={() => setView('vencen_7')} />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-64 flex-1">
+            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busca asunto, autoridad, materia o folio" aria-label="Buscar asuntos" className="pl-9" />
+          </div>
+          <div role="group" aria-label="Fuente" className="inline-flex overflow-hidden rounded-md border border-ink">
+            {SOURCES.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={source === option.value}
+                onClick={() => setSource(option.value)}
+                className={cn('px-4 py-2 text-body-sm transition-colors', source === option.value ? 'bg-ink text-surface' : 'bg-surface-raised text-ink hover:bg-surface-sunken')}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <FilterSelect label="Impacto" value={impact} onChange={setImpact} options={IMPACTS.map((value) => ({ value, label: IMPACT_LABELS[value].replace('Impacto ', '') }))} />
+          <FilterSelect label="Materia" value={materia} onChange={setMateria} options={MATERIAS.map((value) => ({ value, label: value }))} />
+          <label className="flex items-center gap-2">
+            <span className="text-body-sm text-ink-muted">Agrupar</span>
+            <Select value={grouped ? 'dia' : 'ninguno'} onValueChange={(value) => setGrouped(value === 'dia')}>
+              <SelectTrigger aria-label="Agrupar" className="min-w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="dia">Por día</SelectItem>
+                  <SelectItem value="ninguno">Sin agrupar</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </label>
+        </div>
+
+        <p className="text-body-sm text-ink-muted">
+          {visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'} en esta vista. Abre un asunto para decidir.
+        </p>
+
+        {selectedIds.length > 0 && (
+          <div role="region" aria-label="Acciones para los seleccionados" className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-body-sm text-ink">{selectedIds.length} {selectedIds.length === 1 ? 'seleccionado' : 'seleccionados'}</span>
+              <div className="ml-auto flex flex-wrap gap-3">
+                <Button variant="ghost" disabled={isPending} onClick={resetBulk}>Quitar selección</Button>
+                <Button variant="ghost" disabled={isPending} onClick={() => decideSelected('archivada')}>Archivar</Button>
+                <Button variant="outline" disabled={isPending} onClick={() => setDiscarding(true)}>Descartar</Button>
+                <Button disabled={isPending} onClick={() => decideSelected('aceptada')}>Atender</Button>
+              </div>
+            </div>
+            {discarding && (
+              <div className="flex flex-col gap-3 border-t border-border pt-3">
+                <label className="flex flex-col gap-1">
+                  <span className="text-label text-ink-muted">Motivo para descartarlos</span>
+                  <Textarea value={reason} onChange={(event) => setReason(event.target.value)} rows={2} placeholder="Por ejemplo: no aplica a nuestras instalaciones" />
+                </label>
+                <div className="flex justify-end gap-3">
+                  <Button variant="ghost" disabled={isPending} onClick={() => { setDiscarding(false); setReason('') }}>Cancelar</Button>
+                  <Button variant="destructive" disabled={isPending || !reason.trim()} onClick={() => decideSelected('descartada', reason)}>Descartar asuntos</Button>
+                </div>
+              </div>
+            )}
+            {error && <p role="alert" className="text-body-sm text-risk">{error}</p>}
+          </div>
+        )}
+
         {visible.length === 0 ? (
-          <Empty className="py-16">
+          <Empty className="rounded-lg border border-border bg-surface-raised py-16">
             <EmptyHeader>
               <EmptyTitle>{items.length ? 'No hay asuntos aquí' : 'Aún no hay asuntos'}</EmptyTitle>
               <EmptyDescription>
                 {items.length
-                  ? 'Cambia de carpeta o ajusta los filtros.'
+                  ? 'Cambia de vista o ajusta los filtros.'
                   : 'Cuando Otero o tu despacho identifiquen un asunto que te afecte, llegará a esta bandeja.'}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
-          <ul>
-            {visible.map((item) => (
-              <InboxRow key={item.id} item={item} selected={item.id === openId} onOpen={() => setOpenId(item.id)} />
-            ))}
-          </ul>
+          <div className="overflow-hidden rounded-lg border border-border">
+            <InboxTable groups={groups} selected={selected} openId={openId} onToggle={toggle} onToggleAll={toggleAll} onOpen={setOpenId} />
+          </div>
         )}
       </section>
 
