@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Cite, DeadlineChip } from '@/components/ui/status-tag'
 import { DIRECTION_LABELS, IMPACT_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
 import { bandOf, deadlineLabel } from '@/lib/inbox'
+import { LEGAL_OBJECTS, isLegalObject } from '@/lib/legal-objects'
 import { BandTag, sourceCite } from './band-tag'
 
 type Props = {
@@ -87,6 +88,18 @@ export function InboxPanel({ item, onClose }: Props) {
                 </Section>
               )}
               {item.generatesObligation && item.obligationDetail && <Section title="Qué te obliga a hacer">{item.obligationDetail}</Section>}
+              {!!item.objects?.length && (
+                <Section title="Objetos">
+                  <ul className="flex flex-col gap-2">
+                    {item.objects.filter((object) => isLegalObject(object.tipo)).map((object, index) => (
+                      <li key={`${object.tipo}-${index}`} className="flex flex-col gap-1">
+                        <span className="font-medium">{LEGAL_OBJECTS[object.tipo].label}</span>
+                        <Cite className="h-auto whitespace-normal py-1">{object.cita}</Cite>
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
               {item.owner && <Section title="Responsable">{item.owner}</Section>}
               <Section title="Estado">{STATUS_LABELS[item.status] ?? item.status}</Section>
               {item.sourceUrl && (

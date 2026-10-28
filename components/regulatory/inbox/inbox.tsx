@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { VIEWS, compareInbox, daysUntil, inView, type ViewId } from '@/lib/inbox'
+import { LEGAL_OBJECTS, OBJECT_FAMILIES, isLegalObject } from '@/lib/legal-objects'
 import { IMPACTS, IMPACT_LABELS, MATERIAS } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
 import { InboxPanel } from './inbox-panel'
@@ -83,6 +84,7 @@ export function Inbox({ items }: Props) {
   const [source, setSource] = useState(ALL)
   const [impact, setImpact] = useState(ALL)
   const [materia, setMateria] = useState(ALL)
+  const [family, setFamily] = useState(ALL)
   const [grouped, setGrouped] = useState(true)
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
@@ -98,9 +100,10 @@ export function Inbox({ items }: Props) {
         (source === ALL || item.source.toUpperCase().includes(source)) &&
         (impact === ALL || item.impact === impact) &&
         (materia === ALL || item.materia === materia) &&
+        (family === ALL || (item.objects ?? []).some((object) => isLegalObject(object.tipo) && LEGAL_OBJECTS[object.tipo].family === family)) &&
         (!needle || `${item.title} ${item.authority ?? ''} ${item.materia} ${item.id}`.toLowerCase().includes(needle)),
     )
-  }, [items, source, impact, materia, query])
+  }, [items, source, impact, materia, family, query])
 
   const counts = useMemo(
     () => Object.fromEntries(VIEWS.map((entry) => [entry.id, filtered.filter((item) => inView(item, entry.id)).length])),
@@ -217,6 +220,7 @@ export function Inbox({ items }: Props) {
           </div>
           <FilterSelect label="Impacto" value={impact} onChange={setImpact} options={IMPACTS.map((value) => ({ value, label: IMPACT_LABELS[value].replace('Impacto ', '') }))} />
           <FilterSelect label="Materia" value={materia} onChange={setMateria} options={MATERIAS.map((value) => ({ value, label: value }))} />
+          <FilterSelect label="Objeto" value={family} onChange={setFamily} options={Object.entries(OBJECT_FAMILIES).filter(([key]) => key !== 'sin_accion').map(([value, label]) => ({ value, label }))} />
           <label className="flex items-center gap-2">
             <span className="text-body-sm text-ink-muted">Agrupar</span>
             <Select value={grouped ? 'dia' : 'ninguno'} onValueChange={(value) => setGrouped(value === 'dia')}>

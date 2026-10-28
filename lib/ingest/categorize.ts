@@ -1,5 +1,6 @@
 import { IngestError } from './errors'
 import type { Content } from './extract'
+import { isLegalObject, LEGAL_OBJECTS, LEGAL_OBJECT_KEYS, type DetectedObject } from '@/lib/legal-objects'
 import { MATERIAS, MATERIA_KEYS, VIGENCIA_KEYS, VIGENCIAS, type Materia, type Vigencia } from './categories'
 
 const MODEL = 'claude-haiku-5-5'
@@ -14,6 +15,7 @@ export type Categorization = {
   vigenciaStatus: Vigencia
   vigenciaDetail: string | null
   summary: string
+  objects: DetectedObject[]
 }
 
 const SYSTEM = `Eres un asistente de un despacho jurídico mexicano que clasifica fuentes regulatorias y legales (leyes, reglamentos, NOMs, acuerdos, criterios, noticias del DOF, circulares, resoluciones).
@@ -27,7 +29,8 @@ Reglas:
 - "published_at": fecha de publicación u emisión, en formato YYYY-MM-DD.
 - "vigencia_status": ${VIGENCIA_KEYS.map(k => `${k} (${VIGENCIAS[k]})`).join(', ')}.
 - "vigencia_detail": una frase con fechas de entrada en vigor, plazos o transitorios relevantes, si existen.
-- "summary": resumen de 2 a 4 oraciones en español: qué establece y a quién afecta.`
+- "summary": resumen de 2 a 4 oraciones en español: qué establece y a quién afecta.
+- "objetos": hasta 6 objetos legales que contiene el documento, cada uno con el fragmento literal que lo sustenta (máximo 200 caracteres, copiado tal cual). Objetos válidos: ${LEGAL_OBJECT_KEYS.map(k => `${k} (${LEGAL_OBJECTS[k].label})`).join(', ')}. Si el documento solo nombra personas o no cambia nada para una empresa, usa nombramiento o sin_impacto.`
 
 const TOOL = {
   name: 'categorizar_fuente',
@@ -42,8 +45,17 @@ const TOOL = {
       vigencia_status: { type: 'string', enum: VIGENCIA_KEYS },
       vigencia_detail: { type: ['string', 'null'] },
       summary: { type: 'string' },
+      objetos: {
+        type: 'array',
+        maxItems: 6,
+        items: {
+          type: 'object',
+          properties: { tipo: { type: 'string', enum: LEGAL_OBJECT_KEYS }, cita: { type: 'string' } },
+          required: ['tipo', 'cita'],
+        },
+      },
     },
-    required: ['title', 'materia', 'authority', 'published_at', 'vigencia_status', 'vigencia_detail', 'summary'],
+    required: ['title', 'materia', 'authority', 'published_at', 'vigencia_status', 'vigencia_detail', 'summary', 'objetos'],
   },
 } as const
 
@@ -56,6 +68,15 @@ function buildContent(content: Content, label: string) {
     return [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: content.base64 } }, intro]
   }
   return [{ type: 'image', source: { type: 'base64', media_type: content.mediaType, data: content.base64 } }, intro]
+}
+
+function parseObjects(value: unknown): DetectedObject[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry): DetectedObject[] => {
+    const tipo = entry?.tipo
+    const cita = str(entry?.cita, 200)
+    return isLegalObject(tipo) && cita ? [{ tipo, cita }] : []
+  }).slice(0, 6)
 }
 
 function str(v: unknown, max: number): string | null {
@@ -72,7 +93,7 @@ export async function categorize(content: Content, label: string): Promise<Categ
     headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1024,
+      max_tokens: 1536,
       system: SYSTEM,
       tools: [TOOL],
       tool_choice: { type: 'tool', name: TOOL.name },
@@ -104,5 +125,6 @@ export async function categorize(content: Content, label: string): Promise<Categ
     vigenciaStatus,
     vigenciaDetail: str(input.vigencia_detail, 300),
     summary: str(input.summary, 1200) ?? '',
+    objects: parseObjects(input.objetos),
   }
 }

@@ -42,6 +42,7 @@ export async function processSourceCore(id: string): Promise<boolean> {
       vigenciaStatus: result.vigenciaStatus,
       vigenciaDetail: result.vigenciaDetail,
       summary: result.summary,
+      objects: result.objects,
       processedAt: new Date(),
       updatedAt: new Date(),
     }).where(eq(ingestSources.id, id))

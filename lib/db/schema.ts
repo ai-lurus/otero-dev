@@ -11,6 +11,7 @@ import {
   numeric,
   jsonb,
 } from 'drizzle-orm/pg-core'
+import type { DetectedObject } from '@/lib/legal-objects'
 
 // ── Better Auth required tables ────────────────────────────────────
 
@@ -137,6 +138,7 @@ export const regulatoryItems = pgTable('regulatory_items', {
   generatesObligation: boolean('generates_obligation').notNull().default(false),
   obligationDetail: text('obligation_detail').notNull().default(''),
   comments: text('comments').notNull().default(''),
+  objects: jsonb('objects').$type<DetectedObject[]>(), // objetos legales de la publicación, copiados al generar el asunto
   origin: text('origin').notNull().default('despacho'), // regwatch | despacho
   executionStatus: text('execution_status'), // por_hacer | en_curso | en_revision | cumplido; solo tras aceptar
   status: text('status').notNull().default('identificada'), // identificada | aceptada | cerrada | diferida | descartada | archivada
@@ -256,6 +258,8 @@ export const ingestSources = pgTable('ingest_sources', {
   vigenciaStatus: text('vigencia_status'), // vigente | derogada | proyecto | no_aplica | desconocida
   vigenciaDetail: text('vigencia_detail'),
   summary:        text('summary'),
+  // Objetos legales detectados (lib/legal-objects.ts): [{ tipo, cita }].
+  objects:        jsonb('objects').$type<DetectedObject[]>(),
   processedAt:    timestamp('processed_at'),
   // kind 'site' = sitio recurrente (p. ej. DOF); sus publicaciones son fuentes 'url' con parentId.
   parentId:       text('parent_id'),

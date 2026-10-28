@@ -60,6 +60,7 @@ export async function createItemFromSource(args: {
     tenantId: tenant.id,
     scope: 'regulatorio',
     origin: 'regwatch',
+    objects: source.objects ?? [],
     materia: ITEM_MATERIA[(source.materia ?? 'otra') as Materia] ?? 'Administrativo y simplificación',
     title: draft?.title ?? source.title.slice(0, 150),
     description: source.summary ?? '',

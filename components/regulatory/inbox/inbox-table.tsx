@@ -3,6 +3,7 @@
 import { Fragment } from 'react'
 import type { RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Checkbox } from '@/components/ui/checkbox'
+import { familyCounts } from '@/lib/legal-objects'
 import { SCOPE_LABELS } from '@/lib/regulatory'
 import { daysUntil, dayHeading, dueShort, itemDay } from '@/lib/inbox'
 import { cn } from '@/lib/utils'
@@ -56,6 +57,7 @@ export function InboxTable({ groups, selected, openId, onToggle, onToggleAll, on
             <th scope="col" className={head}>Impacto</th>
             <th scope="col" className={head}>Asunto · autoridad</th>
             <th scope="col" className={head}>Materia</th>
+            <th scope="col" className={head}>Objetos</th>
             <th scope="col" className={head}>Plazo</th>
             <th scope="col" className={head}>Responsable</th>
           </tr>
@@ -65,7 +67,7 @@ export function InboxTable({ groups, selected, openId, onToggle, onToggleAll, on
             <Fragment key={group.key}>
               {group.heading && (
                 <tr className="border-y border-border bg-surface-sunken">
-                  <td colSpan={8} className="px-3 py-2 text-label text-ink">
+                  <td colSpan={9} className="px-3 py-2 text-label text-ink">
                     {group.heading} <span className="ml-2 font-normal text-ink-muted">{group.items.length} {group.items.length === 1 ? 'asunto' : 'asuntos'}</span>
                   </td>
                 </tr>
@@ -97,6 +99,12 @@ export function InboxTable({ groups, selected, openId, onToggle, onToggleAll, on
                     <td className={cell}>
                       <div>{item.materia}</div>
                       <div className="text-caption text-ink-muted">{SCOPE_LABELS[item.scope as keyof typeof SCOPE_LABELS] ?? item.scope}</div>
+                    </td>
+                    <td className={cn(cell, 'whitespace-nowrap')}>
+                      {familyCounts(item.objects).map((entry) => (
+                        <div key={entry.family}>{entry.label} <span className="text-ink-muted">{entry.n}</span></div>
+                      ))}
+                      {!item.objects?.length && <span className="text-ink-muted">—</span>}
                     </td>
                     <td className={cn(cell, 'whitespace-nowrap', days !== null && days <= 7 && 'font-medium text-risk')}>{due ?? '—'}</td>
                     <td className={cn(cell, 'whitespace-nowrap')}>{item.owner ?? '—'}</td>
