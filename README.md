@@ -1,5 +1,7 @@
 # legal-compliance
 
+> **UI:** todo componente y texto nuevo sigue el design system de Otero. Ver [docs/design-system.md](docs/design-system.md).
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
 
 ## Getting Started

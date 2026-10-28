@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 15
 const IMPACT_STYLE: Record<string, string> = {
-  alto: 'bg-destructive/10 text-destructive',
-  medio: 'bg-amber-100 text-amber-800',
-  bajo: 'bg-secondary text-secondary-foreground',
+  alto: 'bg-risk-tint text-risk',
+  medio: 'bg-warn-tint text-warn-text',
+  bajo: 'bg-surface-sunken text-ink',
 }
 
 const formatDay = (value: string) =>
@@ -29,7 +29,7 @@ const formatDay = (value: string) =>
 export function SentBadge({ sentAt }: { sentAt: Date | string | null }) {
   if (!sentAt) return <Badge variant="outline" className="border-dashed">Borrador · no enviado</Badge>
   const day = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(new Date(sentAt))
-  return <Badge className="border-transparent bg-emerald-100 text-emerald-800">Enviado al cliente · {day}</Badge>
+  return <Badge variant="ok">Enviado al cliente · {day}</Badge>
 }
 
 export function ImpactBadge({ impact }: { impact: string | null }) {

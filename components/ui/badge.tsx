@@ -5,18 +5,21 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const badgeVariants = cva(
-  'inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&>svg]:size-3 gap-1 [&>svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden',
+  'inline-flex items-center justify-center rounded-pill border px-2.5 py-1 text-label w-fit whitespace-nowrap shrink-0 [&>svg]:size-3.5 gap-1 [&>svg]:pointer-events-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink aria-invalid:border-risk transition-colors overflow-hidden',
   {
     variants: {
       variant: {
-        default:
-          'border-transparent bg-primary text-primary-foreground [a&]:hover:bg-primary/90',
-        secondary:
-          'border-transparent bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90',
-        destructive:
-          'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
-        outline:
-          'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+        default: 'border-transparent bg-ink text-surface',
+        secondary: 'border-transparent bg-surface-sunken text-ink',
+        outline: 'border-border text-ink [a&]:hover:bg-surface-sunken',
+        // Estados: siempre con palabra e ícono (usa <StatusTag> para alertas).
+        risk: 'border-transparent bg-risk-tint text-risk',
+        destructive: 'border-transparent bg-risk-tint text-risk',
+        warn: 'border-transparent bg-warn-tint text-warn-text',
+        ok: 'border-transparent bg-ok-tint text-ok',
+        info: 'border-transparent bg-brand-tint text-brand-text',
+        // Chip de plazo: "Vence en 5 días".
+        deadline: 'border-transparent bg-warn text-on-warn',
       },
     },
     defaultVariants: {
