@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lt, ne, or } from 'drizzle-orm'
+import { and, asc, eq, gte, inArray, isNull, lt, ne, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { ingestMatches, ingestSources, tenants } from '@/lib/db/schema'
 import { todayInMexico } from './dof'
@@ -17,6 +17,8 @@ import { syncSiteCore } from './sync'
 export const SYSTEM_ACTOR = 'system'
 const STUCK_AFTER_MS = 5 * 60 * 1000
 const GENERATE_BATCH = 4
+/** No se generan asuntos de publicaciones más viejas que esto (el listado de un sitio puede traer historial). */
+const MAX_AGE_DAYS = 30
 /** Motivo con que se marca un par que falló: no se reintenta solo, el socio lo ve en el panel de ingesta. */
 export const FAILED_REASON = 'No se pudo generar el asunto automáticamente'
 
@@ -74,6 +76,7 @@ async function pendingPairs() {
       eq(ingestSources.createdBy, SYSTEM_ACTOR),
       eq(ingestSources.status, 'lista'),
       eq(ingestMatches.applies, true),
+      or(isNull(ingestSources.publishedAt), gte(ingestSources.publishedAt, new Date(Date.now() - MAX_AGE_DAYS * 86_400_000).toISOString().slice(0, 10))),
       isNull(ingestMatches.draftItemId),
       ne(ingestMatches.reason, FAILED_REASON),
     ))
