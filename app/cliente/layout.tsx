@@ -9,6 +9,7 @@ import { isTenantAdmin } from "@/app/actions/tenant-users"
 import { getCurrentTenantName } from "@/app/actions/auth-helpers"
 import { RailTip } from "@/components/client/rail-tip"
 import { OteroAssistant } from "@/components/client/otero-assistant"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const NAV = [
   {
@@ -137,7 +138,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
             </div>
             {!rail && (
               <div>
-                <p className="text-sm font-semibold text-foreground leading-none">{company ?? ""}</p>
+                {company === null ? <Skeleton className="h-4 w-28" /> : <p className="text-sm font-semibold text-foreground leading-none">{company}</p>}
               </div>
             )}
           </Link>
@@ -217,7 +218,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           <div className="w-8 h-8 rounded-lg bg-ink flex items-center justify-center">
             <span className="text-[11px] font-bold text-surface">{initialsOf(company) || "O"}</span>
           </div>
-          <span className="text-sm font-semibold text-foreground">{company ?? ""}</span>
+          {company === null ? <Skeleton className="h-4 w-28" /> : <span className="text-sm font-semibold text-foreground">{company}</span>}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -252,7 +253,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
             <div className="w-8 h-8 rounded-xl bg-ink flex items-center justify-center">
               <span className="text-[11px] font-bold text-surface">{initialsOf(personName) || "U"}</span>
             </div>
-            <span className="text-sm font-medium text-foreground hidden xl:block">{personName ?? ""}</span>
+            {personName === null ? <Skeleton className="hidden h-4 w-24 xl:block" /> : <span className="text-sm font-medium text-foreground hidden xl:block">{personName}</span>}
           </Link>
           </RailTip>
         </header>
