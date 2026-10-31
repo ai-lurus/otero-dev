@@ -235,7 +235,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-x-0 bottom-0 top-[var(--banner-h,0px)] z-50 md:hidden">
           <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-card  border-r border-border">
             <SidebarContent />

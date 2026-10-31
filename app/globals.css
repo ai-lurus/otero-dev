@@ -230,8 +230,11 @@
 html { scroll-behavior: smooth; }
 body { background: var(--surface); color: var(--ink); font-family: var(--font-instrument), sans-serif; font-size: 16px; line-height: 1.5; }
 * { box-sizing: border-box; }
-a { color: var(--brand-text); text-decoration: none; }
-a:hover { text-decoration: underline; }
+/* En capa base: las utilidades (text-ink, text-muted-foreground…) ganan sobre el color de enlace por defecto. */
+@layer base {
+  a { color: var(--brand-text); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+}
 .progress { position: fixed; inset: 0 0 auto; z-index: 60; height: 2px; transform-origin: left; background: var(--brand); }
 .site-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 28px; padding: 16px clamp(20px, 4vw, 48px); background: color-mix(in srgb, var(--surface) 94%, transparent); border-bottom: 1px solid var(--border-soft); backdrop-filter: blur(10px); }
 .wordmark { display: inline-flex; align-items: baseline; gap: 3px; margin-right: auto; color: var(--ink); font-family: var(--font-fraunces), serif; font-size: 30px; font-weight: 600; line-height: 1; letter-spacing: -.02em; }
