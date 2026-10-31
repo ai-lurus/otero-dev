@@ -56,3 +56,13 @@ html{scroll-behavior:smooth}
 .mtile>i{position:absolute;inset:0;display:block;transition:transform .9s cubic-bezier(.6,0,.2,1)}
 @media(max-width:960px){.hero-art .mosaic-16{grid-template-columns:repeat(8,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.mtile>i{transition:none}}
+
+/*
+ * Banner de demo: ocupa --banner-h arriba. Las alturas de pantalla completa lo
+ * restan y lo fijo se pega debajo de él; sin banner, --banner-h vale 0 y nada cambia.
+ * Va fuera de capas para ganarle a las utilidades de Tailwind.
+ */
+.h-screen { height: calc(100dvh - var(--banner-h, 0px)); }
+.min-h-screen { min-height: calc(100dvh - var(--banner-h, 0px)); }
+@media (min-width: 48rem) { .md\:h-screen { height: calc(100dvh - var(--banner-h, 0px)); } }
+.sticky.top-0:not([role='note']) { top: var(--banner-h, 0px); }
