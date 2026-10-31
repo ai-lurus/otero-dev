@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { isTenantAdmin } from "@/app/actions/tenant-users"
+import { getCurrentTenantName } from "@/app/actions/auth-helpers"
 
 const NAV = [
   {
@@ -78,12 +79,19 @@ const USUARIOS_NAV: (typeof NAV)[number] = {
 
 const SECONDARY_NAV: typeof NAV = []
 
+const initialsOf = (name: string | null | undefined) =>
+  (name ?? "").trim().split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]?.toUpperCase()).join("")
+
 export default function ClienteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isTA, setIsTA] = useState(false)
+  const [company, setCompany] = useState<string | null>(null)
+  const { data: session } = authClient.useSession()
+  const personName = session?.user?.name ?? null
   useEffect(() => { isTenantAdmin().then(setIsTA).catch(() => {}) }, [])
+  useEffect(() => { getCurrentTenantName().then(setCompany).catch(() => {}) }, [])
   const nav = isTA ? [...NAV, USUARIOS_NAV] : NAV
 
   // En RegWatch el menú principal se achica a íconos para dejar lugar a las vistas de la bandeja.
@@ -128,13 +136,13 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       {/* Header */}
       <div className={cn("border-b border-border py-5", rail ? "px-3" : "px-5")}>
         <div className={cn("flex items-center mb-4", rail ? "justify-center" : "justify-between")}>
-          <Link href="/cliente" title={rail ? "Grupo Industrial" : undefined} aria-label={rail ? "Grupo Industrial" : undefined} className="flex items-center gap-2.5">
+          <Link href="/cliente" title={rail ? company ?? undefined : undefined} aria-label={rail ? company ?? "Inicio" : undefined} className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-ink flex items-center justify-center ">
-              <span className="text-xs font-bold text-surface">GI</span>
+              <span className="text-xs font-bold text-surface">{initialsOf(company) || "O"}</span>
             </div>
             {!rail && (
               <div>
-                <p className="text-sm font-semibold text-foreground leading-none">Grupo Industrial</p>
+                <p className="text-sm font-semibold text-foreground leading-none">{company ?? ""}</p>
               </div>
             )}
           </Link>
@@ -209,9 +217,9 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       <div className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between bg-card border-b border-border px-4 py-3 md:hidden">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-ink flex items-center justify-center">
-            <span className="text-[11px] font-bold text-surface">GI</span>
+            <span className="text-[11px] font-bold text-surface">{initialsOf(company) || "O"}</span>
           </div>
-          <span className="text-sm font-semibold text-foreground">Grupo Industrial</span>
+          <span className="text-sm font-semibold text-foreground">{company ?? ""}</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -241,11 +249,11 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         {/* Top bar for desktop */}
         <header className="sticky top-0 z-30 flex items-center justify-end gap-3 bg-background border-b border-border px-8 py-3">
           <div className="flex-1" />
-          <Link href="/cliente/perfil" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <Link href="/cliente/perfil" title={personName ?? "Mi perfil"} aria-label={personName ?? "Mi perfil"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-xl bg-ink flex items-center justify-center">
-              <span className="text-[11px] font-bold text-surface">GI</span>
+              <span className="text-[11px] font-bold text-surface">{initialsOf(personName) || "U"}</span>
             </div>
-            <span className="text-sm font-medium text-foreground hidden xl:block">Grupo Industrial</span>
+            <span className="text-sm font-medium text-foreground hidden xl:block">{personName ?? ""}</span>
           </Link>
         </header>
 
