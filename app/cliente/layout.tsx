@@ -8,17 +8,9 @@ import { authClient } from "@/lib/auth-client"
 import { isTenantAdmin } from "@/app/actions/tenant-users"
 import { getCurrentTenantName } from "@/app/actions/auth-helpers"
 import { RailTip } from "@/components/client/rail-tip"
+import { OteroAssistant } from "@/components/client/otero-assistant"
 
 const NAV = [
-  {
-    href: "/cliente/chat",
-    label: "Otero IA",
-    icon: (
-      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-      </svg>
-    ),
-  },
   {
     href: "/cliente",
     label: "Inicio",
@@ -270,6 +262,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           {children}
         </main>
       </div>
+
+      <OteroAssistant />
 
       {/* Mobile page content */}
       <main className="portal-main flex-1 min-w-0 overflow-y-auto pt-16 md:hidden">
