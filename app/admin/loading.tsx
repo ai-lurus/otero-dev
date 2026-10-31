@@ -1,10 +1,8 @@
-'use client'
+import { ListPageSkeleton } from '@/components/shared/skeletons'
 
-import { usePathname } from 'next/navigation'
-import { AdminHomeSkeleton, ListPageSkeleton } from '@/components/shared/skeletons'
-
-// Respaldo de todas las pantallas del admin: el tablero tiene su estructura y el resto se resuelve como lista.
+// Respaldo de las pantallas del admin: se resuelve como lista. El tablero tiene
+// su propia espera dentro de su página. Es un componente de servidor a propósito:
+// sin hooks del navegador, el HTML que se transmite no se desajusta al hidratar.
 export default function AdminLoading() {
-  const pathname = usePathname()
-  return pathname === '/admin' ? <AdminHomeSkeleton /> : <ListPageSkeleton label="Cargando" />
+  return <ListPageSkeleton label="Cargando" />
 }

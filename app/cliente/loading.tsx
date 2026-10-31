@@ -1,11 +1,8 @@
-'use client'
+import { ListPageSkeleton } from '@/components/shared/skeletons'
 
-import { usePathname } from 'next/navigation'
-import { HomeSkeleton, ListPageSkeleton } from '@/components/shared/skeletons'
-
-// Respaldo de todas las pantallas del portal sin su propia carga: el inicio
-// tiene su estructura y el resto se resuelve como lista.
+// Respaldo de las pantallas del portal sin su propia carga: se resuelve como
+// lista. El inicio tiene su espera dentro de su página. Es un componente de
+// servidor a propósito: sin hooks del navegador no se desajusta al hidratar.
 export default function ClienteLoading() {
-  const pathname = usePathname()
-  return pathname === '/cliente' ? <HomeSkeleton /> : <ListPageSkeleton label="Cargando el portal" />
+  return <ListPageSkeleton label="Cargando el portal" />
 }
