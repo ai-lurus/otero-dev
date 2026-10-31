@@ -51,7 +51,7 @@ function ViewButton({ active, label, count, onClick }: { active: boolean; label:
       aria-current={active || undefined}
       className={cn(
         'flex shrink-0 items-center justify-between gap-3 rounded-md px-3 py-2 text-body-sm text-ink transition-colors hover:bg-surface-sunken',
-        active && 'bg-brand-tint font-medium text-brand-text hover:bg-brand-tint',
+        active && 'bg-surface-sunken font-semibold hover:bg-surface-sunken',
       )}
     >
       {label}

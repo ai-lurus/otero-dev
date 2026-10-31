@@ -16,7 +16,7 @@ import { useState } from 'react'
 
 const navItems = [
   { href: '/cliente', label: 'Inicio', icon: Building2, badge: null, exact: true },
-  { href: '/cliente/obligaciones', label: 'Asuntos regulatorios', icon: AlertTriangle, badge: null },
+  { href: '/cliente/obligaciones', label: 'RegWatch', icon: AlertTriangle, badge: null },
   { href: '/cliente/certificaciones', label: 'Certificaciones', icon: Award, badge: null },
   { href: '/cliente/documentos', label: 'Documentos', icon: BookOpen, badge: null },
 ]

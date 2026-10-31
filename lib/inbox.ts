@@ -5,7 +5,7 @@
 export const VIEWS = [
   { id: 'bandeja', label: 'Bandeja · sin revisar', history: false },
   { id: 'impacto_alto', label: 'Impacto alto', history: false },
-  { id: 'vencen_7', label: 'Vencen en 7 días', history: false },
+  { id: 'vencen_7', label: 'Urgentes', history: false },
   { id: 'seguimiento', label: 'En seguimiento', history: false },
   { id: 'todo', label: 'Todo', history: true },
   { id: 'descartados', label: 'Descartados', history: true },
