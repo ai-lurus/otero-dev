@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Instrument_Sans, Fraunces, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import './otero.css'
+import { DevServiceWorkerCleanup } from '@/components/shared/dev-sw-cleanup'
 import DemoBanner, { DEMO_BANNER_HEIGHT } from '@/components/shared/demo-banner'
 import { isDemoMode } from '@/lib/demo'
 
@@ -33,6 +34,7 @@ export default function RootLayout({
       style={isDemoMode ? ({ '--banner-h': DEMO_BANNER_HEIGHT } as React.CSSProperties) : undefined}
     >
       <body className="font-sans antialiased">
+        {process.env.NODE_ENV === 'development' && <DevServiceWorkerCleanup />}
         {isDemoMode && <DemoBanner />}
         {children}
       </body>
