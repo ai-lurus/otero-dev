@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react"
 import { Drawer } from "vaul"
 import { toast } from "sonner"
 import { X, Upload, FileText, FileImage, File, AlertTriangle, CheckCircle2, Info, RefreshCw } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import {
   addDoc,
@@ -290,10 +291,7 @@ export function UploadDrawer({ open, onClose, defaultSede }: UploadDrawerProps) 
               >
                 {submitting ? (
                   <>
-                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-                    </svg>
+                    <Spinner />
                     Procesando…
                   </>
                 ) : (

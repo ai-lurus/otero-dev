@@ -4,6 +4,7 @@ import { useState, useTransition, useOptimistic } from 'react'
 import { Plus, Search, Pencil, Trash2, Eye, X, Clock, Sparkles, Globe, EyeOff } from 'lucide-react'
 import { createPost, updatePost, deletePost, togglePublish } from '@/app/actions/posts'
 import type { Post } from '@/lib/db/schema'
+import { Spinner } from '@/components/ui/spinner'
 import { cn } from '@/lib/utils'
 
 const CATEGORIES = ['ambiental', 'fiscal', 'regulatorio', 'corporativo', 'laboral', 'iniciativa'] as const
@@ -174,7 +175,7 @@ function PostFormModal({ initial, onClose, onSave }: {
             </button>
             <button type="submit" disabled={saving || !form.title.trim() || !form.summary.trim()}
               className="flex-1 text-sm font-semibold text-surface bg-ink py-2.5 rounded-xl disabled:opacity-40 flex items-center justify-center gap-2">
-              {saving && <div className="w-4 h-4 border-2 border-surface border-t-transparent rounded-full animate-spin" />}
+              {saving && <Spinner />}
               {saving ? 'Guardando…' : initial ? 'Guardar cambios' : 'Crear publicación'}
             </button>
           </div>
@@ -201,7 +202,7 @@ function DeleteModal({ post, onCancel, onConfirm, pending }: {
         <div className="flex gap-3 mt-6">
           <button onClick={onCancel} className="flex-1 text-sm font-medium bg-secondary py-2.5 rounded-xl">Cancelar</button>
           <button onClick={onConfirm} disabled={pending} className="flex-1 text-sm font-semibold text-surface bg-risk py-2.5 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2">
-            {pending && <div className="w-4 h-4 border-2 border-surface border-t-transparent rounded-full animate-spin" />}
+            {pending && <Spinner />}
             Eliminar
           </button>
         </div>
