@@ -10,7 +10,7 @@ export const VIEWS = [
   { id: 'todo', label: 'Todo', history: true },
   { id: 'descartados', label: 'Descartados', history: true },
   { id: 'archivo', label: 'Archivo', history: true },
-  { id: 'despacho', label: 'Generado por el despacho', history: false, own: true },
+  { id: 'despacho', label: 'Asuntos manuales', history: false, own: true },
 ] as const
 export type ViewId = (typeof VIEWS)[number]['id']
 
@@ -96,24 +96,8 @@ export function deadlineLabel(dueDate: string | null, today = new Date()) {
 const dayOf = (item: { publishedAt: string | null; updatedAt: Date | string }) =>
   item.publishedAt ?? new Date(item.updatedAt).toISOString().slice(0, 10)
 
-/** Día del asunto (AAAA-MM-DD) para agrupar la tabla. */
+/** Día del asunto (AAAA-MM-DD): cuándo se publicó. */
 export const itemDay = dayOf
-
-const SHORT_DAY = new Intl.DateTimeFormat('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
-
-const shortDay = (day: string) => {
-  const parts = SHORT_DAY.formatToParts(new Date(`${day}T00:00:00`))
-  const pick = (type: string) => parts.find((part) => part.type === type)?.value.replace('.', '') ?? ''
-  return `${pick('weekday')} ${pick('day')} ${pick('month')}`
-}
-
-/** Encabezado de grupo: "Hoy · vie 23 oct", "Ayer · jue 22 oct" o "mar 20 oct". */
-export function dayHeading(day: string, today = new Date()) {
-  const diff = daysUntil(day, today)
-  if (diff === 0) return `Hoy · ${shortDay(day)}`
-  if (diff === -1) return `Ayer · ${shortDay(day)}`
-  return shortDay(day)
-}
 
 /** Plazo para la tabla: "En 29 días", "Vence hoy", "Venció hace 2 días" o null. */
 export function dueShort(dueDate: string | null, today = new Date()) {

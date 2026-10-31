@@ -23,43 +23,6 @@ function getMetrics(items: DashboardItem[], referenceDate: string) {
   return { withDays, overdue, dueSoon, inProgress, accepted, sent }
 }
 
-const AI_INSIGHTS = [
-  {
-    id: "ai1", priority: "alta",
-    title: "Certificado PROFEPA vencido — acción inmediata",
-    body: "El certificado de emisiones de Grupo Industrial Monterrico venció hace 8 días. PROFEPA puede iniciar un procedimiento de verificación. Presentar escrito de prórroga esta semana.",
-    action: "Ver asuntos", href: "/admin/obligaciones", firm: "paulsen" as Firm,
-    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>,
-  },
-  {
-    id: "ai2", priority: "alta",
-    title: "Licencia Ambiental Planta Vallejo vence en 17 días",
-    body: "SEMARNAT tarda ~30 días hábiles en emitir respuesta. Con 17 días de margen el cliente ya está en zona de riesgo. Iniciar el trámite de renovación hoy.",
-    action: "Ver asuntos", href: "/admin/obligaciones", firm: "paulsen" as Firm,
-    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-  },
-  {
-    id: "ai3", priority: "alta",
-    title: "Alerta escalada sin atender — Contrato de Arrendamiento",
-    body: "El Contrato de Arrendamiento de Torre Reforma vence en 28 días. La alerta lleva 60 horas sin acción y fue escalada automáticamente. Asignar responsable.",
-    action: "Ver alertas", href: "/admin/obligaciones", firm: "mia" as Firm,
-    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>,
-  },
-  {
-    id: "ai4", priority: "media",
-    title: "AIA Parque Logístico Tultitlán vence en 22 días",
-    body: "La Autorización de Impacto Ambiental requiere inspección previa al vencimiento. SEMARNAT debe agendar visita con al menos 3 semanas de anticipación — el margen es crítico.",
-    action: "Ver documento", href: "/admin/obligaciones", firm: "paulsen" as Firm,
-    icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>,
-  },
-]
-
-const PRIORITY_CFG = {
-  alta:  { bar: "bg-risk",   badge: "bg-risk-tint text-risk border border-risk/30",   label: "Urgente",  dot: "bg-risk"   },
-  media: { bar: "bg-warn", badge: "bg-warn-tint text-warn-text border border-warn/30", label: "Atención", dot: "bg-warn" },
-  baja:  { bar: "bg-brand",  badge: "bg-brand-tint text-brand-text border border-brand/30",  label: "Info",     dot: "bg-brand"  },
-}
-
 function buildMetrics(items: DashboardItem[], referenceDate: string) {
   const { overdue, dueSoon, inProgress, sent } = getMetrics(items, referenceDate)
   const vigentes = items.filter(item => item.status === "vigente" || item.status === "completado")
@@ -83,68 +46,6 @@ function buildMetrics(items: DashboardItem[], referenceDate: string) {
   ]
 }
 
-// ── Insight card ─────────────────────────────────────────────────
-function InsightCard({ insight }: { insight: typeof AI_INSIGHTS[0] }) {
-  const [expanded, setExpanded] = useState(true)
-  const [dismissed, setDismissed] = useState(false)
-  const pc = PRIORITY_CFG[insight.priority as keyof typeof PRIORITY_CFG]
-  const firmColor = insight.firm === "paulsen" ? "var(--paulsen)" : "var(--mia)"
-  const firmBg    = insight.firm === "paulsen" ? "var(--paulsen-light)" : "var(--mia-light)"
-
-  if (dismissed) return null
-
-  return (
-    <div className={cn(
-      "relative rounded-xl border bg-card  overflow-hidden transition-all",
-      insight.priority === "alta"  ? "border-risk/80"   :
-      insight.priority === "media" ? "border-warn/80" : "border-border"
-    )}>
-      <div className={cn("absolute left-0 top-0 bottom-0 w-1", pc.bar)} />
-
-      <div className="pl-4 pr-4 pt-3 pb-2.5 flex items-center gap-2">
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <span className={cn("inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0", pc.badge)}>
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", pc.dot)} />
-            {pc.label}
-          </span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ color: firmColor, background: firmBg }}>
-            {insight.firm === "paulsen" ? "Ambiental" : "Corporativo"}
-          </span>
-        </div>
-        <button onClick={() => setExpanded(v => !v)} className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center shrink-0 hover:bg-muted/80 transition-colors">
-          <svg className={cn("w-3 h-3 text-muted-foreground transition-transform", expanded && "rotate-180")} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-        <button onClick={() => setDismissed(true)} className="w-6 h-6 rounded-lg bg-muted flex items-center justify-center shrink-0 hover:bg-muted/80 transition-colors">
-          <svg className="w-3 h-3 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-
-      <div className="pl-4 pr-4 pb-2 flex items-start gap-2">
-        <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ background: firmBg, color: firmColor }}>
-          {insight.icon}
-        </div>
-        <p className="text-sm font-semibold text-foreground leading-snug">{insight.title}</p>
-      </div>
-
-      {expanded && (
-        <div className="pl-4 pr-4 pb-4 pt-1">
-          <p className="text-xs text-muted-foreground leading-relaxed mb-3">{insight.body}</p>
-          <Link href={insight.href}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-surface transition-opacity hover:opacity-90"
-            style={{ background: firmColor }}>
-            {insight.action}
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-          </Link>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── Main ─────────────────────────────────────────────────────────
 export default function AdminDashboard({ items, referenceDate }: { items: DashboardItem[]; referenceDate: string }) {
   const { overdue, dueSoon, inProgress, sent } = getMetrics(items, referenceDate)
@@ -155,8 +56,6 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
   const [hydrated, setHydrated] = useState(false)
   useEffect(() => setHydrated(true), [])
   const userName = hydrated && session?.user?.name?.trim() ? session.user.name.trim() : "Otero"
-  const [showAllInsights, setShowAllInsights] = useState(false)
-  const visibleInsights = showAllInsights ? AI_INSIGHTS : AI_INSIGHTS.slice(0, 4)
 
   return (
     <div className="min-h-full bg-background">
@@ -208,7 +107,7 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
       <div className="px-4 py-6 sm:px-6 sm:py-8 xl:px-10">
         <div className="flex flex-col xl:flex-row gap-8">
 
-          {/* ── Left column: metrics + insights ─────── */}
+          {/* ── Left column: metrics ─────── */}
           <div className="flex-1 min-w-0 flex flex-col gap-6">
 
             {/* KPI grid — 4 columns on wide screens */}
@@ -231,36 +130,6 @@ export default function AdminDashboard({ items, referenceDate }: { items: Dashbo
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{m.label}</p>
                 </Link>
               ))}
-            </div>
-
-            {/* AI Insights */}
-            <div>
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-6 h-6 rounded-lg bg-surface-sunken flex items-center justify-center">
-                  <svg className="w-3.5 h-3.5 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                  </svg>
-                </div>
-                <h2 className="text-sm font-semibold text-foreground">Recomendaciones IA</h2>
-                <span className="ml-auto text-xs text-muted-foreground bg-muted rounded-full px-2.5 py-0.5">{AI_INSIGHTS.length} sugeridas</span>
-              </div>
-
-              {/* Two-column grid on large screens */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                {visibleInsights.map(insight => (
-                  <InsightCard key={insight.id} insight={insight} />
-                ))}
-              </div>
-
-              {!showAllInsights && AI_INSIGHTS.length > 4 && (
-                <button
-                  onClick={() => setShowAllInsights(true)}
-                  className="mt-3 w-full flex items-center justify-center gap-2 border border-dashed border-border rounded-xl py-3 text-xs font-semibold text-muted-foreground hover:text-foreground hover:border-foreground/20 transition-all"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                  Ver {AI_INSIGHTS.length - 4} más
-                </button>
-              )}
             </div>
           </div>
 

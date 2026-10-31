@@ -2,20 +2,20 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { SlidersHorizontal, Search } from 'lucide-react'
 import { acceptAndAssign, updateItemStatus, type AssignableMember, type RegulatoryItem } from '@/app/actions/regulatory-items'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { VIEWS, compareInbox, daysUntil, inView, type ViewId } from '@/lib/inbox'
+import { BANDS, BAND_LABELS, VIEWS, bandOf, compareInbox, inView, type ViewId } from '@/lib/inbox'
 import { LEGAL_OBJECTS, OBJECT_FAMILIES, isLegalObject } from '@/lib/legal-objects'
-import { IMPACTS, IMPACT_LABELS, MATERIAS } from '@/lib/regulatory'
+import { MATERIAS } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
 import { AssigneeSelect } from './assignee-select'
 import { InboxPanel } from './inbox-panel'
-import { InboxTable, groupByDay, type Group } from './inbox-table'
+import { InboxTable } from './inbox-table'
 
 const ALL = 'todas'
 const SOURCES = [
@@ -62,19 +62,6 @@ function ViewButton({ active, label, count, onClick }: { active: boolean; label:
   )
 }
 
-function StatCard({ value, label, active, onClick }: { value: number; label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn('flex flex-col gap-1 rounded-lg border bg-surface-raised p-4 text-left transition-colors hover:bg-surface-sunken', active ? 'border-ink' : 'border-border')}
-    >
-      <span className="text-display-md text-ink">{value}</span>
-      <span className="text-body-sm text-ink-muted">{label}</span>
-    </button>
-  )
-}
-
 type Props = { items: RegulatoryItem[]; members: AssignableMember[]; /** Solo el admin del cliente decide: aceptar, descartar, archivar y cerrar. */ canDecide: boolean }
 
 /** Bandeja de RegWatch: vistas a la izquierda, tabla de asuntos agrupada por día y el asunto abierto en un panel lateral. */
@@ -83,10 +70,10 @@ export function Inbox({ items, members, canDecide }: Props) {
   const [isPending, startTransition] = useTransition()
   const [view, setView] = useState<ViewId>('bandeja')
   const [source, setSource] = useState(ALL)
-  const [impact, setImpact] = useState(ALL)
+  const [band, setBand] = useState(ALL)
   const [materia, setMateria] = useState(ALL)
   const [family, setFamily] = useState(ALL)
-  const [grouped, setGrouped] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -101,38 +88,25 @@ export function Inbox({ items, members, canDecide }: Props) {
     return items.filter(
       (item) =>
         (source === ALL || item.source.toUpperCase().includes(source)) &&
-        (impact === ALL || item.impact === impact) &&
+        (band === ALL || bandOf(item) === band) &&
         (materia === ALL || item.materia === materia) &&
         (family === ALL || (item.objects ?? []).some((object) => isLegalObject(object.tipo) && LEGAL_OBJECTS[object.tipo].family === family)) &&
         (!needle || `${item.title} ${item.authority ?? ''} ${item.materia} ${item.id}`.toLowerCase().includes(needle)),
     )
-  }, [items, source, impact, materia, family, query])
+  }, [items, source, band, materia, family, query])
+  const activeFilters = [source, band, materia, family].filter((value) => value !== ALL).length
 
   const counts = useMemo(
     () => Object.fromEntries(VIEWS.map((entry) => [entry.id, filtered.filter((item) => inView(item, entry.id)).length])),
     [filtered],
   )
-  const unreviewed = useMemo(() => items.filter((item) => item.origin === 'regwatch' && item.status === 'identificada'), [items])
-  const stats = {
-    pending: unreviewed.length,
-    high: unreviewed.filter((item) => item.impact === 'alto').length,
-    soon: unreviewed.filter((item) => {
-      const days = daysUntil(item.dueDate)
-      return days !== null && days <= 7
-    }).length,
-  }
-
   const visible = useMemo(() => filtered.filter((item) => inView(item, view)), [filtered, view])
-  const groups: Group[] = useMemo(() => {
-    if (grouped) {
-      return groupByDay(visible).map((group) => ({ ...group, items: [...group.items].sort((a, b) => compareInbox(a, b)) }))
-    }
-    return [{ key: 'todos', heading: null, items: [...visible].sort((a, b) => compareInbox(a, b)) }]
-  }, [visible, grouped])
+  const sorted = useMemo(() => [...visible].sort((a, b) => compareInbox(a, b)), [visible])
 
   const openItem = items.find((item) => item.id === openId) ?? null
   const viewLabel = VIEWS.find((entry) => entry.id === view)?.label ?? ''
   const selectedIds = [...selected].filter((id) => visible.some((item) => item.id === id))
+  const showOwner = !['bandeja', 'impacto_alto', 'vencen_7'].includes(view)
 
   const toggle = (id: string) =>
     setSelected((current) => {
@@ -208,59 +182,46 @@ export function Inbox({ items, members, canDecide }: Props) {
       </aside>
 
       <section aria-label={viewLabel} className="flex min-w-0 flex-col gap-6 p-4 md:p-6">
-        <header className="flex flex-col gap-2">
+        <header className="flex flex-wrap items-baseline justify-between gap-3">
           <p role="heading" aria-level={1} className="text-display-md text-ink">{viewLabel}</p>
-          <p className="text-body-sm text-ink-muted">
-            {view === 'despacho' ? 'Asuntos que tu despacho capturó a mano.' : 'RegWatch · asuntos que Otero generó al cruzar la ingesta con tu empresa. Aceptas o descartas; lo aceptado pasa a seguimiento.'}
-          </p>
+          <span className="text-body-sm text-ink-muted">{visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'}</span>
         </header>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <StatCard value={stats.pending} label="sin revisar" active={view === 'bandeja'} onClick={() => setView('bandeja')} />
-          <StatCard value={stats.high} label="de impacto alto sin revisar" active={view === 'impacto_alto'} onClick={() => setView('impacto_alto')} />
-          <StatCard value={stats.soon} label="sin revisar vencen en 7 días" active={view === 'vencen_7'} onClick={() => setView('vencen_7')} />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-64 flex-1">
-            <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busca asunto, autoridad, materia o folio" aria-label="Buscar asuntos" className="pl-9" />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-64 flex-1">
+              <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Busca un asunto, autoridad o materia" aria-label="Buscar asuntos" className="pl-9" />
+            </div>
+            <Button variant="outline" aria-expanded={filtersOpen} onClick={() => setFiltersOpen((open) => !open)}>
+              <SlidersHorizontal aria-hidden className="size-4" />
+              Filtros{activeFilters > 0 ? ` · ${activeFilters}` : ''}
+            </Button>
           </div>
-          <div role="group" aria-label="Fuente" className="inline-flex overflow-hidden rounded-md border border-ink">
-            {SOURCES.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={source === option.value}
-                onClick={() => setSource(option.value)}
-                className={cn('px-4 py-2 text-body-sm transition-colors', source === option.value ? 'bg-ink text-surface' : 'bg-surface-raised text-ink hover:bg-surface-sunken')}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <FilterSelect label="Impacto" value={impact} onChange={setImpact} options={IMPACTS.map((value) => ({ value, label: IMPACT_LABELS[value].replace('Impacto ', '') }))} />
-          <FilterSelect label="Materia" value={materia} onChange={setMateria} options={MATERIAS.map((value) => ({ value, label: value }))} />
-          <FilterSelect label="Objeto" value={family} onChange={setFamily} options={Object.entries(OBJECT_FAMILIES).filter(([key]) => key !== 'sin_accion').map(([value, label]) => ({ value, label }))} />
-          <label className="flex items-center gap-2">
-            <span className="text-body-sm text-ink-muted">Agrupar</span>
-            <Select value={grouped ? 'dia' : 'ninguno'} onValueChange={(value) => setGrouped(value === 'dia')}>
-              <SelectTrigger aria-label="Agrupar" className="min-w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectItem value="dia">Por día</SelectItem>
-                  <SelectItem value="ninguno">Sin agrupar</SelectItem>
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </label>
+          {filtersOpen && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-raised p-3">
+              <div role="group" aria-label="Fuente" className="inline-flex overflow-hidden rounded-md border border-ink">
+                {SOURCES.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-pressed={source === option.value}
+                    onClick={() => setSource(option.value)}
+                    className={cn('px-4 py-2 text-body-sm transition-colors', source === option.value ? 'bg-ink text-surface' : 'bg-surface-raised text-ink hover:bg-surface-sunken')}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+              <FilterSelect label="Prioridad" value={band} onChange={setBand} options={BANDS.map((value) => ({ value, label: BAND_LABELS[value] }))} />
+              <FilterSelect label="Materia" value={materia} onChange={setMateria} options={MATERIAS.map((value) => ({ value, label: value }))} />
+              <FilterSelect label="Objeto" value={family} onChange={setFamily} options={Object.entries(OBJECT_FAMILIES).filter(([key]) => key !== 'sin_accion').map(([value, label]) => ({ value, label }))} />
+              {activeFilters > 0 && (
+                <Button variant="ghost" onClick={() => { setSource(ALL); setBand(ALL); setMateria(ALL); setFamily(ALL) }}>Quitar filtros</Button>
+              )}
+            </div>
+          )}
         </div>
-
-        <p className="text-body-sm text-ink-muted">
-          {visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'} en esta vista. Abre un asunto para decidir.
-        </p>
 
         {canDecide && selectedIds.length > 0 && (
           <div role="region" aria-label="Acciones para los seleccionados" className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-4">
@@ -311,7 +272,7 @@ export function Inbox({ items, members, canDecide }: Props) {
           </Empty>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border">
-            <InboxTable groups={groups} selectable={canDecide} selected={selected} openId={openId} onToggle={toggle} onToggleAll={toggleAll} onOpen={setOpenId} />
+            <InboxTable items={sorted} selectable={canDecide} showOwner={showOwner} selected={selected} openId={openId} onToggle={toggle} onToggleAll={toggleAll} onOpen={setOpenId} />
           </div>
         )}
       </section>
