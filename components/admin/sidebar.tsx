@@ -3,15 +3,25 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { authClient } from '@/lib/auth-client'
+
+/** Logotipo: "otero" en Fraunces con el punto cuadrado rosa. */
+function Wordmark({ className }: { className?: string }) {
+  return (
+    <span className={cn('inline-flex items-baseline gap-0.5 font-display font-semibold leading-none tracking-[-0.02em] text-ink', className)}>
+      otero
+      <span aria-hidden className="size-[0.2em] bg-brand" />
+    </span>
+  )
+}
 
 function SignOutButton() {
   const router = useRouter()
   return (
     <button
       onClick={async () => { await authClient.signOut(); router.push('/sign-in'); router.refresh() }}
-      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-surface/25 hover:bg-surface/[0.06] hover:text-surface/60 transition-all"
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all"
     >
       <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -65,10 +75,6 @@ const superAdminNav = [
 export function AdminSidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { data: session } = authClient.useSession()
-  const [hydrated, setHydrated] = useState(false)
-  useEffect(() => setHydrated(true), [])
-  const adminName = hydrated ? session?.user?.name?.trim() || 'Otero' : 'Otero'
 
   function NavItem({ href, label, icon, badge, exact }: {
     href: string; label: string; icon: React.ReactNode; badge?: number; exact?: boolean
@@ -79,30 +85,23 @@ export function AdminSidebar() {
         href={href}
         onClick={() => setMobileOpen(false)}
         aria-current={isActive ? 'page' : undefined}
-        style={isActive ? { backgroundColor: 'var(--brand)', color: 'var(--on-brand)' } : { color: 'var(--ink-muted)' }}
         className={cn(
           'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all group',
-          !isActive && 'hover:bg-brand/10'
+          isActive
+            ? 'bg-surface-sunken text-ink font-semibold'
+            : 'text-muted-foreground hover:bg-secondary/60 hover:text-foreground'
         )}
       >
-        <span
-          style={{ color: isActive ? 'var(--on-brand)' : 'var(--ink-muted)' }}
-          className={cn('shrink-0 transition-colors', !isActive && 'group-hover:!text-brand-text')}
-        >
+        <span className={cn('shrink-0 transition-colors', isActive ? 'text-ink' : 'text-muted-foreground/60 group-hover:text-muted-foreground')}>
           {icon}
         </span>
-        <span style={{ color: isActive ? 'var(--surface)' : undefined }} className="flex-1 font-medium leading-none tracking-[-0.01em]">{label}</span>
-        {badge && (
-          <span className={cn(
-            "flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
-            isActive ? "bg-surface/20 text-surface" : "bg-surface-raised/10 text-ink-muted"
-          )}>
+        <span className="flex-1 font-medium leading-none">{label}</span>
+        {badge && !isActive && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-risk px-1 text-[10px] font-bold text-surface">
             {badge}
           </span>
         )}
-        {isActive && (
-          <span className="w-1.5 h-1.5 rounded-full bg-warn shrink-0" />
-        )}
+        {isActive && <span className="size-1.5 shrink-0 rounded-full bg-ink" />}
       </Link>
     )
   }
@@ -110,16 +109,11 @@ export function AdminSidebar() {
   const SidebarContent = () => (
     <div className="flex h-full flex-col">
       {/* ── Header ─────────────────────────── */}
-      <div className="px-5 py-5 border-b" style={{ borderColor: 'var(--border)' }}>
-        {/* Brand row */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2.5">
-            <div>
-              <div className="flex items-baseline gap-1.5"><p style={{ color: 'var(--ink)' }} className="font-serif text-2xl font-semibold leading-none tracking-[-0.04em]">Otero</p><span style={{ color: 'var(--brand-text)' }} className="text-xs font-semibold tracking-[0.08em]">AI</span></div>
-            </div>
-          </div>
-        </div>
-
+      <div className="border-b border-border px-5 py-5">
+        <Link href="/admin" className="flex items-center gap-2.5">
+          <Wordmark className="text-2xl" />
+          <span className="rounded-pill bg-surface-sunken px-2 py-0.5 text-label text-ink-muted">Admin</span>
+        </Link>
       </div>
 
       {/* ── Nav ────────────────────────────── */}
@@ -135,8 +129,9 @@ export function AdminSidebar() {
           </ul>
         </div>
 
-        {/* Compliance tools — MVP milestone */}
+        {/* Operación */}
         <div>
+          <p className="mb-2 px-3 text-label text-ink-muted">Operación</p>
           <ul className="space-y-0.5">
             {adminNav.map(item => (
               <li key={item.href}>
@@ -152,7 +147,7 @@ export function AdminSidebar() {
 
         {/* Superadmin: tenant + user management */}
         <div>
-          <p className="mb-2 px-3 text-[9px] font-bold uppercase tracking-[0.2em] text-surface/20">Administración</p>
+          <p className="mb-2 px-3 text-label text-ink-muted">Administración</p>
           <ul className="space-y-0.5">
             {superAdminNav.map(item => (
               <li key={item.href}>
@@ -164,10 +159,10 @@ export function AdminSidebar() {
       </nav>
 
       {/* ── Footer ────���────────────────���──���── */}
-      <div className="border-t border-surface/[0.06] px-3 py-3 space-y-0.5">
+      <div className="space-y-0.5 border-t border-border px-3 py-3">
         <Link
           href="/cliente"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-surface/25 hover:bg-surface/[0.06] hover:text-surface/60 transition-all group"
+          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all group"
         >
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
@@ -182,24 +177,21 @@ export function AdminSidebar() {
   return (
     <>
       {/* Desktop sidebar — wider for web-first */}
-      <aside
-        style={{ backgroundColor: 'var(--surface)', color: 'var(--ink)', borderRight: '1px solid var(--border)' }}
-        className="portal-sidebar portal-sidebar-admin hidden w-[240px] xl:w-[260px] shrink-0 md:flex flex-col"
-      >
+      <aside className="portal-sidebar-admin hidden w-[240px] shrink-0 flex-col border-r border-border bg-card text-ink md:flex xl:w-[260px]">
         <div className="sticky top-0 h-screen overflow-hidden">
           <SidebarContent />
         </div>
       </aside>
 
       {/* Mobile top bar */}
-      <div className="admin-mobile-bar sticky top-0 z-30 flex items-center justify-between border-b border-border bg-surface px-4 py-3.5 md:hidden">
+      <div className="admin-mobile-bar sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card px-4 py-3.5 md:hidden">
         <div className="flex items-center gap-2.5">
-          <div className="flex items-baseline gap-1.5"><span className="font-serif text-xl font-semibold text-foreground tracking-[-0.04em]">Otero</span><span className="text-xs font-semibold tracking-[0.08em] text-primary">AI</span></div>
+          <Wordmark className="text-xl" />
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="flex size-11 items-center justify-center rounded-xl text-ink-muted hover:bg-surface/10 transition-colors"
+            className="flex size-11 items-center justify-center rounded-xl text-ink-muted hover:bg-secondary/60 transition-colors"
             aria-label="Menú"
           >
             {mobileOpen
@@ -212,9 +204,9 @@ export function AdminSidebar() {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-x-0 bottom-0 top-[var(--banner-h,0px)] z-50 md:hidden">
           <div className="absolute inset-0 bg-ink/50" onClick={() => setMobileOpen(false)} />
-          <div className="admin-mobile-drawer absolute left-0 top-0 bottom-0 w-[min(21rem,calc(100vw-2rem))] bg-surface text-ink ">
+          <div className="admin-mobile-drawer absolute left-0 top-0 bottom-0 w-[min(21rem,calc(100vw-2rem))] bg-card text-ink">
             <SidebarContent />
           </div>
         </div>

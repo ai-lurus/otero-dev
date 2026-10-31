@@ -3,29 +3,6 @@ html{scroll-behavior:smooth}
 /* Shared portal language: the dashboards inherit the same quiet editorial rhythm as the home. */
 .portal-shell{background:var(--surface)}
 .portal-main{background:var(--surface);scroll-behavior:smooth}
-.portal-sidebar{background:var(--ink);color:var(--surface);border-color:rgba(255,255,255,.08)}
-.portal-sidebar a{transition:background-color .2s ease,color .2s ease,transform .2s ease}
-.portal-sidebar a:hover{transform:translateX(2px)}
-.portal-sidebar [aria-current="page"]{background:var(--brand)!important;color:var(--surface)!important;box-shadow:0 8px 20px rgba(196,42,109,.18)}
-.portal-shell-admin .portal-sidebar{background:var(--surface);color:var(--ink);border-color:rgba(17,33,51,.12)}
-.portal-shell-admin .portal-sidebar [aria-current="page"]{background:rgba(196,42,109,.10)!important;color:var(--brand)!important;box-shadow:none}
-.portal-shell-admin .portal-sidebar [aria-current="page"] span:first-child{color:var(--brand)!important}
-.portal-shell-admin .portal-sidebar a{color:rgba(17,33,51,.62)}
-.portal-shell-admin .portal-sidebar a:hover{background:rgba(196,42,109,.10)!important;color:var(--ink)!important}
-.portal-shell-admin .portal-sidebar a[aria-current="page"]{color:#ffffff!important;background:var(--brand)!important}
-.portal-shell-admin .portal-sidebar a[aria-current="page"] span{color:#ffffff!important}
-.portal-shell-admin .portal-sidebar a[aria-current="page"] span.flex-1{color:#ffffff!important}
-.portal-shell-admin .portal-sidebar a[aria-current="page"] svg{color:#ffffff!important}
-.portal-shell-admin .portal-sidebar .border-white\/\[0\.06\],.portal-shell-admin .portal-sidebar .border-white\/\[0\.07\]{border-color:rgba(17,33,51,.10)}
-.portal-shell-admin .portal-sidebar .text-white,.portal-shell-admin .portal-sidebar .text-white\/55,.portal-shell-admin .portal-sidebar .text-white\/35,.portal-shell-admin .portal-sidebar .text-white\/25,.portal-shell-admin .portal-sidebar .text-white\/20{color:rgba(17,33,51,.62)}
-.portal-shell-admin .portal-sidebar .text-white\/85{color:var(--ink)}
-.portal-shell-admin .portal-sidebar .bg-white\/10,.portal-shell-admin .portal-sidebar .bg-white\/20,.portal-shell-admin .portal-sidebar .bg-\[rgba\(255\,255\,255\,0\.10\)\]{background:rgba(196,42,109,.10)}
-.portal-shell-admin .portal-sidebar [aria-current="page"] .bg-white\/20{background:rgba(196,42,109,.15)}
-.portal-shell-admin .portal-sidebar .bg-\[\#d6b77a\]{background:var(--brand)}
-.portal-shell-admin .portal-sidebar svg{color:rgba(17,33,51,.48)}
-.portal-shell-admin .portal-sidebar a[aria-current="page"] span.flex-1{color:#ffffff!important}
-.portal-shell-admin .portal-sidebar a[aria-current="page"]{background:var(--brand)!important;color:#ffffff!important}
-.portal-shell-admin .portal-sidebar a[aria-current="page"] svg{color:#ffffff!important}
 .portal-shell-admin .portal-main a.text-\[\#1C2B4A\],.portal-shell-admin .portal-main a.text-\[\#3D5A8A\]{color:var(--brand)!important}
 .portal-shell-admin .portal-main a.text-\[\#1C2B4A\]:hover,.portal-shell-admin .portal-main a.text-\[\#3D5A8A\]:hover{color:#9f2056!important}
 .portal-shell-admin .admin-mobile-bar,.portal-shell-admin .admin-mobile-drawer{background:var(--surface)!important;color:var(--ink)}
@@ -65,4 +42,4 @@ html{scroll-behavior:smooth}
 .h-screen { height: calc(100dvh - var(--banner-h, 0px)); }
 .min-h-screen { min-height: calc(100dvh - var(--banner-h, 0px)); }
 @media (min-width: 48rem) { .md\:h-screen { height: calc(100dvh - var(--banner-h, 0px)); } }
-.sticky.top-0:not([role='note']) { top: var(--banner-h, 0px); }
+.sticky.top-0:not([role='note']), .fixed.top-0:not([role='note']) { top: var(--banner-h, 0px); }
