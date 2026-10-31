@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm'
 import { Pool } from 'pg'
 import { db } from './index'
 import * as schema from './schema'
+import { explicitSsl } from './pg-url'
 import { decryptDbUrl } from './tenant-crypto'
 
 // Conexión a la base de un cliente (tenant). Todo acceso a datos de un cliente
@@ -25,7 +26,7 @@ async function connect(tenantId: string): Promise<TenantDb | null> {
     .limit(1)
   if (!tenant) throw new Error(`Cliente no encontrado: ${tenantId}`)
   if (!tenant.dbUrlEncrypted) return null
-  const pool = new Pool({ connectionString: decryptDbUrl(tenant.id, tenant.dbUrlEncrypted), max: 5 })
+  const pool = new Pool({ connectionString: explicitSsl(decryptDbUrl(tenant.id, tenant.dbUrlEncrypted)), max: 5 })
   pools.set(tenantId, pool)
   return drizzle(pool, { schema })
 }
