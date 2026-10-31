@@ -19,9 +19,11 @@ export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const step = Number(request.nextUrl.searchParams.get('step') ?? '0') || 0
+  // chain=0: quien llama sigue las vueltas (pnpm regwatch:run) y no se encadena solo.
+  const chain = request.nextUrl.searchParams.get('chain') !== '0'
   try {
     const run = await runRegwatch({ budgetMs: BUDGET_MS, syncSites: step === 0 })
-    if (run.remaining && step < MAX_CHAIN) {
+    if (chain && run.remaining && step < MAX_CHAIN) {
       const next = new URL(request.nextUrl.pathname, request.nextUrl.origin)
       next.searchParams.set('step', String(step + 1))
       after(async () => {
