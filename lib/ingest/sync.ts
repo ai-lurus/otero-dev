@@ -4,6 +4,7 @@ import { ingestSources } from '@/lib/db/schema'
 import { fetchDofSummary } from './dof'
 import { IngestError } from './extract'
 import { fetchSiteLinks, isDofHost, type SiteLink } from './site'
+import { instrumentFromTitle, noiseReason } from './rules'
 
 export const MAX_NEW_PER_CHECK = 80
 
@@ -28,14 +29,21 @@ export async function syncSiteCore(site: typeof ingestSources.$inferSelect, crea
   const toCreate = fresh.slice(0, MAX_NEW_PER_CHECK)
 
   const created = toCreate.length
-    ? await db.insert(ingestSources).values(toCreate.map(n => ({
-        id: `src-${crypto.randomUUID()}`,
-        kind: 'url',
-        title: n.title,
-        url: n.url,
-        parentId: site.id,
-        createdBy,
-      }))).returning()
+    ? await db.insert(ingestSources).values(toCreate.map(n => {
+        // Lo que nunca genera asunto queda descartado sin pasar por la IA.
+        const noise = noiseReason(n.title)
+        return {
+          id: `src-${crypto.randomUUID()}`,
+          kind: 'url',
+          title: n.title,
+          url: n.url,
+          parentId: site.id,
+          instrumentType: instrumentFromTitle(n.title),
+          status: noise ? 'descartada' : 'en_cola',
+          statusDetail: noise ? `Descartada sin IA: ${noise}` : null,
+          createdBy,
+        }
+      })).returning()
     : []
   const [updated] = await db.update(ingestSources)
     .set({ lastCheckedAt: new Date(), updatedAt: new Date() })

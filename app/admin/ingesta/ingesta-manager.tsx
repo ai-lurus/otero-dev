@@ -12,12 +12,13 @@ import { cn } from '@/lib/utils'
 const ACCEPT = [...ALLOWED_UPLOAD_TYPES].join(',')
 
 const STATUS_LABELS: Record<string, string> = {
-  en_cola: 'En cola', procesando: 'Procesando', lista: 'Lista', error: 'Error',
+  en_cola: 'En cola', procesando: 'Procesando', lista: 'Lista', error: 'Error', descartada: 'Descartada',
 }
 function statusBadge(s: string) {
   if (s === 'lista') return 'bg-ok-tint text-ok border-ok/30'
   if (s === 'procesando') return 'bg-brand-tint text-brand-text border-brand/30'
   if (s === 'error') return 'bg-risk-tint text-risk border-risk/30'
+  if (s === 'descartada') return 'bg-surface-sunken text-muted-foreground border-border'
   return 'bg-warn-tint text-warn-text border-warn/30'
 }
 
@@ -419,7 +420,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
   useEscape(onClose)
   const none = <span className="text-muted-foreground">—</span>
   const isSite = source.kind === 'site'
-  const canProcess = !isSite && (source.status === 'en_cola' || source.status === 'error')
+  const canProcess = !isSite && (source.status === 'en_cola' || source.status === 'error' || source.status === 'descartada')
   return (
     <div className="fixed inset-0 z-50 bg-ink/50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-background w-full max-w-xl max-h-[92vh] rounded-2xl overflow-hidden flex flex-col " onClick={e => e.stopPropagation()}>
@@ -443,6 +444,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
                 {STATUS_LABELS[source.status] ?? source.status}
               </span>
               {source.status === 'error' && source.statusDetail && <p className="text-xs text-risk mt-1.5">{source.statusDetail}</p>}
+              {source.status === 'descartada' && source.statusDetail && <p className="text-xs text-muted-foreground mt-1.5">{source.statusDetail}. Si sí interesa, pulsa Procesar.</p>}
               {source.processedAt && source.status === 'lista' && (
                 <p className="text-xs text-muted-foreground mt-1.5">Procesada el {formatDate(source.processedAt)}</p>
               )}
@@ -465,7 +467,7 @@ function DetailModal({ source, parent, href, busy, onClose, onProcess }: {
             </>
           )}
 
-          {!isSite && source.status !== 'lista' && source.status !== 'error' && (
+          {!isSite && source.status !== 'lista' && source.status !== 'error' && source.status !== 'descartada' && (
             <p className="text-sm text-muted-foreground">Aún no se ha categorizado. Pulsa Procesar para que Otero la lea y la clasifique.</p>
           )}
 
@@ -824,6 +826,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                   {s.parentId && siteById.get(s.parentId) && ` · de ${titleOf(siteById.get(s.parentId)!)}`}
                 </p>
                 {s.kind !== 'site' && s.status === 'error' && s.statusDetail && <p className="text-[11px] text-risk mt-0.5">{s.statusDetail}</p>}
+                {s.kind !== 'site' && s.status === 'descartada' && s.statusDetail && <p className="text-[11px] text-muted-foreground mt-0.5">{s.statusDetail}</p>}
                 {s.kind !== 'site' && s.status === 'lista' && (
                   <div className="mt-1.5 space-y-1">
                     <div className="flex flex-wrap gap-1.5">
@@ -862,7 +865,7 @@ export default function IngestaManager({ initialSources }: { initialSources: Ing
                     Revisar ahora
                   </button>
                 )}
-                {s.kind !== 'site' && (s.status === 'en_cola' || s.status === 'error') && (
+                {s.kind !== 'site' && (s.status === 'en_cola' || s.status === 'error' || s.status === 'descartada') && (
                   <button onClick={() => handleProcess(s)} disabled={processingId !== null}
                     className="flex items-center gap-1.5 rounded-lg bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40">
                     {s.status === 'error' ? <RotateCw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}

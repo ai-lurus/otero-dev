@@ -258,7 +258,7 @@ export const ingestSources = pgTable('ingest_sources', {
   fileName:     text('file_name'),
   mimeType:     text('mime_type'),
   sizeBytes:    integer('size_bytes'),
-  status:       text('status').notNull().default('en_cola'), // en_cola | procesando | lista | error
+  status:       text('status').notNull().default('en_cola'), // en_cola | procesando | lista | error | descartada (filtro sin IA, lib/ingest/rules.ts)
   statusDetail: text('status_detail'),
   // Resultado de la categorización (Claude Haiku). Nulos hasta que status = 'lista'.
   materia:        text('materia'),
@@ -267,6 +267,7 @@ export const ingestSources = pgTable('ingest_sources', {
   vigenciaStatus: text('vigencia_status'), // vigente | derogada | proyecto | no_aplica | desconocida
   vigenciaDetail: text('vigencia_detail'),
   summary:        text('summary'),
+  instrumentType: text('instrument_type'), // por reglas del título (lib/ingest/rules.ts)
   // Objetos legales detectados (lib/legal-objects.ts): [{ tipo, cita }].
   objects:        jsonb('objects').$type<DetectedObject[]>(),
   processedAt:    timestamp('processed_at'),

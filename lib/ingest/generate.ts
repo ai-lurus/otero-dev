@@ -64,7 +64,7 @@ export async function createItemFromSource(args: {
     materia: ITEM_MATERIA[(source.materia ?? 'otra') as Materia] ?? 'Administrativo y simplificación',
     title: draft?.title ?? source.title.slice(0, 150),
     description: source.summary ?? '',
-    instrumentType: draft?.instrumentType ?? null,
+    instrumentType: source.instrumentType ?? draft?.instrumentType ?? null,
     authority: source.authority,
     source: source.parentId ? sourceLabel : source.kind === 'file' ? (source.fileName ?? 'Archivo') : new URL(source.url!).hostname,
     sourceUrl: source.url,
