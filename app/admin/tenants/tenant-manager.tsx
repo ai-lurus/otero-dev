@@ -1,19 +1,22 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createTenant, deleteTenant, updateTenantSlug } from '@/app/actions/admin'
 import type { Tenant } from '@/lib/db/schema'
 import { cn } from '@/lib/utils'
+import { PROFILE_STATUS_LABELS, type ProfileStatus } from '@/lib/monitoring-profile'
 
 interface Props {
   tenants: Tenant[]
   userCountByTenant: Record<string, number>
+  monitoring: Record<string, { status: ProfileStatus; confirmed: boolean }>
 }
 
 const INDUSTRIES = ['Manufactura', 'Hidrocarburos', 'Transporte', 'Gasolineras', 'Construcción', 'Comercio', 'Servicios', 'Otro']
 
-export default function TenantManager({ tenants, userCountByTenant }: Props) {
+export default function TenantManager({ tenants, userCountByTenant, monitoring }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [showForm, setShowForm] = useState(false)
@@ -144,6 +147,7 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden sm:table-cell">RFC</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Portal de login</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden md:table-cell">Industria</th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">Monitoreo</th>
                 <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">Usuarios</th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground hidden lg:table-cell">Alta</th>
                 <th className="px-5 py-3" />
@@ -194,6 +198,15 @@ export default function TenantManager({ tenants, userCountByTenant }: Props) {
                   </td>
                   <td className="px-5 py-4 hidden md:table-cell">
                     <span className="rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-foreground">{t.industry ?? '—'}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <Link href={`/admin/tenants/${t.id}/perfil`} className="inline-flex flex-col gap-0.5 hover:underline">
+                      <span className={cn('text-xs font-semibold',
+                        monitoring[t.id]?.status === 'completo' ? 'text-ok' : monitoring[t.id]?.status === 'incompleto' ? 'text-warn-text' : 'text-muted-foreground')}>
+                        {monitoring[t.id] ? PROFILE_STATUS_LABELS[monitoring[t.id].status] : 'Ver perfil'}
+                      </span>
+                      {monitoring[t.id]?.confirmed && <span className="text-[11px] text-muted-foreground">Confirmado por el cliente</span>}
+                    </Link>
                   </td>
                   <td className="px-5 py-4 text-center">
                     <span className="text-sm font-bold text-foreground">{userCountByTenant[t.id] ?? 0}</span>

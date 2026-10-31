@@ -66,9 +66,11 @@ const COMPANY_FIELDS = [
 type PerfilClientProps = {
   user: { name: string; email: string }
   profile: CompanyProfile | null
+  /** Sección del perfil de monitoreo, armada en el servidor. */
+  children?: React.ReactNode
 }
 
-export default function PerfilClient({ user, profile }: PerfilClientProps) {
+export default function PerfilClient({ user, profile, children }: PerfilClientProps) {
   const [notifs, setNotifs] = useState({ compliance: true, documentos: true, chat: true, pagos: true })
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" })
@@ -198,6 +200,8 @@ export default function PerfilClient({ user, profile }: PerfilClientProps) {
             </form>
           </div>
         </div>
+
+        {children}
 
         {/* Seguridad */}
         <Section title="Seguridad">

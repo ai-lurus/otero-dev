@@ -1,9 +1,10 @@
-import type { Materia } from './categories'
+import { MATERIAS, type Materia } from './categories'
+import { profileStatus, scianLabel, sectorOf, TRIGGERS, type TriggerKey, type Triggers } from '@/lib/monitoring-profile'
 
-// Qué clientes podrían verse afectados por una publicación, según su materia y
-// el giro/actividades del perfil de empresa. Es solo una propuesta: el socio
-// revisa y decide antes de generar nada, y el cliente no ve el asunto hasta
-// que se le envía desde la matriz regulatoria.
+// Qué clientes se ven afectados por una publicación, según su materia y el
+// perfil de monitoreo del cliente (lib/monitoring-profile.ts): materias que
+// le vigila el despacho, actividad SCIAN y preguntas de operación. Si el
+// perfil no está capturado, se cae a palabras clave del giro y actividades.
 
 // Materias que tocan a cualquier empresa que opere en México.
 const GENERAL: Partial<Record<Materia, string>> = {
@@ -26,29 +27,76 @@ const SECTOR: Partial<Record<Materia, string[]>> = {
   competencia: ['fusión', 'adquisici', 'concentraci', 'licitaci'],
 }
 
+// Por materia sectorial: preguntas de operación que la activan (con las
+// respuestas que cuentan) y sectores o subsectores SCIAN donde aplica.
+type Rule = { triggers?: Partial<Record<TriggerKey, string[]>>; scian?: string[] }
+const YES = ['si']
+const RULES: Partial<Record<Materia, Rule>> = {
+  energia: { triggers: { hidrocarburos: YES }, scian: ['22', '211', '324', '468', '486'] },
+  ambiental: {
+    triggers: {
+      residuos_peligrosos: ['micro', 'pequeno', 'gran'], emisiones: YES, agua_concesion: YES,
+      agua_descarga: ['drenaje', 'cuerpo_nacional'], costero: YES, hidrocarburos: YES,
+    },
+    scian: ['11', '21', '22', '23', '31', '562'],
+  },
+  seguridad_higiene: { triggers: { hidrocarburos: YES, residuos_peligrosos: ['pequeno', 'gran'] }, scian: ['21', '22', '23', '31', '48'] },
+  comercio_exterior: { triggers: { comercio_exterior: YES, immex: YES } },
+  financiero: { scian: ['52'] },
+  salud: { triggers: { sanitario: YES }, scian: ['311', '312', '325', '62', '722'] },
+  propiedad_intelectual: { scian: ['51', '54', '334'] },
+}
+
 export type MatchProfile = {
   industry?: string | null
   description?: string | null
   activities?: string | null
   riesgos?: string | null
   certifications?: string | null
+  scian?: string | null
+  stateList?: string[] | null
+  triggers?: Triggers | null
+  materias?: string[] | null
 }
 
 export type Match = { applies: boolean; reason: string }
 
+/** Motivo por el que el perfil estructurado activa la materia, o null. */
+function ruleHit(materia: Materia, profile: MatchProfile): string | null {
+  const rule = RULES[materia]
+  if (!rule) return null
+  for (const [key, values] of Object.entries(rule.triggers ?? {}) as [TriggerKey, string[]][]) {
+    const answer = profile.triggers?.[key]
+    if (answer && values.includes(answer)) {
+      const trigger = TRIGGERS.find(t => t.key === key)!
+      const option = trigger.options.find(o => o.value === answer)
+      return `${trigger.label.replace(/^¿|\?$/g, '')}: ${option?.label ?? answer}`
+    }
+  }
+  const code = profile.scian
+  if (code && rule.scian?.some(c => c === code || c === sectorOf(code))) return `Su actividad es ${scianLabel(code)}`
+  return null
+}
+
 export function matchTenant(materia: string | null, profile: MatchProfile): Match {
   if (!materia || materia === 'otra') return { applies: false, reason: 'Sin materia clara; revisa si aplica' }
+  if (profile.materias?.length && !profile.materias.includes(materia)) {
+    return { applies: false, reason: `El despacho no le vigila ${MATERIAS[materia as Materia] ?? materia}` }
+  }
   const general = GENERAL[materia as Materia]
   if (general) return { applies: true, reason: general }
+
+  const hit = ruleHit(materia as Materia, profile)
+  if (hit) return { applies: true, reason: hit }
+  const structured = profileStatus(profile) !== 'vacio'
 
   const keywords = SECTOR[materia as Materia] ?? []
   const text = [profile.industry, profile.description, profile.activities, profile.riesgos, profile.certifications]
     .filter(Boolean).join(' ').toLowerCase()
-  if (!text.trim()) return { applies: false, reason: 'El cliente no tiene giro ni perfil de empresa capturado' }
-  const hit = keywords.find((k) => text.includes(k))
-  return hit
-    ? { applies: true, reason: `Su perfil menciona "${excerpt(text, hit)}"` }
-    : { applies: false, reason: 'Su giro no parece relacionado con esta materia' }
+  if (!text.trim() && !structured) return { applies: false, reason: 'Perfil de monitoreo sin capturar: solo recibe materias generales' }
+  const word = keywords.find((k) => text.includes(k))
+  if (word) return { applies: true, reason: `Su perfil menciona "${excerpt(text, word)}"` }
+  return { applies: false, reason: structured ? 'Su perfil de monitoreo no activa esta materia' : 'Su giro no parece relacionado con esta materia' }
 }
 
 // La palabra completa del perfil donde cayó la coincidencia.

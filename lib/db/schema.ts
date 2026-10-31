@@ -12,6 +12,7 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core'
 import type { DetectedObject } from '@/lib/legal-objects'
+import type { Triggers } from '@/lib/monitoring-profile'
 
 // ── Better Auth required tables ────────────────────────────────────
 
@@ -199,6 +200,13 @@ export const companyProfiles = pgTable('company_profiles', {
   activities:     text('activities').notNull().default(''),
   certifications: text('certifications').notNull().default(''),
   riesgos:        text('riesgos').notNull().default(''),
+  // Perfil de monitoreo (lib/monitoring-profile.ts): decide qué publicaciones de RegWatch le tocan.
+  scian:          text('scian'), // sector (2 dígitos) o subsector (3) SCIAN
+  stateList:      jsonb('stateList').$type<string[]>(), // estados donde opera
+  triggers:       jsonb('triggers').$type<Triggers>(), // respuestas a las preguntas que activan materias
+  materias:       jsonb('materias').$type<string[]>(), // materias que el despacho le vigila; null = todas
+  confirmedAt:    timestamp('confirmedAt'), // el admin del cliente confirmó el perfil
+  confirmedBy:    text('confirmedBy'),
   updatedAt:      timestamp('updatedAt').notNull().defaultNow(),
 })
 

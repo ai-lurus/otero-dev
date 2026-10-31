@@ -1,11 +1,13 @@
 import { getTenants } from '@/app/actions/admin'
 import { getUsersWithTenants } from '@/app/actions/admin'
+import { getMonitoringStatuses } from '@/app/actions/monitoring-profile'
 import TenantManager from './tenant-manager'
 
 export default async function TenantsPage() {
-  const [tenantList, usersWithTenants] = await Promise.all([
+  const [tenantList, usersWithTenants, monitoring] = await Promise.all([
     getTenants(),
     getUsersWithTenants(),
+    getMonitoringStatuses().catch(() => ({})),
   ])
 
   // Build per-tenant user count map
@@ -26,7 +28,7 @@ export default async function TenantsPage() {
           Gestiona las empresas cliente de la plataforma. Cada empresa es un tenant independiente con sus propios usuarios y documentos.
         </p>
       </div>
-      <TenantManager tenants={tenantList} userCountByTenant={userCountByTenant} />
+      <TenantManager tenants={tenantList} userCountByTenant={userCountByTenant} monitoring={monitoring} />
     </div>
   )
 }
