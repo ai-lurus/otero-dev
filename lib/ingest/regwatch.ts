@@ -1,6 +1,7 @@
-import { and, asc, eq, gte, inArray, isNull, lt, ne, or } from 'drizzle-orm'
+import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, or } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { ingestMatches, ingestSources, tenants } from '@/lib/db/schema'
+import { familyCounts } from '@/lib/legal-objects'
 import { todayInMexico } from './dof'
 import { createItemFromSource, sourceLabelOf } from './generate'
 import { processSourceCore } from './process'
@@ -21,6 +22,27 @@ const GENERATE_BATCH = 4
 const MAX_AGE_DAYS = 30
 /** Motivo con que se marca un par que falló: no se reintenta solo, el socio lo ve en el panel de ingesta. */
 export const FAILED_REASON = 'No se pudo generar el asunto automáticamente'
+/** Topes diarios para cuidar tokens: publicaciones categorizadas y asuntos generados (pares publicación-cliente). */
+const MAX_PROCESSED_PER_DAY = Number(process.env.REGWATCH_MAX_PROCESSED_PER_DAY ?? 15)
+const MAX_ITEMS_PER_DAY = Number(process.env.REGWATCH_MAX_ITEMS_PER_DAY ?? 2)
+
+/** Medianoche de hoy en CDMX (UTC-6 todo el año). */
+const startOfTodayMexico = () => new Date(`${todayInMexico()}T06:00:00Z`)
+
+async function processedToday() {
+  const start = startOfTodayMexico()
+  const [row] = await db.select({ n: count() }).from(ingestSources).where(and(
+    eq(ingestSources.createdBy, SYSTEM_ACTOR),
+    or(gte(ingestSources.processedAt, start), and(eq(ingestSources.status, 'error'), gte(ingestSources.updatedAt, start))),
+  ))
+  return row?.n ?? 0
+}
+
+async function generatedToday() {
+  const [row] = await db.select({ n: count() }).from(ingestMatches)
+    .where(and(isNotNull(ingestMatches.draftItemId), gte(ingestMatches.updatedAt, startOfTodayMexico())))
+  return row?.n ?? 0
+}
 
 export type RegwatchRun = {
   sites: number
@@ -53,23 +75,27 @@ async function syncAllSites(run: RegwatchRun) {
 }
 
 async function processQueued(run: RegwatchRun, deadline: number) {
-  while (Date.now() < deadline) {
+  let left = MAX_PROCESSED_PER_DAY - await processedToday()
+  while (Date.now() < deadline && left > 0) {
     const [next] = await db.select({ id: ingestSources.id }).from(ingestSources).where(and(
       eq(ingestSources.createdBy, SYSTEM_ACTOR),
       or(
         eq(ingestSources.status, 'en_cola'),
         and(eq(ingestSources.status, 'procesando'), lt(ingestSources.updatedAt, new Date(Date.now() - STUCK_AFTER_MS))),
       ),
-    )).orderBy(asc(ingestSources.createdAt)).limit(1)
+    )).orderBy(desc(ingestSources.createdAt)).limit(1)
     if (!next) return
-    if (await processSourceCore(next.id)) run.processed += 1
+    if (await processSourceCore(next.id)) { run.processed += 1; left -= 1 }
     else return
   }
 }
 
-/** Pares publicación-cliente por generar: aplica y todavía no tiene asunto. Solo lo creado por el sync. */
+/**
+ * Pares publicación-cliente por generar: aplica y todavía no tiene asunto. Solo lo creado por el sync.
+ * Primero las publicaciones con objetos que piden acción, luego las más recientes.
+ */
 async function pendingPairs() {
-  return db.select({ sourceId: ingestMatches.sourceId, tenantId: ingestMatches.tenantId })
+  const rows = await db.select({ sourceId: ingestMatches.sourceId, tenantId: ingestMatches.tenantId, objects: ingestSources.objects })
     .from(ingestMatches)
     .innerJoin(ingestSources, eq(ingestSources.id, ingestMatches.sourceId))
     .where(and(
@@ -80,12 +106,15 @@ async function pendingPairs() {
       isNull(ingestMatches.draftItemId),
       ne(ingestMatches.reason, FAILED_REASON),
     ))
-    .orderBy(asc(ingestSources.createdAt))
+    .orderBy(desc(ingestSources.createdAt))
+  const withAction = (r: (typeof rows)[number]) => (familyCounts(r.objects).length ? 1 : 0)
+  return rows.sort((a, b) => withAction(b) - withAction(a))
 }
 
 async function generatePending(run: RegwatchRun, deadline: number) {
-  while (Date.now() < deadline) {
-    const batch = (await pendingPairs()).slice(0, GENERATE_BATCH)
+  let left = MAX_ITEMS_PER_DAY - await generatedToday()
+  while (Date.now() < deadline && left > 0) {
+    const batch = (await pendingPairs()).slice(0, Math.min(GENERATE_BATCH, left))
     if (!batch.length) return
     const sources = await db.select().from(ingestSources).where(inArray(ingestSources.id, [...new Set(batch.map(p => p.sourceId))]))
     const tenantList = await db.select().from(tenants).where(inArray(tenants.id, [...new Set(batch.map(p => p.tenantId))]))
@@ -106,6 +135,7 @@ async function generatePending(run: RegwatchRun, deadline: number) {
       }
     }))
     run.generated += results.filter(r => r === 'ok').length
+    left -= results.filter(r => r === 'ok').length
     run.failed += results.filter(r => r === 'failed').length
     // Un par que falló sigue sin asunto: salir si nada avanzó evita un ciclo sin fin dentro de la corrida.
     if (!results.includes('ok')) return
@@ -119,8 +149,13 @@ export async function runRegwatch(opts: { budgetMs: number; syncSites: boolean }
   await processQueued(run, deadline)
   await generatePending(run, deadline)
 
-  const [queued] = await db.select({ id: ingestSources.id }).from(ingestSources)
-    .where(and(eq(ingestSources.createdBy, SYSTEM_ACTOR), eq(ingestSources.status, 'en_cola'))).limit(1)
-  run.remaining = Boolean(queued) || (await pendingPairs()).length > 0
+  // Con los topes del día alcanzados no queda trabajo para hoy: lo pendiente espera al día siguiente.
+  const canProcess = await processedToday() < MAX_PROCESSED_PER_DAY
+  const canGenerate = await generatedToday() < MAX_ITEMS_PER_DAY
+  const [queued] = canProcess
+    ? await db.select({ id: ingestSources.id }).from(ingestSources)
+      .where(and(eq(ingestSources.createdBy, SYSTEM_ACTOR), eq(ingestSources.status, 'en_cola'))).limit(1)
+    : []
+  run.remaining = Boolean(queued) || (canGenerate && (await pendingPairs()).length > 0)
   return run
 }
