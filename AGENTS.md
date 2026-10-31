@@ -10,7 +10,7 @@ Otero: lee `docs/design-system.md` antes de tocar UI.
   Tailwind.
 - Tipografía con la escala (`text-display-md`, `text-heading`, `text-body`,
   `text-body-sm`, `text-label`, `text-caption`, `text-cite`, `text-data`).
-- Bordes, no sombras. Radios `sm`/`md`/`lg`/`pill`. Espacios en la escala
+- Borde más sombra suave (`shadow-xs` a `shadow-lg`, solo tokens). Radios `sm`/`md`/`lg`/`pill`. Espacios en la escala
   1, 2, 3, 4, 6, 8, 12, 16, 24.
 - Reutiliza `components/ui` (`Button`, `StatusTag`, `Cite`, `DeadlineChip`,
   `Card`…) y `components/regulatory/regulatory-alert.tsx` antes de crear
