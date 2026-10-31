@@ -1,0 +1,33 @@
+# Cortes de RegWatch con los horarios del despacho. Llama al endpoint del
+# sync en producción, que se encadena solo hasta terminar.
+# Horarios en UTC; CDMX es UTC-6 todo el año. GitHub puede retrasarlos unos minutos.
+# Secretos del repo: CRON_SECRET (el mismo que en Vercel) y REGWATCH_URL (p. ej. https://otero-dev.vercel.app).
+name: RegWatch
+
+on:
+  schedule:
+    - cron: '0 12 * * *'        # 6:00 CDMX: DOF matutino y comunicados
+    - cron: '0 0 * * *'         # 18:00 CDMX: comunicados
+    - cron: '0 22,23 * * *'     # 16:00 y 17:00 CDMX: edición vespertina del DOF
+    - cron: '0 1,2,3,4 * * *'   # 19:00 a 22:00 CDMX: edición vespertina del DOF
+  workflow_dispatch:
+
+concurrency:
+  group: regwatch
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Correr el sync de RegWatch
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REGWATCH_URL: ${{ secrets.REGWATCH_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$REGWATCH_URL" ]; then
+            echo "Faltan los secretos CRON_SECRET o REGWATCH_URL" >&2
+            exit 1
+          fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$REGWATCH_URL/api/cron/regwatch"

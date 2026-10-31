@@ -1,7 +1,7 @@
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { runRegwatch } from '@/lib/ingest/regwatch'
 
-// Sync de RegWatch: Vercel Cron lo llama a diario (vercel.json) con
+// Sync de RegWatch: lo llama GitHub Actions en cada corte (.github/workflows/regwatch.yml) con
 // Authorization: Bearer $CRON_SECRET. Si queda trabajo, se vuelve a llamar solo.
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
