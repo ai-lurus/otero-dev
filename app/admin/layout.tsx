@@ -8,7 +8,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!(await isAdminUser())) redirect('/cliente')
 
   return (
-    <div className="portal-shell portal-shell-admin flex min-h-screen min-w-0 overflow-x-hidden bg-background">
+    <div className="portal-shell portal-shell-admin flex min-h-screen min-w-0 overflow-x-clip bg-background">
       <AdminSidebar />
       <main className="portal-main w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
         {children}
