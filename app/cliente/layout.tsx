@@ -86,16 +86,22 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   useEffect(() => { isTenantAdmin().then(setIsTA).catch(() => {}) }, [])
   const nav = isTA ? [...NAV, USUARIOS_NAV] : NAV
 
-  function NavItem({ href, label, icon, badge, exact }: {
-    href: string; label: string; icon: React.ReactNode; badge?: number; exact?: boolean
+  // En RegWatch el menú principal se achica a íconos para dejar lugar a las vistas de la bandeja.
+  const compact = pathname.startsWith("/cliente/obligaciones")
+
+  function NavItem({ href, label, icon, badge, exact, compact: rail = false }: {
+    href: string; label: string; icon: React.ReactNode; badge?: number; exact?: boolean; compact?: boolean
   }) {
     const isActive = exact ? pathname === href : pathname.startsWith(href)
     return (
       <Link
         href={href}
         onClick={() => setMobileOpen(false)}
+        title={rail ? label : undefined}
+        aria-label={rail ? label : undefined}
         className={cn(
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all group",
+          rail && "justify-center px-0",
           isActive
             ? "bg-surface-sunken text-ink font-semibold"
             : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
@@ -104,31 +110,33 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         <span className={cn("shrink-0 transition-colors", isActive ? "text-ink" : "text-muted-foreground/60 group-hover:text-muted-foreground")}>
           {icon}
         </span>
-        <span className="flex-1 font-medium leading-none">{label}</span>
-        {badge && !isActive && (
+        {!rail && <span className="flex-1 font-medium leading-none">{label}</span>}
+        {!rail && badge && !isActive && (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-risk text-surface text-[10px] font-bold px-1">
             {badge}
           </span>
         )}
-        {isActive && (
+        {!rail && isActive && (
           <span className="w-1.5 h-1.5 rounded-full bg-ink shrink-0" />
         )}
       </Link>
     )
   }
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ rail = false }: { rail?: boolean }) => (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="px-5 py-5 border-b border-border">
-        <div className="flex items-center justify-between mb-4">
-          <Link href="/cliente" className="flex items-center gap-2.5">
+      <div className={cn("border-b border-border py-5", rail ? "px-3" : "px-5")}>
+        <div className={cn("flex items-center mb-4", rail ? "justify-center" : "justify-between")}>
+          <Link href="/cliente" title={rail ? "Grupo Industrial" : undefined} aria-label={rail ? "Grupo Industrial" : undefined} className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-ink flex items-center justify-center ">
               <span className="text-xs font-bold text-surface">GI</span>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground leading-none">Grupo Industrial</p>
-            </div>
+            {!rail && (
+              <div>
+                <p className="text-sm font-semibold text-foreground leading-none">Grupo Industrial</p>
+              </div>
+            )}
           </Link>
         </div>
       </div>
@@ -139,7 +147,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           <ul className="space-y-0.5">
             {nav.map(item => (
               <li key={item.href}>
-                <NavItem {...item} />
+                <NavItem {...item} compact={rail} />
               </li>
             ))}
           </ul>
@@ -151,7 +159,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
             <ul className="space-y-0.5">
               {SECONDARY_NAV.map(item => (
                 <li key={item.href}>
-                  <NavItem {...item} />
+                  <NavItem {...item} compact={rail} />
                 </li>
               ))}
             </ul>
@@ -163,21 +171,25 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       <div className="border-t border-border px-3 py-3 space-y-0.5">
         <Link
           href="/cliente/perfil"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all"
+          title={rail ? "Mi perfil" : undefined}
+          aria-label={rail ? "Mi perfil" : undefined}
+          className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all", rail && "justify-center px-0")}
         >
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
           </svg>
-          <span className="font-medium">Mi perfil</span>
+          {!rail && <span className="font-medium">Mi perfil</span>}
         </Link>
         <button
           onClick={async () => { await authClient.signOut(); router.push("/sign-in"); router.refresh() }}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all"
+          title={rail ? "Cerrar sesión" : undefined}
+          aria-label={rail ? "Cerrar sesión" : undefined}
+          className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all", rail && "justify-center px-0")}
         >
           <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
           </svg>
-          <span className="font-medium">Cerrar sesión</span>
+          {!rail && <span className="font-medium">Cerrar sesión</span>}
         </button>
       </div>
     </div>
@@ -187,9 +199,9 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
     <div className="portal-shell portal-shell-client flex min-h-screen bg-background">
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-[220px] xl:w-[240px] shrink-0 flex-col border-r border-border bg-card">
+      <aside className={cn("hidden md:flex shrink-0 flex-col border-r border-border bg-card transition-[width]", compact ? "w-[72px]" : "w-[220px] xl:w-[240px]")}>
         <div className="sticky top-0 h-screen overflow-hidden">
-          <SidebarContent />
+          <SidebarContent rail={compact} />
         </div>
       </aside>
 
