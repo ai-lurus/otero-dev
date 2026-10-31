@@ -140,6 +140,15 @@ export const regulatoryItems = pgTable('regulatory_items', {
   obligationDetail: text('obligation_detail').notNull().default(''),
   comments: text('comments').notNull().default(''),
   objects: jsonb('objects').$type<DetectedObject[]>(), // objetos legales de la publicación, copiados al generar el asunto
+  // Formato del despacho (copiado de la publicación al generar el asunto).
+  objeto: text('objeto'),
+  considerations: text('considerations'),
+  ambito: text('ambito'), // federal | estatal | municipal
+  effectiveDate: date('effective_date'),
+  commentDeadline: date('comment_deadline'),
+  legalBases: jsonb('legal_bases').$type<string[]>(),
+  genus: text('genus'), // género ambiental G01–G17
+  obligationsStatus: text('obligations_status'), // si | no | por_definir
   origin: text('origin').notNull().default('despacho'), // regwatch | despacho
   executionStatus: text('execution_status'), // por_hacer | en_curso | en_revision | cumplido; solo tras aceptar
   status: text('status').notNull().default('identificada'), // identificada | aceptada | cerrada | diferida | descartada | archivada
@@ -268,6 +277,15 @@ export const ingestSources = pgTable('ingest_sources', {
   vigenciaDetail: text('vigencia_detail'),
   summary:        text('summary'),
   instrumentType: text('instrument_type'), // por reglas del título (lib/ingest/rules.ts)
+  // Clasificación ampliada (lib/ingest/categorize.ts), con el formato del despacho.
+  objeto:         text('objeto'), // qué establece, en una oración
+  considerations: text('considerations'), // datos prácticos: cifras, periodos, a quién aplica
+  ambito:         text('ambito'), // federal | estatal | municipal
+  effectiveDate:  date('effective_date'), // entrada en vigor según transitorios
+  commentDeadline: date('comment_deadline'), // fecha límite de consulta pública (PIGR o proyecto de NOM)
+  isAnnouncement: boolean('is_announcement').notNull().default(false), // comunicado: noticia, no obligación
+  legalBases:     jsonb('legal_bases').$type<string[]>(), // fundamentos citados: "LGEEPA art. 28"
+  genus:          text('genus'), // género ambiental G01–G17 (lib/environmental-genera.ts)
   // Objetos legales detectados (lib/legal-objects.ts): [{ tipo, cita }].
   objects:        jsonb('objects').$type<DetectedObject[]>(),
   processedAt:    timestamp('processed_at'),

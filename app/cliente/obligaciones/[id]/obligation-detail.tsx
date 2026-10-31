@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { AMBITOS, ENVIRONMENTAL_GENERA, OBLIGATION_STATUSES, isAmbito, isGenus } from '@/lib/environmental-genera'
 
 type Kind = 'nota' | 'documento' | 'evidencia'
 type Evidence = Obligation['evidence'][number]
@@ -170,18 +171,25 @@ export function ObligationDetail({
             <dl className="grid gap-5 rounded-xl border border-border bg-card p-5 sm:grid-cols-2">
               <Field label="Materia (catálogo)">{obligation.materia || 'Sin definir'}</Field>
               <Field label="Tipo">{obligation.instrumentType || 'Sin definir'}</Field>
+              {obligation.objeto && <Field label="Objeto" wide>{obligation.objeto}</Field>}
               <Field label="Descripción" wide>{obligation.description || 'Sin descripción agregada.'}</Field>
+              {obligation.considerations && <Field label="Consideraciones" wide><span className="whitespace-pre-line">{obligation.considerations}</span></Field>}
               {obligation.subtema && <Field label="Subtema" wide>{obligation.subtema}</Field>}
               <Field label="Documento de referencia">{obligation.source || 'Sin definir'}</Field>
               <Field label="Fecha de publicación">{obligation.publishedAt || 'Sin fecha'}</Field>
               <Field label="Impacto">{obligation.impact ? `Impacto ${obligation.impact}` : 'Sin definir'}</Field>
               <Field label="Sentido del impacto">{obligation.impactDirection ? DIRECTION_LABELS[obligation.impactDirection] : 'Sin definir'}</Field>
               <Field label="Justificación del impacto" wide>{obligation.impactRationale || 'Sin justificación agregada.'}</Field>
-              <Field label="Obligaciones" wide>
+              <Field label={obligation.obligationsStatus && obligation.obligationsStatus in OBLIGATION_STATUSES ? `Obligaciones: ${OBLIGATION_STATUSES[obligation.obligationsStatus as keyof typeof OBLIGATION_STATUSES]}` : 'Obligaciones'} wide>
                 <span className="whitespace-pre-line">
                   {obligation.obligationDetail || (obligation.generatesObligation ? 'Sí, sin detalle agregado.' : 'No genera obligaciones registradas.')}
                 </span>
               </Field>
+              {obligation.ambito && <Field label="Ámbito">{isAmbito(obligation.ambito) ? AMBITOS[obligation.ambito] : obligation.ambito}</Field>}
+              {isGenus(obligation.genus) && <Field label="Género ambiental">{`${obligation.genus} · ${ENVIRONMENTAL_GENERA[obligation.genus]}`}</Field>}
+              {obligation.effectiveDate && <Field label="Entrada en vigor">{obligation.effectiveDate}</Field>}
+              {obligation.commentDeadline && <Field label="Fecha límite para comentar">{obligation.commentDeadline}</Field>}
+              {!!obligation.legalBases?.length && <Field label="Fundamentos" wide>{obligation.legalBases.join('; ')}</Field>}
               <Field label="Fechas relevantes" wide>
                 {obligation.dueDate ? `Fecha: ${obligation.dueDate}` : 'Sin fecha relevante registrada.'}
               </Field>

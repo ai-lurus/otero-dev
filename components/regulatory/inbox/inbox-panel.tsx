@@ -12,6 +12,7 @@ import { Cite, DeadlineChip } from '@/components/ui/status-tag'
 import { DIRECTION_LABELS, IMPACT_LABELS, STAGE_LABELS, STATUS_LABELS } from '@/lib/regulatory'
 import { bandOf, deadlineLabel } from '@/lib/inbox'
 import { LEGAL_OBJECTS, isLegalObject } from '@/lib/legal-objects'
+import { AMBITOS, ENVIRONMENTAL_GENERA, OBLIGATION_STATUSES, isAmbito, isGenus } from '@/lib/environmental-genera'
 import { AssigneeSelect } from './assignee-select'
 import { BandTag, sourceCite } from './band-tag'
 
@@ -88,8 +89,21 @@ export function InboxPanel({ item, members, canDecide, onClose }: Props) {
   const band = item ? bandOf(item) : null
   const deadline = item ? deadlineLabel(item.dueDate) : null
   const meta = item
-    ? [item.authority, item.instrumentType, item.stage ? STAGE_LABELS[item.stage] ?? item.stage : null, item.materia].filter(Boolean)
+    ? [
+        item.authority, item.instrumentType, item.stage ? STAGE_LABELS[item.stage] ?? item.stage : null, item.materia,
+        isGenus(item.genus) ? ENVIRONMENTAL_GENERA[item.genus] : null, isAmbito(item.ambito) ? AMBITOS[item.ambito] : null,
+      ].filter(Boolean)
     : []
+  const dates = item
+    ? [
+        item.publishedAt && `Publicación: ${item.publishedAt}`,
+        item.effectiveDate && `Entrada en vigor: ${item.effectiveDate}`,
+        item.commentDeadline && `Fecha límite para comentar: ${item.commentDeadline}`,
+      ].filter(Boolean)
+    : []
+  const obligationsTitle = item?.obligationsStatus && item.obligationsStatus in OBLIGATION_STATUSES
+    ? `Obligaciones: ${OBLIGATION_STATUSES[item.obligationsStatus as keyof typeof OBLIGATION_STATUSES]}`
+    : 'Qué te obliga a hacer'
 
   return (
     <Sheet open={!!item} onOpenChange={(open) => { if (!open) { reset(); onClose() } }}>
@@ -107,13 +121,19 @@ export function InboxPanel({ item, members, canDecide, onClose }: Props) {
             </SheetHeader>
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
+              {item.objeto && <Section title="Objeto">{item.objeto}</Section>}
               {item.description && <Section title="Resumen">{item.description}</Section>}
+              {item.considerations && <Section title="Consideraciones"><span className="whitespace-pre-line">{item.considerations}</span></Section>}
               {item.impactRationale && (
                 <Section title={[item.impact && IMPACT_LABELS[item.impact], item.impactDirection && DIRECTION_LABELS[item.impactDirection]].filter(Boolean).join(' · ') || 'Impacto'}>
                   {item.impactRationale}
                 </Section>
               )}
-              {item.generatesObligation && item.obligationDetail && <Section title="Qué te obliga a hacer">{item.obligationDetail}</Section>}
+              {item.obligationDetail && (item.obligationsStatus || item.generatesObligation) && (
+                <Section title={obligationsTitle}><span className="whitespace-pre-line">{item.obligationDetail}</span></Section>
+              )}
+              {dates.length > 0 && <Section title="Fechas">{dates.join(' · ')}</Section>}
+              {!!item.legalBases?.length && <Section title="Fundamentos">{item.legalBases.join('; ')}</Section>}
               {!!item.objects?.length && (
                 <Section title="Objetos">
                   <ul className="flex flex-col gap-2">
