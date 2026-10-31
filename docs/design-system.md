@@ -120,8 +120,12 @@ Radios: `rounded-sm` (4px, chips de cita), `rounded-md` (8px, botones,
 inputs, menús), `rounded-lg` (16px, tarjetas y paneles), `rounded-pill`
 (etiquetas de estado). `rounded-xl` equivale a `rounded-lg`.
 
-- **Bordes, no sombras.** Tarjetas en `bg-surface-raised` con `border
-  border-border` y `rounded-lg`. No uses `shadow-*`.
+- **Borde y sombra suave.** Tarjetas en `bg-surface-raised` con `border
+  border-border`, `rounded-lg` y `shadow-sm`. La elevación sube con lo que
+  flota: `shadow-xs` y `shadow-sm` en tarjetas, tablas y paneles de filtros;
+  `shadow-md` en botones flotantes; `shadow-lg` en menús, paneles y el
+  asistente. Las sombras son tokens teñidos de tinta (`--shadow-rgb`); no
+  escribas sombras a mano.
 - Sin degradados, sin glassmorphism, sin tarjetas con filo de color en el
   costado: el estado va en la etiqueta.
 - **Foco:** contorno sólido de 2px en `ink` con 2px de separación
@@ -184,7 +188,7 @@ etiqueta Al día, nombre y hora de la última verificación en `text-caption`.
 - Logotipo "otero" en Fraunces 600 con un punto cuadrado rosa; símbolo: una
   baldosa crema con un cuadrado rosa al centro. Mínimo 72px el logotipo y 16px
   el símbolo. Sobre fondo oscuro, la variante inversa. No girar, recolorear,
-  redondear el cuadrado, poner sobre rosa ni añadir sombras.
+  redondear el cuadrado, poner sobre rosa ni añadir sombras al logotipo.
 - Imagen de marca: el **mosaico Otero**, módulos cuadrados de 96px con cuartos
   de círculo en `ink`, `brand`, `warn`, `ok` y `border`. Máximo un tercio de
   la pieza, sangra por un borde, nunca con texto encima. Nada de fotos de
@@ -197,7 +201,7 @@ etiqueta Al día, nombre y hora de la última verificación en `text-caption`.
 - [ ] Tipografía con la escala (`text-heading`, `text-body`…), no tamaños
       sueltos.
 - [ ] Espacios en pasos de la escala; radios `sm`/`md`/`lg`/`pill`.
-- [ ] Sin sombras ni degradados.
+- [ ] Sombras solo con los tokens `shadow-xs` a `shadow-lg`, sin degradados.
 - [ ] Máximo un botón primario rosa por vista; acciones con verbo.
 - [ ] Estados con palabra + ícono; alertas con cita de fuente.
 - [ ] Textos en español de México, de tú, sin exclamaciones ni emojis.

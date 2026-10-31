@@ -199,7 +199,7 @@ export function Inbox({ items, members, canDecide }: Props) {
             </Button>
           </div>
           {filtersOpen && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-raised p-3">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface-raised p-3 shadow-xs">
               <div role="group" aria-label="Fuente" className="inline-flex overflow-hidden rounded-md border border-ink">
                 {SOURCES.map((option) => (
                   <button
@@ -224,7 +224,7 @@ export function Inbox({ items, members, canDecide }: Props) {
         </div>
 
         {canDecide && selectedIds.length > 0 && (
-          <div role="region" aria-label="Acciones para los seleccionados" className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-4">
+          <div role="region" aria-label="Acciones para los seleccionados" className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
               <span className="text-body-sm text-ink">{selectedIds.length} {selectedIds.length === 1 ? 'seleccionado' : 'seleccionados'}</span>
               <div className="ml-auto flex flex-wrap gap-3">
@@ -271,7 +271,7 @@ export function Inbox({ items, members, canDecide }: Props) {
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-lg border border-border shadow-sm">
             <InboxTable items={sorted} selectable={canDecide} showOwner={showOwner} selected={selected} openId={openId} onToggle={toggle} onToggleAll={toggleAll} onOpen={setOpenId} />
           </div>
         )}

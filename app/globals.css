@@ -51,6 +51,9 @@
   --input: var(--border-strong);
   --ring: var(--ink);
 
+  /* Color de las sombras: tinta con poca opacidad en Claro, negro en Oscuro. */
+  --shadow-rgb: 13 33 50;
+
   /* Radio base de shadcn (= radius-md). Los radios viven en @theme. */
   --radius: 8px;
 
@@ -88,6 +91,7 @@
 
 /* Tema Oscuro: mismos nombres, otros valores. */
 .dark {
+  --shadow-rgb: 0 0 0;
   --surface: #0b1620;
   --surface-raised: #122130;
   --surface-sunken: #08111a;
@@ -111,6 +115,14 @@
 }
 
 @theme inline {
+  /* Elevación: sombras suaves en capas, teñidas de tinta. xs/sm para tarjetas y
+     tablas; md/lg para lo que flota (menús, paneles, el asistente). */
+  --shadow-xs: 0 1px 2px 0 rgb(var(--shadow-rgb) / 0.06);
+  --shadow-sm: 0 1px 2px 0 rgb(var(--shadow-rgb) / 0.06), 0 2px 8px -2px rgb(var(--shadow-rgb) / 0.08);
+  --shadow-md: 0 2px 4px -1px rgb(var(--shadow-rgb) / 0.06), 0 8px 20px -6px rgb(var(--shadow-rgb) / 0.14);
+  --shadow-lg: 0 4px 8px -2px rgb(var(--shadow-rgb) / 0.06), 0 20px 40px -12px rgb(var(--shadow-rgb) / 0.22);
+  --shadow-xl: 0 8px 16px -4px rgb(var(--shadow-rgb) / 0.08), 0 32px 64px -16px rgb(var(--shadow-rgb) / 0.28);
+
   /* Familias */
   --font-sans: var(--font-instrument), system-ui, sans-serif;
   --font-display: var(--font-fraunces), Georgia, serif;

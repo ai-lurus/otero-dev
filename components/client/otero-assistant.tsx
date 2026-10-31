@@ -67,7 +67,7 @@ export function OteroAssistant() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 rounded-pill bg-ink px-4 py-3 text-body-sm font-medium text-surface transition-colors hover:bg-ink/90 md:right-6 md:bottom-6"
+          className="fixed right-4 bottom-4 z-40 inline-flex items-center gap-2 rounded-pill bg-ink px-4 py-3 text-body-sm font-medium text-surface shadow-md transition-colors hover:bg-ink/90 md:right-6 md:bottom-6"
         >
           <Sparkles aria-hidden className="size-4" />
           Pregunta a Otero
@@ -78,7 +78,7 @@ export function OteroAssistant() {
         <div
           role="dialog"
           aria-label="Asistente de Otero"
-          className="fixed inset-0 z-50 flex flex-col border-border-strong bg-surface-raised md:inset-auto md:right-6 md:bottom-6 md:h-[36rem] md:max-h-[calc(100vh-3rem)] md:w-[26rem] md:rounded-lg md:border"
+          className="fixed inset-0 z-50 flex flex-col border-border-strong bg-surface-raised md:inset-auto md:right-6 md:bottom-6 md:h-[36rem] md:max-h-[calc(100vh-3rem)] md:w-[26rem] md:rounded-lg md:border md:shadow-lg"
         >
           <header className="flex items-center gap-3 border-b border-border px-4 py-3">
             <div className="flex size-8 items-center justify-center rounded-md bg-ink text-surface">
