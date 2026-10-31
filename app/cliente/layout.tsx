@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
 import { isTenantAdmin } from "@/app/actions/tenant-users"
 import { getCurrentTenantName } from "@/app/actions/auth-helpers"
+import { RailTip } from "@/components/client/rail-tip"
 
 const NAV = [
   {
@@ -102,10 +103,10 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   }) {
     const isActive = exact ? pathname === href : pathname.startsWith(href)
     return (
+      <RailTip label={label} show={rail}>
       <Link
         href={href}
         onClick={() => setMobileOpen(false)}
-        title={rail ? label : undefined}
         aria-label={rail ? label : undefined}
         className={cn(
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all group",
@@ -128,6 +129,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           <span className="w-1.5 h-1.5 rounded-full bg-ink shrink-0" />
         )}
       </Link>
+      </RailTip>
     )
   }
 
@@ -136,7 +138,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
       {/* Header */}
       <div className={cn("border-b border-border py-5", rail ? "px-3" : "px-5")}>
         <div className={cn("flex items-center mb-4", rail ? "justify-center" : "justify-between")}>
-          <Link href="/cliente" title={rail ? company ?? undefined : undefined} aria-label={rail ? company ?? "Inicio" : undefined} className="flex items-center gap-2.5">
+          <RailTip label={company} show={rail}>
+          <Link href="/cliente" aria-label={rail ? company ?? "Inicio" : undefined} className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-ink flex items-center justify-center ">
               <span className="text-xs font-bold text-surface">{initialsOf(company) || "O"}</span>
             </div>
@@ -146,6 +149,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
               </div>
             )}
           </Link>
+          </RailTip>
         </div>
       </div>
 
@@ -177,9 +181,9 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
 
       {/* Footer */}
       <div className="border-t border-border px-3 py-3 space-y-0.5">
+        <RailTip label="Mi perfil" show={rail}>
         <Link
           href="/cliente/perfil"
-          title={rail ? "Mi perfil" : undefined}
           aria-label={rail ? "Mi perfil" : undefined}
           className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all", rail && "justify-center px-0")}
         >
@@ -188,9 +192,10 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           </svg>
           {!rail && <span className="font-medium">Mi perfil</span>}
         </Link>
+        </RailTip>
+        <RailTip label="Cerrar sesión" show={rail}>
         <button
           onClick={async () => { await authClient.signOut(); router.push("/sign-in"); router.refresh() }}
-          title={rail ? "Cerrar sesión" : undefined}
           aria-label={rail ? "Cerrar sesión" : undefined}
           className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all", rail && "justify-center px-0")}
         >
@@ -199,6 +204,7 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
           </svg>
           {!rail && <span className="font-medium">Cerrar sesión</span>}
         </button>
+        </RailTip>
       </div>
     </div>
   )
@@ -249,12 +255,14 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
         {/* Top bar for desktop */}
         <header className="sticky top-0 z-30 flex items-center justify-end gap-3 bg-background border-b border-border px-8 py-3">
           <div className="flex-1" />
-          <Link href="/cliente/perfil" title={personName ?? "Mi perfil"} aria-label={personName ?? "Mi perfil"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          <RailTip label={personName ?? "Mi perfil"} show side="bottom">
+          <Link href="/cliente/perfil" aria-label={personName ?? "Mi perfil"} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <div className="w-8 h-8 rounded-xl bg-ink flex items-center justify-center">
               <span className="text-[11px] font-bold text-surface">{initialsOf(personName) || "U"}</span>
             </div>
             <span className="text-sm font-medium text-foreground hidden xl:block">{personName ?? ""}</span>
           </Link>
+          </RailTip>
         </header>
 
         {/* Page content */}
