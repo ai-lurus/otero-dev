@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Instrument_Sans, Fraunces, IBM_Plex_Mono } from 'next/font/google'
 import './globals.css'
 import './otero.css'
-import DemoBanner from '@/components/shared/demo-banner'
+import DemoBanner, { DEMO_BANNER_HEIGHT } from '@/components/shared/demo-banner'
 import { isDemoMode } from '@/lib/demo'
 
 const instrument = Instrument_Sans({ subsets: ['latin'], variable: '--font-instrument' })
@@ -26,7 +26,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${instrument.variable} ${fraunces.variable} ${plex.variable} bg-background`}>
+    <html
+      lang="es"
+      className={`${instrument.variable} ${fraunces.variable} ${plex.variable} bg-background`}
+      // Las pantallas miden 100vh menos el banner, para que no aparezca scroll de más.
+      style={isDemoMode ? ({ '--banner-h': DEMO_BANNER_HEIGHT } as React.CSSProperties) : undefined}
+    >
       <body className="font-sans antialiased">
         {isDemoMode && <DemoBanner />}
         {children}
