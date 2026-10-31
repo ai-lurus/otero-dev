@@ -7,6 +7,9 @@ export const DOF_HOSTS = ['dof.gob.mx', 'www.dof.gob.mx']
 
 export type DofNote = { code: string; title: string; url: string }
 
+/** El sumario de esa fecha no trae publicaciones: día sin edición (fines de semana, inhábiles). */
+export class NoEditionError extends IngestError {}
+
 /** Fecha de hoy en Ciudad de México como YYYY-MM-DD. */
 export function todayInMexico(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date())
@@ -44,7 +47,7 @@ export async function fetchDofSummary(date: string): Promise<DofNote[]> {
   const body = await readCapped(res.body, 5 * 1024 * 1024)
   const notes = parseDofSummary(decodeBody(body, res.headers.get('content-type') ?? ''))
   if (notes.length === 0) {
-    throw new IngestError('No se encontraron publicaciones en el sumario de esa fecha (puede ser un día sin edición)')
+    throw new NoEditionError('No se encontraron publicaciones en el sumario de esa fecha (puede ser un día sin edición)')
   }
   return notes
 }

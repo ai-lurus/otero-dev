@@ -2,7 +2,7 @@ import { and, count, desc, eq, gte, inArray, isNotNull, isNull, lt, ne, or } fro
 import { db } from '@/lib/db'
 import { ingestMatches, ingestSources, tenants } from '@/lib/db/schema'
 import { familyCounts } from '@/lib/legal-objects'
-import { todayInMexico } from './dof'
+import { NoEditionError, todayInMexico } from './dof'
 import { createItemFromSource, sourceLabelOf } from './generate'
 import { processSourceCore } from './process'
 import { syncSiteCore } from './sync'
@@ -17,6 +17,7 @@ import { syncSiteCore } from './sync'
 /** Autor de lo que crea el sync automático. */
 export const SYSTEM_ACTOR = 'system'
 const STUCK_AFTER_MS = 5 * 60 * 1000
+const LOCAL_ONLY_HOST = 'herramientasregulatorias.gob.mx'
 const GENERATE_BATCH = 4
 /** No se generan asuntos de publicaciones más viejas que esto (el listado de un sitio puede traer historial). */
 const MAX_AGE_DAYS = 30
@@ -56,7 +57,9 @@ export type RegwatchRun = {
 const dayBefore = (day: string) => new Date(new Date(`${day}T12:00:00Z`).getTime() - 86_400_000).toISOString().slice(0, 10)
 
 async function syncAllSites(run: RegwatchRun) {
-  const sites = await db.select().from(ingestSources).where(eq(ingestSources.kind, 'site'))
+  // La PIGR bloquea a los servidores: sus fichas llegan por el script local (pnpm pigr:ingest), no por aquí.
+  const sites = (await db.select().from(ingestSources).where(eq(ingestSources.kind, 'site')))
+    .filter(site => site.url && !new URL(site.url).hostname.includes(LOCAL_ONLY_HOST))
   const today = todayInMexico()
   for (const site of sites) {
     run.sites += 1
@@ -66,8 +69,11 @@ async function syncAllSites(run: RegwatchRun) {
         const sync = await syncSiteCore(site, SYSTEM_ACTOR, day)
         run.newSources += sync.created.length
       } catch (e) {
-        console.error('regwatch sync', site.id, day, e)
-        run.failed += 1
+        // Un día sin edición del DOF no es una falla.
+        if (!(e instanceof NoEditionError)) {
+          console.error('regwatch sync', site.id, day, e)
+          run.failed += 1
+        }
       }
       if (!site.url || !new URL(site.url).hostname.includes('dof.gob.mx')) break
     }
