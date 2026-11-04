@@ -1,12 +1,16 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { Suspense } from 'react'
-import { getTenantBySlug } from '@/app/actions/admin'
+import { eq } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { tenants } from '@/lib/db/schema'
 import { TenantLoginForm } from './tenant-login-form'
 
 export default async function TenantLoginPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const tenant = await getTenantBySlug(slug)
+  // Página pública: solo lo que se muestra antes de entrar (getTenantBySlug exige admin).
+  const [tenant] = await db.select({ id: tenants.id, name: tenants.name, industry: tenants.industry })
+    .from(tenants).where(eq(tenants.slug, slug)).limit(1)
   if (!tenant) notFound()
 
   return (
