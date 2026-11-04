@@ -4,8 +4,9 @@ import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { eq, and, desc, isNotNull, inArray, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { getTenantDb } from '@/lib/db/tenant'
-import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@/lib/db/schema'
+import { db as mainDb } from '@/lib/db'
+import { getOwnTenantDb, getTenantDb } from '@/lib/db/tenant'
+import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents, user, userTenants } from '@/lib/db/schema'
 import { members } from '@/lib/db/tenant-schema'
 import { DIRECTIONS, IMPACTS, MATERIAS, SCOPES, STATUSES, isOneOf } from '@/lib/regulatory'
 import { getFirstTenantId, requireAdmin } from './auth-helpers'
@@ -177,8 +178,20 @@ export type AssignableMember = { id: string; name: string }
 /** Personas activas de la empresa a quienes el admin puede asignar un asunto. Solo el admin del cliente las ve. */
 export async function getAssignableMembers(): Promise<AssignableMember[]> {
   if (!(await isTenantAdmin())) return []
-  const { db } = await clientContext()
-  const rows = await db.select({ id: members.id, name: members.name }).from(members).where(eq(members.active, true))
+  const { tenantId } = await clientContext()
+  return listTeam(tenantId)
+}
+
+/**
+ * Equipo asignable del cliente. Con base propia sale de `members`; si el cliente
+ * aún vive en la principal (no hay `members`), de sus usuarios: el id es el del usuario.
+ */
+async function listTeam(tenantId: string): Promise<AssignableMember[]> {
+  const own = await getOwnTenantDb(tenantId)
+  const rows = own
+    ? await own.select({ id: members.id, name: members.name }).from(members).where(eq(members.active, true))
+    : await mainDb.select({ id: user.id, name: user.name }).from(userTenants).innerJoin(user, eq(user.id, userTenants.userId))
+      .where(and(eq(userTenants.tenantId, tenantId), inArray(userTenants.role, ['client', 'tenant_admin'])))
   return rows.sort((a, b) => a.name.localeCompare(b.name))
 }
 
@@ -186,7 +199,7 @@ export async function getAssignableMembers(): Promise<AssignableMember[]> {
 export async function acceptAndAssign(id: string, memberId: string) {
   if (!(await isTenantAdmin())) throw new Error('Forbidden')
   const { userId, tenantId, db } = await clientContext()
-  const [member] = await db.select({ id: members.id, name: members.name }).from(members).where(and(eq(members.id, memberId), eq(members.active, true))).limit(1)
+  const member = (await listTeam(tenantId)).find(m => m.id === memberId)
   if (!member) throw new Error('Persona no encontrada')
   const updated = await db
     .update(regulatoryItems)
