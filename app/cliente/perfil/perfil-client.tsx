@@ -56,8 +56,6 @@ function Row({
 const COMPANY_FIELDS = [
   { key: "description",    label: "Descripción de la empresa",        placeholder: "Ej. Grupo industrial con plantas manufactureras en el norte del país...", rows: 3 },
   { key: "industry",       label: "Industria / Sector",               placeholder: "Ej. Manufactura, Alimentos, Minería, Construcción...", rows: 1 },
-  { key: "employees",      label: "Número de empleados",              placeholder: "Ej. 500-1000", rows: 1 },
-  { key: "states",         label: "Estados donde opera",              placeholder: "Ej. Nuevo León, Jalisco, CDMX...", rows: 1 },
   { key: "activities",     label: "Actividades principales",          placeholder: "Ej. Fabricación de autopartes, almacenamiento de residuos peligrosos...", rows: 2 },
   { key: "certifications", label: "Certificaciones vigentes",         placeholder: "Ej. ISO 14001, EMAS, Industria Limpia...", rows: 1 },
   { key: "riesgos",        label: "Riesgos regulatorios conocidos",   placeholder: "Ej. Licencias SEMARNAT pendientes, auditorías PROFEPA recientes...", rows: 2 },
@@ -79,8 +77,6 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
   const [companyForm, setCompanyForm] = useState({
     description: profile?.description ?? "",
     industry: profile?.industry ?? "",
-    employees: profile?.employees ?? "",
-    states: profile?.states ?? "",
     activities: profile?.activities ?? "",
     certifications: profile?.certifications ?? "",
     riesgos: profile?.riesgos ?? "",

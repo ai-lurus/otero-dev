@@ -19,7 +19,6 @@ const COMPANY_FIELDS: { key: keyof CompanyFields; label: string; placeholder: st
   { key: 'description', label: 'A qué se dedica tu empresa', placeholder: 'Fabricamos…', long: true },
   { key: 'activities', label: 'Actividades principales', placeholder: 'Producción, almacenamiento, importación…', long: true },
   { key: 'industry', label: 'Industria', placeholder: 'Industria química' },
-  { key: 'states', label: 'Plantas u oficinas', placeholder: 'Planta en Celaya, oficinas en Querétaro' },
   { key: 'certifications', label: 'Certificaciones vigentes', placeholder: 'ISO 14001, Industria Limpia' },
   { key: 'riesgos', label: 'Riesgos regulatorios que ya conoces', placeholder: 'Residuos peligrosos, emisiones…', long: true },
 ]

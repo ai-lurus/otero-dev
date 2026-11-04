@@ -9,7 +9,7 @@ export type CompanyFields = {
   description: string
   industry: string
   employees: string
-  states: string
+  states: string // lo llena el paso de monitoreo (estados elegidos)
   activities: string
   certifications: string
   riesgos: string

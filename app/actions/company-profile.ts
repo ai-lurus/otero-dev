@@ -44,8 +44,6 @@ export async function getCompanyProfile(tenantId: string) {
 export async function saveCompanyProfile(data: {
   description:    string
   industry:       string
-  employees:      string
-  states:         string
   activities:     string
   certifications: string
   riesgos:        string

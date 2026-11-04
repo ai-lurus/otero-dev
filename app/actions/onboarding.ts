@@ -77,7 +77,7 @@ export async function completeOnboarding(input: { company: Partial<CompanyFields
   const values = {
     ...company,
     employees: clean.employees ?? company.employees,
-    states: company.states || clean.stateList.join(', '),
+    states: clean.stateList.join(', '),
     scian: clean.scian,
     stateList: clean.stateList,
     triggers: clean.triggers,

@@ -63,6 +63,7 @@ export async function saveMonitoringProfileAsAdmin(tenantId: string, input: Moni
     triggers: clean.triggers,
     materias: clean.materias?.length ? clean.materias : null,
     ...(clean.employees ? { employees: clean.employees } : {}),
+    ...(clean.stateList.length ? { states: clean.stateList.join(', ') } : {}),
   })
 }
 
@@ -84,6 +85,7 @@ export async function saveMyMonitoringProfile(input: MonitoringFields, confirm: 
     stateList: clean.stateList,
     triggers: clean.triggers,
     ...(clean.employees ? { employees: clean.employees } : {}),
+    ...(clean.stateList.length ? { states: clean.stateList.join(', ') } : {}),
     ...(confirm ? { confirmedAt: new Date(), confirmedBy: userId } : {}),
   })
 }
