@@ -20,7 +20,7 @@ const pools = new Map<string, Pool>()
 
 async function connect(tenantId: string): Promise<TenantDb | null> {
   const [tenant] = await db
-    .select({ id: schema.tenants.id, dbUrlEncrypted: schema.tenants.dbUrlEncrypted })
+    .select()
     .from(schema.tenants)
     .where(eq(schema.tenants.id, tenantId))
     .limit(1)
@@ -28,7 +28,14 @@ async function connect(tenantId: string): Promise<TenantDb | null> {
   if (!tenant.dbUrlEncrypted) return null
   const pool = new Pool({ connectionString: explicitSsl(decryptDbUrl(tenant.id, tenant.dbUrlEncrypted)), max: 5 })
   pools.set(tenantId, pool)
-  return drizzle(pool, { schema })
+  const tdb = drizzle(pool, { schema })
+  // company_profiles referencia a tenants: la base del cliente necesita su propia fila,
+  // sin la URL cifrada. Si ya está, no hace nada.
+  await tdb
+    .insert(schema.tenants)
+    .values({ id: tenant.id, name: tenant.name, slug: tenant.slug, rfc: tenant.rfc, industry: tenant.industry, createdAt: tenant.createdAt })
+    .onConflictDoNothing()
+  return tdb
 }
 
 // Base propia del cliente, o null si todavía vive en la principal.
