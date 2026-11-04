@@ -83,14 +83,19 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
   })
   const [companySaving, setCompanySaving] = useState(false)
   const [companySaved, setCompanySaved]   = useState(false)
+  const [companyError, setCompanyError]   = useState<string | null>(null)
 
   async function handleSaveCompany(e: React.FormEvent) {
     e.preventDefault()
     setCompanySaving(true)
+    setCompanyError(null)
     try {
       await saveCompanyProfile(companyForm)
       setCompanySaved(true)
       setTimeout(() => setCompanySaved(false), 2500)
+    } catch (err) {
+      console.error('saveCompanyProfile', err)
+      setCompanyError('No se pudo guardar el perfil de la empresa. Intenta de nuevo; si sigue igual, avisa a tu despacho.')
     } finally {
       setCompanySaving(false)
     }
@@ -181,6 +186,7 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
                   )}
                 </div>
               ))}
+              {companyError && <p role="alert" className="rounded-md bg-risk-tint px-3 py-2 text-body-sm text-risk">{companyError}</p>}
               <button
                 type="submit"
                 disabled={companySaving}
