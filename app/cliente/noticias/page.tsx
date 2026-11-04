@@ -15,7 +15,7 @@ export default async function Page() {
         <div className="flex flex-col gap-6 p-6">
           <header>
             <p role="heading" aria-level={1} className="text-display-md text-ink">Noticias</p>
-            <p className="mt-2 text-body text-ink-muted">Comunicados de las dependencias, ordenados por lo que le toca a tu empresa.</p>
+            <p className="mt-2 text-body text-ink-muted">Comunicados de las dependencias, ordenados por lo que aplica a tu empresa.</p>
           </header>
           <Boletin cards={bulletin.cards} canCreate={bulletin.canCreate} />
         </div>

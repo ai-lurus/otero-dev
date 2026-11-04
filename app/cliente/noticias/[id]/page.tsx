@@ -27,7 +27,7 @@ export default async function NoticiaPage({ params }: { params: Promise<{ id: st
 
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {card.reason ? <StatusTag status="info" label="Te toca" /> : null}
+          {card.reason ? <StatusTag status="info" label="Aplica a tu empresa" /> : null}
           <span className="text-label text-ink-muted">{card.materiaLabel}</span>
           <Cite>{card.source} {citeDate(card.publishedAt)}</Cite>
         </div>
@@ -40,7 +40,7 @@ export default async function NoticiaPage({ params }: { params: Promise<{ id: st
       )}
 
       <section className="flex flex-col gap-1 rounded-lg border border-border bg-surface-raised p-6 shadow-xs">
-        <h3 className="text-heading text-ink">{card.reason ? 'Te toca porque' : 'Por ahora no te toca'}</h3>
+        <h3 className="text-heading text-ink">{card.reason ? 'Aplica a tu empresa porque' : 'Por ahora no aplica a tu empresa'}</h3>
         <p className="text-body text-ink-muted">
           {card.reason ?? `Con el perfil de monitoreo de tu empresa, ${card.materiaLabel.toLowerCase()} no se activa. Si tu operación cambió, actualiza tu perfil.`}
         </p>

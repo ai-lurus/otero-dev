@@ -31,7 +31,7 @@ export type NewsCard = {
   authority: string
   materia: string
   materiaLabel: string
-  /** Por qué le toca a esta empresa según su perfil; null si no le toca. */
+  /** Por qué aplica a esta empresa según su perfil; null si no aplica. */
   reason: string | null
   /** Id del asunto que ya se abrió desde esta nota, si existe. */
   itemId: string | null
@@ -99,7 +99,7 @@ export async function getNewsDetail(id: string): Promise<{ card: NewsCard; canCr
   return { card: toCard(row[0].item, row[0].source, ctx.matchProfile, created), canCreate }
 }
 
-/** Boletín del cliente: notas de los últimos 30 días, con el motivo por el que le tocan según su perfil. */
+/** Boletín del cliente: notas de los últimos 30 días, con el motivo por el que aplican según su perfil. */
 export async function getNewsBulletin(): Promise<{ cards: NewsCard[]; canCreate: boolean }> {
   const { tenantId, canCreate } = await clientContext()
   const since = new Date(Date.now() - BULLETIN_DAYS * 86_400_000)

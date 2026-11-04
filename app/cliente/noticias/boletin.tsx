@@ -53,13 +53,13 @@ function NewsRow({ card, canCreate }: { card: NewsCard; canCreate: boolean }) {
   return (
     <article className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-6 shadow-xs">
       <div className="flex flex-wrap items-center gap-2">
-        {card.reason ? <StatusTag status="info" label="Te toca" /> : null}
+        {card.reason ? <StatusTag status="info" label="Aplica a tu empresa" /> : null}
         <span className="text-label text-ink-muted">{card.materiaLabel}</span>
         <Cite>{card.source} {citeDate(card.publishedAt)}</Cite>
       </div>
       <h3 className="text-heading text-ink text-balance"><Link href={`/cliente/noticias/${card.id}`} className="hover:underline">{card.title}</Link></h3>
       {card.summary ? <p className="text-body text-ink line-clamp-4">{card.summary}</p> : null}
-      {card.reason ? <p className="text-body-sm text-ink-muted">Te toca porque: {card.reason}</p> : null}
+      {card.reason ? <p className="text-body-sm text-ink-muted">Aplica porque: {card.reason}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
         <Button asChild variant="ghost" size="sm">
           <Link href={`/cliente/noticias/${card.id}`}><BookOpen aria-hidden /> Abrir noticia</Link>
@@ -84,7 +84,7 @@ export default function Boletin({ cards, canCreate }: { cards: NewsCard[]; canCr
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Filtrar boletín">
-        {([['Para ti', true, forYou.length], ['Todas', false, cards.length]] as const).map(([label, value, n]) => (
+        {([['Para tu empresa', true, forYou.length], ['Todas', false, cards.length]] as const).map(([label, value, n]) => (
           <button
             key={label}
             type="button"
@@ -104,7 +104,7 @@ export default function Boletin({ cards, canCreate }: { cards: NewsCard[]; canCr
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border p-12 text-center">
           <Newspaper aria-hidden className="size-6 text-ink-muted" />
           <p className="text-body text-ink-muted">
-            {cards.length === 0 ? 'Aún no hay noticias. Otero revisa las salas de prensa varias veces al día.' : 'Nada nuevo para tu perfil en los últimos 30 días. Revisa Todas.'}
+            {cards.length === 0 ? 'Aún no hay noticias. Otero revisa las salas de prensa varias veces al día.' : 'Nada nuevo para tu empresa en los últimos 30 días. Revisa Todas.'}
           </p>
         </div>
       ) : days.map(group => (
