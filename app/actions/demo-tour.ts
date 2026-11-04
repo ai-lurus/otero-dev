@@ -7,7 +7,7 @@ import { getTenantDb } from '@/lib/db/tenant'
 import { upsertMember } from '@/lib/db/tenant-members'
 import { companyProfiles, ingestMatches, newsItems, regulatoryItems, tenants, user, userTenants } from '@/lib/db/schema'
 import { isDemoMode } from '@/lib/demo'
-import { DEMO_PERSONAS, DEMO_TENANT, demoEmail, demoPassword, slugify } from '@/lib/demo-users'
+import { DEMO_PERSONAS, DEMO_TENANT, DEMO_TOUR_SLUG, demoEmail, demoPassword, slugify } from '@/lib/demo-users'
 import { profileStatus, type ProfileStatus } from '@/lib/monitoring-profile'
 import { provisionTenantUser } from '@/lib/tenant-users'
 import { isSuperAdmin, requireAdmin } from './auth-helpers'
@@ -40,7 +40,7 @@ export async function getDemoTour(tenantId?: string): Promise<DemoTourState> {
   const canPrepare = isDemoMode && (await isSuperAdmin())
   const list = await db.select({ id: tenants.id, name: tenants.name, slug: tenants.slug, rfc: tenants.rfc })
     .from(tenants).orderBy(desc(tenants.createdAt))
-  const tenant = list.find(t => t.id === tenantId) ?? list.find(t => t.slug === DEMO_TENANT.slug) ?? null
+  const tenant = list.find(t => t.id === tenantId) ?? list.find(t => t.slug === DEMO_TOUR_SLUG) ?? list.find(t => t.slug === DEMO_TENANT.slug) ?? null
   const base = { tenants: list.map(({ id, name }) => ({ id, name })), tenant, canPrepare }
   if (!tenant) {
     return { ...base, users: [], profile: { status: 'vacio', confirmedAt: null }, regwatch: EMPTY_REGWATCH, firstAssigned: null, firstSent: null }

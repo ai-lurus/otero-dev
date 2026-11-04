@@ -15,7 +15,10 @@ export const DEMO_PERSONAS: readonly DemoPersona[] = [
   { local: 'cumplimiento', name: 'Lucía Ramírez', position: 'Coordinadora de cumplimiento', role: 'client' },
 ]
 
-/** Empresa ficticia que el recorrido puede registrar en un clic. */
+/** Empresa que el recorrido abre por defecto: el cliente de prueba, con base propia. */
+export const DEMO_TOUR_SLUG = 'prueba'
+
+/** Empresa ficticia que el recorrido puede registrar en un clic (queda en la base principal). */
 export const DEMO_TENANT = {
   name: 'Química del Bajío S.A. de C.V.',
   slug: 'quimica-bajio',
