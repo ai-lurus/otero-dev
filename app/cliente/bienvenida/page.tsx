@@ -17,7 +17,7 @@ export default async function BienvenidaPage() {
         <p role="heading" aria-level={1} className="text-display-md text-ink">Configura Otero para tu empresa</p>
         <p className="text-body-lg text-ink-muted">
           {state.isAdmin
-            ? 'Cuéntanos a qué se dedica tu empresa y dónde opera. Con eso RegWatch decide qué publicaciones te tocan. Toma unos cinco minutos.'
+            ? 'Cuéntanos a qué se dedica tu empresa y dónde opera. Con eso RegWatch decide qué publicaciones aplican a tu empresa. Toma unos cinco minutos.'
             : 'Así funciona Otero en tu empresa: de la publicación oficial al asunto con responsable.'}
         </p>
         {state.done && state.isAdmin && (

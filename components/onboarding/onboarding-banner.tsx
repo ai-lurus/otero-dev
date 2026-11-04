@@ -11,7 +11,7 @@ export function OnboardingBanner() {
           <ClipboardList aria-hidden className="mt-0.5 size-5 shrink-0 text-brand-text" strokeWidth={1.75} />
           <div>
             <p className="text-body-sm font-medium text-ink">Termina el alta de tu empresa</p>
-            <p className="text-caption text-ink-muted">Cuatro pasos para que RegWatch te mande solo lo que te toca y sepas cómo asignar tu primer asunto.</p>
+            <p className="text-caption text-ink-muted">Cuatro pasos para que RegWatch te envíe solo lo que aplica a tu empresa y sepas cómo asignar tu primer asunto.</p>
           </div>
         </div>
         <Button variant="outline" size="sm" asChild>

@@ -14,7 +14,7 @@ const STEPS = [
   },
   {
     icon: Inbox,
-    title: 'Lo que te toca llega a tu bandeja',
+    title: 'Lo que aplica a tu empresa llega a tu bandeja',
     body: 'En RegWatch, Bandeja · sin revisar, ves cada aviso con su fuente, la materia, el impacto y el plazo. Tu despacho revisa los borradores antes de enviártelos.',
   },
   {

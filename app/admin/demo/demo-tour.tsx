@@ -103,7 +103,7 @@ export default function DemoTour({ state }: { state: DemoTourState }) {
       id: 'alta',
       title: 'El cliente completa su alta',
       done: Boolean(profile.confirmedAt),
-      say: 'El primer día el cliente cuenta a qué se dedica y dónde opera. Con eso Otero decide qué le toca.',
+      say: 'El primer día el cliente cuenta a qué se dedica y dónde opera. Con eso Otero decide qué le aplica.',
       body: (
         <ol className="list-decimal space-y-1 pl-4">
           <li>Abre una ventana privada y entra en {slug ? <A href={`/login/${slug}`} external>/login/{slug}</A> : '/sign-in'} como <span className="text-data">{admin?.email ?? 'el administrador del cliente'}</span>.</li>
