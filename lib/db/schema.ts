@@ -312,6 +312,40 @@ export const ingestMatches = pgTable('ingest_matches', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 }, (t) => [primaryKey({ columns: [t.sourceId, t.tenantId] })])
 
+// ── Noticias ───────────────────────────────────────────────────────
+// Salas de prensa de dependencias e instituciones (lista del despacho,
+// lib/news/catalog.ts). Sus comunicados arman el boletín que ven los clientes;
+// no pasan por la categorización de RegWatch. Viven en la principal.
+export const newsSources = pgTable('news_sources', {
+  id:            text('id').primaryKey(), // slug estable del catálogo: "semarnat"
+  name:          text('name').notNull(), // "Medio Ambiente"
+  shortName:     text('short_name').notNull(), // "SEMARNAT", para la cita
+  url:           text('url').notNull(), // listado de comunicados
+  linkFilter:    text('link_filter'), // comodín de enlaces a notas (ver lib/ingest/site.ts)
+  kind:          text('kind').notNull().default('dependencia'), // dependencia | institucion
+  parent:        text('parent'), // de quién depende
+  materia:       text('materia').notNull().default('otra'), // materia por defecto (lib/ingest/categories.ts)
+  active:        boolean('active').notNull().default(true),
+  lastCheckedAt: timestamp('last_checked_at'),
+  lastError:     text('last_error'),
+  createdAt:     timestamp('created_at').notNull().defaultNow(),
+  updatedAt:     timestamp('updated_at').notNull().defaultNow(),
+})
+
+export const newsItems = pgTable('news_items', {
+  id:          text('id').primaryKey(),
+  sourceId:    text('source_id').notNull(),
+  url:         text('url').notNull().unique(),
+  title:       text('title').notNull(),
+  summary:     text('summary'), // entrada de la nota, sin IA
+  imageUrl:    text('image_url'),
+  publishedAt: timestamp('published_at'),
+  materia:     text('materia').notNull().default('otra'),
+  hidden:      boolean('hidden').notNull().default(false), // el despacho la quitó del boletín
+  enrichedAt:  timestamp('enriched_at'), // ya se leyó la nota para la entrada
+  createdAt:   timestamp('created_at').notNull().defaultNow(),
+})
+
 // ── Type exports ───────────────────────────────────────────────────
 export type User          = typeof user.$inferSelect
 export type Tenant        = typeof tenants.$inferSelect
@@ -320,3 +354,5 @@ export type DocumentRow   = typeof documents.$inferSelect
 export type Post           = typeof posts.$inferSelect
 export type CompanyProfile = typeof companyProfiles.$inferSelect
 export type IngestSource   = typeof ingestSources.$inferSelect
+export type NewsSourceRow  = typeof newsSources.$inferSelect
+export type NewsItemRow    = typeof newsItems.$inferSelect

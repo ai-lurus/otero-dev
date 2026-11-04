@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useTransition, useOptimistic } from 'react'
 import { Plus, Search, Pencil, Trash2, Eye, X, Clock, Sparkles, Globe, EyeOff } from 'lucide-react'
 import { createPost, updatePost, deletePost, togglePublish } from '@/app/actions/posts'
@@ -319,11 +320,14 @@ export default function NoticiasManager({ initialPosts }: { initialPosts: Post[]
           <h1 className="font-serif text-3xl font-semibold text-foreground">Noticias y Radar Regulatorio</h1>
           <p className="mt-1 text-sm text-muted-foreground">Publica notas sobre NOMs, DOF y cambios regulatorios que verán todos los clientes.</p>
         </div>
-        <button onClick={() => setCreating(true)}
-          className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-surface hover:opacity-90 transition-opacity">
-          <Plus className="w-4 h-4" />
-          Nueva nota
-        </button>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/noticias/fuentes" className="text-sm font-medium text-brand-text hover:underline">Fuentes del boletín</Link>
+          <button onClick={() => setCreating(true)}
+            className="flex items-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-surface hover:opacity-90 transition-opacity">
+            <Plus className="w-4 h-4" />
+            Nueva nota
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

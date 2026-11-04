@@ -1,0 +1,31 @@
+# Lee las salas de prensa de las dependencias (lib/news/catalog.ts) para el
+# boletín de Noticias. Horarios en UTC; CDMX es UTC-6 todo el año.
+# Usa los mismos secretos que RegWatch: CRON_SECRET y REGWATCH_URL.
+name: Noticias
+
+on:
+  schedule:
+    - cron: '30 13 * * *'   # 7:30 CDMX: antes de que abra el día
+    - cron: '30 20 * * *'   # 14:30 CDMX
+    - cron: '30 1 * * *'    # 19:30 CDMX
+  workflow_dispatch:
+
+concurrency:
+  group: noticias
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Correr el sync de Noticias
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          REGWATCH_URL: ${{ secrets.REGWATCH_URL }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$REGWATCH_URL" ]; then
+            echo "Faltan los secretos CRON_SECRET o REGWATCH_URL" >&2
+            exit 1
+          fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$REGWATCH_URL/api/cron/noticias"
