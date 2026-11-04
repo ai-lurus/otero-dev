@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { ExternalLink, FilePlus2, FileCheck2, Newspaper } from 'lucide-react'
+import { FilePlus2, FileCheck2, Newspaper } from 'lucide-react'
 import { createItemFromNews, type NewsCard } from '@/app/actions/news'
 import { Button } from '@/components/ui/button'
 import { Cite, StatusTag } from '@/components/ui/status-tag'
@@ -14,8 +14,9 @@ const citeDate = (iso: string) =>
   new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Mexico_City' })
 const dayKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
 
-function NewsRow({ card, canCreate }: { card: NewsCard; canCreate: boolean }) {
-  const [itemId, setItemId] = useState(card.itemId)
+/** Botón "Crear asunto" (admin del cliente) o "Ver asunto" si ya existe. */
+export function CreateItemButton({ newsId, itemId: initial, canCreate, size = 'sm' }: { newsId: string; itemId: string | null; canCreate: boolean; size?: 'sm' | 'default' }) {
+  const [itemId, setItemId] = useState(initial)
   const [error, setError] = useState<string | null>(null)
   const [pending, start] = useTransition()
 
@@ -23,39 +24,46 @@ function NewsRow({ card, canCreate }: { card: NewsCard; canCreate: boolean }) {
     setError(null)
     start(async () => {
       try {
-        const { itemId: id } = await createItemFromNews(card.id)
-        setItemId(id)
+        setItemId((await createItemFromNews(newsId)).itemId)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'No se pudo crear el asunto')
       }
     })
   }
 
+  if (itemId) {
+    return (
+      <Button asChild variant="outline" size={size}>
+        <Link href={`/cliente/obligaciones/${itemId}`}><FileCheck2 aria-hidden /> Ver asunto</Link>
+      </Button>
+    )
+  }
+  if (!canCreate) return null
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Button variant="outline" size={size} onClick={create} disabled={pending}>
+        <FilePlus2 aria-hidden /> {pending ? 'Creando asunto…' : 'Crear asunto'}
+      </Button>
+      {error ? <p role="alert" className="text-body-sm text-risk">{error}</p> : null}
+    </div>
+  )
+}
+
+function NewsRow({ card, canCreate }: { card: NewsCard; canCreate: boolean }) {
   return (
     <article className="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-6 shadow-xs">
       <div className="flex flex-wrap items-center gap-2">
         {card.reason ? <StatusTag status="info" label="Te toca" /> : null}
         <span className="text-label text-ink-muted">{card.materiaLabel}</span>
-        <Cite>{card.source} {citeDate(card.publishedAt!)}</Cite>
+        <Cite>{card.source} {citeDate(card.publishedAt)}</Cite>
       </div>
-      <h3 className="text-heading text-ink text-balance">{card.title}</h3>
+      <h3 className="text-heading text-ink text-balance"><Link href={`/cliente/noticias/${card.id}`} className="hover:underline">{card.title}</Link></h3>
       {card.summary ? <p className="text-body text-ink line-clamp-4">{card.summary}</p> : null}
       {card.reason ? <p className="text-body-sm text-ink-muted">Te toca porque: {card.reason}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <a href={card.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-body-sm font-medium text-brand-text hover:underline">
-          <ExternalLink aria-hidden className="size-4" /> Leer en {card.source}
-        </a>
-        {itemId ? (
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/cliente/obligaciones/${itemId}`}><FileCheck2 aria-hidden /> Ver asunto</Link>
-          </Button>
-        ) : canCreate ? (
-          <Button variant="outline" size="sm" onClick={create} disabled={pending}>
-            <FilePlus2 aria-hidden /> {pending ? 'Creando asunto…' : 'Crear asunto'}
-          </Button>
-        ) : null}
+        <Link href={`/cliente/noticias/${card.id}`} className="text-body-sm font-medium text-brand-text hover:underline">Leer nota</Link>
+        <CreateItemButton newsId={card.id} itemId={card.itemId} canCreate={canCreate} />
       </div>
-      {error ? <p role="alert" className="text-body-sm text-risk">{error}</p> : null}
     </article>
   )
 }
@@ -99,7 +107,7 @@ export default function Boletin({ cards, canCreate }: { cards: NewsCard[]; canCr
         </div>
       ) : days.map(group => (
         <section key={dayKey(group[0].publishedAt!)} className="flex flex-col gap-4">
-          <h2 className="text-label uppercase tracking-wide text-ink-muted">{dayLabel(group[0].publishedAt!)}</h2>
+          <h3 className="text-label uppercase tracking-wide text-ink-muted">{dayLabel(group[0].publishedAt!)}</h3>
           {group.map(card => <NewsRow key={card.id} card={card} canCreate={canCreate} />)}
         </section>
       ))}

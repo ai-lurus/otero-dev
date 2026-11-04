@@ -5,7 +5,7 @@ import { decodeBody, fetchRemote, readCapped } from '@/lib/ingest/extract'
 import { IngestError } from '@/lib/ingest/errors'
 import { fetchSiteLinks, filterToRegExp } from '@/lib/ingest/site'
 import { NEWS_CATALOG } from './catalog'
-import { classifyMateria, parseArticle, parseGobMxListing, type ListedNote } from './parse'
+import { classifyMateria, displayTitle, parseArticle, parseGobMxListing, type ListedNote } from './parse'
 
 // Sync de Noticias: lee las salas de prensa activas, guarda las notas nuevas
 // y luego abre cada nota para sacar su entrada. Sin IA. Lo llama el cron
@@ -95,11 +95,13 @@ async function enrichOne(item: typeof newsItems.$inferSelect, sourceMateria: str
   try {
     const { html } = await fetchHtml(item.url)
     const art = parseArticle(html)
+    const title = displayTitle(item.title, art.title, art.summary)
     await db.update(newsItems).set({
+      title,
       summary: art.summary,
       publishedAt: item.publishedAt ?? art.publishedAt,
       imageUrl: item.imageUrl ?? art.imageUrl,
-      materia: classifyMateria(sourceMateria, item.title, art.summary),
+      materia: classifyMateria(sourceMateria, title, art.summary),
       enrichedAt: new Date(),
     }).where(eq(newsItems.id, item.id))
     return true

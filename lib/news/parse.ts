@@ -64,7 +64,7 @@ export function trimSummary(text: string, max = SUMMARY_MAX): string {
  * Entrada de la nota: en gob.mx los primeros párrafos del cuerpo; en otros
  * sitios la descripción de la página. También fecha e imagen si las declara.
  */
-export function parseArticle(html: string): { summary: string | null; publishedAt: Date | null; imageUrl: string | null } {
+export function parseArticle(html: string): { title: string | null; summary: string | null; publishedAt: Date | null; imageUrl: string | null } {
   const bodyStart = html.search(/class="(article-body|post-content)[ "]/i)
   let summary: string | null = null
   if (bodyStart >= 0) {
@@ -78,7 +78,10 @@ export function parseArticle(html: string): { summary: string | null; publishedA
   const published = meta(html, 'article:published_time') ?? html.match(/"datePublished":"([^"]+)"/)?.[1] ?? null
   const publishedAt = published ? new Date(published) : null
   const image = meta(html, 'og:image')
+  const h1 = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]
+  const ogTitle = meta(html, 'og:title') ?? (h1 ? clean(h1.replace(/<[^>]+>/g, ' ')) : null)
   return {
+    title: ogTitle && ogTitle.length >= 15 ? ogTitle.slice(0, 300) : null,
     summary,
     publishedAt: publishedAt && !Number.isNaN(publishedAt.getTime()) ? publishedAt : null,
     imageUrl: image && /^https?:/.test(image) ? image : null,
@@ -104,4 +107,16 @@ export function classifyMateria(sourceMateria: string, title: string, summary: s
   if (sourceMateria !== 'otra') return sourceMateria as Materia
   const text = `${title} ${summary ?? ''}`
   return KEYWORDS.find(([, re]) => re.test(text))?.[0] ?? 'otra'
+}
+
+/** Texto de enlace que no es un título ("Más información", "Leer más"…). */
+export const isGenericTitle = (title: string) => title.trim().length < 20 || /^(m[aá]s informaci[oó]n|leer m[aá]s|ver m[aá]s|continuar leyendo|leer nota|ver nota)\b/i.test(title.trim())
+
+/** Título para mostrar: el del enlace, el de la página si el enlace era genérico, o "Comunicado No. 88: primera frase" si solo hay folio. */
+export function displayTitle(linkTitle: string, pageTitle: string | null, summary: string | null): string {
+  if (!isGenericTitle(linkTitle)) return linkTitle
+  if (pageTitle && !isGenericTitle(pageTitle)) return pageTitle
+  const base = (pageTitle ?? linkTitle).trim()
+  const lead = summary?.split(/(?<=[.!?])\s/)[0]?.slice(0, 140).trim()
+  return lead && lead.length > 20 ? `${base}: ${lead}` : base
 }

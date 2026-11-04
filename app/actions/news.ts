@@ -26,7 +26,7 @@ export type NewsCard = {
   summary: string | null
   url: string
   imageUrl: string | null
-  publishedAt: string | null
+  publishedAt: string
   source: string
   authority: string
   materia: string
@@ -62,6 +62,43 @@ async function createdItems(tdb: Awaited<ReturnType<typeof getTenantDb>>, tenant
   return new Map(rows.map(r => [r.newsId, r.itemId]))
 }
 
+function toCard(
+  item: typeof newsItems.$inferSelect,
+  source: typeof newsSources.$inferSelect,
+  matchProfile: Parameters<typeof matchTenant>[1],
+  created: Map<string, string>,
+): NewsCard {
+  const match = matchTenant(item.materia, matchProfile)
+  return {
+    id: item.id,
+    title: item.title,
+    summary: item.summary,
+    url: item.url,
+    imageUrl: item.imageUrl,
+    publishedAt: (item.publishedAt ?? item.createdAt).toISOString(),
+    source: source.shortName,
+    authority: source.name,
+    materia: item.materia,
+    materiaLabel: MATERIAS[item.materia as Materia] ?? 'Otra',
+    reason: match.applies ? match.reason : null,
+    itemId: created.get(item.id) ?? null,
+  }
+}
+
+/** Una nota del boletín con lo mismo que ve la lista; null si no existe o el despacho la quitó. */
+export async function getNewsDetail(id: string): Promise<{ card: NewsCard; canCreate: boolean } | null> {
+  const { tenantId, canCreate } = await clientContext()
+  const [row, ctx] = await Promise.all([
+    db.select({ item: newsItems, source: newsSources })
+      .from(newsItems).innerJoin(newsSources, eq(newsSources.id, newsItems.sourceId))
+      .where(and(eq(newsItems.id, id), eq(newsItems.hidden, false))).limit(1),
+    profileOf(tenantId),
+  ])
+  if (!row[0]) return null
+  const created = await createdItems(ctx.tdb, tenantId).catch(() => new Map<string, string>())
+  return { card: toCard(row[0].item, row[0].source, ctx.matchProfile, created), canCreate }
+}
+
 /** Boletín del cliente: notas de los últimos 30 días, con el motivo por el que le tocan según su perfil. */
 export async function getNewsBulletin(): Promise<{ cards: NewsCard[]; canCreate: boolean }> {
   const { tenantId, canCreate } = await clientContext()
@@ -76,23 +113,7 @@ export async function getNewsBulletin(): Promise<{ cards: NewsCard[]; canCreate:
     profileOf(tenantId),
   ])
   const created = await createdItems(ctx.tdb, tenantId).catch(() => new Map<string, string>())
-  const cards = rows.map(({ item, source }): NewsCard => {
-    const match = matchTenant(item.materia, ctx.matchProfile)
-    return {
-      id: item.id,
-      title: item.title,
-      summary: item.summary,
-      url: item.url,
-      imageUrl: item.imageUrl,
-      publishedAt: (item.publishedAt ?? item.createdAt).toISOString(),
-      source: source.shortName,
-      authority: source.name,
-      materia: item.materia,
-      materiaLabel: MATERIAS[item.materia as Materia] ?? 'Otra',
-      reason: match.applies ? match.reason : null,
-      itemId: created.get(item.id) ?? null,
-    }
-  })
+  const cards = rows.map(({ item, source }) => toCard(item, source, ctx.matchProfile, created))
   return { cards, canCreate }
 }
 
@@ -167,6 +188,7 @@ export async function createItemFromNews(newsId: string): Promise<{ itemId: stri
   })
   revalidatePath('/cliente/noticias')
   revalidatePath('/cliente/obligaciones')
+  revalidatePath(`/cliente/noticias/${news.id}`)
   return { itemId, existing: false }
 }
 
