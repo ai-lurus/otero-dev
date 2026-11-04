@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
-import { FilePlus2, FileCheck2, Newspaper } from 'lucide-react'
+import { BookOpen, FilePlus2, FileCheck2, Newspaper } from 'lucide-react'
 import { createItemFromNews, type NewsCard } from '@/app/actions/news'
 import { Button } from '@/components/ui/button'
 import { Cite, StatusTag } from '@/components/ui/status-tag'
@@ -61,7 +61,9 @@ function NewsRow({ card, canCreate }: { card: NewsCard; canCreate: boolean }) {
       {card.summary ? <p className="text-body text-ink line-clamp-4">{card.summary}</p> : null}
       {card.reason ? <p className="text-body-sm text-ink-muted">Te toca porque: {card.reason}</p> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <Link href={`/cliente/noticias/${card.id}`} className="text-body-sm font-medium text-brand-text hover:underline">Leer nota</Link>
+        <Button asChild variant="ghost" size="sm">
+          <Link href={`/cliente/noticias/${card.id}`}><BookOpen aria-hidden /> Abrir noticia</Link>
+        </Button>
         <CreateItemButton newsId={card.id} itemId={card.itemId} canCreate={canCreate} />
       </div>
     </article>
