@@ -16,7 +16,7 @@ import { getSession, requireAdmin } from './auth-helpers'
 // el asunto que su admin puede abrir desde cada nota. Las notas son del
 // despacho (base principal); el asunto vive en la base del cliente.
 
-export const NEWS_EVENT = 'created_from_news'
+const NEWS_EVENT = 'created_from_news'
 const BULLETIN_DAYS = 30
 const BULLETIN_LIMIT = 150
 
