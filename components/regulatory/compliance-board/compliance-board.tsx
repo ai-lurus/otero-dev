@@ -16,7 +16,7 @@ import { itemFolio } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
 import { BoardCard } from './board-card'
 import { BoardPanel } from './board-panel'
-import { BoardSidebar, type BoardMode } from './board-sidebar'
+import { BoardSidebar } from './board-sidebar'
 import { BoardToast, type ToastState } from './board-toast'
 
 type Props = { items: BoardItem[]; viewer: BoardViewer; team: TeamMember[] }
@@ -28,7 +28,6 @@ const ALL = 'todos'
 export function ComplianceBoard({ items, viewer, team }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [mode, setMode] = useState<BoardMode>(viewer.isDirector ? 'director' : 'equipo')
   const [view, setView] = useState<BoardView>('tablero')
   const [query, setQuery] = useState('')
   const [due, setDue] = useState<DueFilter>('todos')
@@ -41,8 +40,8 @@ export function ComplianceBoard({ items, viewer, team }: Props) {
   // Lo que llega del servidor ya trae los cambios: se descartan los optimistas.
   useEffect(() => setOverrides({}), [items])
 
-  const directorMode = viewer.isDirector && mode === 'director'
-  const firstName = viewer.name.split(/\s+/)[0] ?? viewer.name
+  // El admin del cliente es el director; el abogado solo ve lo asignado a él.
+  const directorMode = viewer.isDirector
 
   const current = useMemo(() => items.map((item) => ({ ...item, ...overrides[item.id] })), [items, overrides])
 
@@ -126,10 +125,6 @@ export function ComplianceBoard({ items, viewer, team }: Props) {
   return (
     <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 md:grid-cols-[240px_minmax(0,1fr)]">
       <BoardSidebar
-        canSwitch={viewer.isDirector}
-        mode={mode}
-        onMode={(next) => { setMode(next); setPerson(ALL) }}
-        firstName={firstName}
         view={view}
         counts={counts}
         onView={setView}
