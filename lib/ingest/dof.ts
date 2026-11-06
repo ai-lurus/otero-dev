@@ -10,9 +10,14 @@ export type DofNote = { code: string; title: string; url: string }
 /** El sumario de esa fecha no trae publicaciones: día sin edición (fines de semana, inhábiles). */
 export class NoEditionError extends IngestError {}
 
+/** Fecha (día) en Ciudad de México como YYYY-MM-DD. */
+export function dayInMexico(date: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(date)
+}
+
 /** Fecha de hoy en Ciudad de México como YYYY-MM-DD. */
 export function todayInMexico(): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date())
+  return dayInMexico(new Date())
 }
 
 export function dofSummaryUrl(date: string): string {

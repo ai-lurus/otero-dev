@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/schema'
 import { draftObligation, ITEM_MATERIA, type Company, type Draft } from '@/lib/ingest/draft'
 import { matchTenant } from '@/lib/ingest/match'
+import { dayInMexico } from '@/lib/ingest/dof'
 import { MATERIAS, type Materia } from '@/lib/ingest/categories'
 import { getSession, requireAdmin } from './auth-helpers'
 
@@ -121,7 +122,7 @@ function draftOrNull(news: typeof newsItems.$inferSelect, source: typeof newsSou
   return draftObligation({
     title: news.title,
     authority: source.name,
-    publishedAt: (news.publishedAt ?? news.createdAt).toISOString().slice(0, 10),
+    publishedAt: dayInMexico(news.publishedAt ?? news.createdAt),
     vigenciaStatus: null,
     vigenciaDetail: null,
     summary: news.summary,
@@ -163,7 +164,7 @@ export async function createItemFromNews(newsId: string): Promise<{ itemId: stri
     source: `${source.shortName} · comunicado`,
     sourceUrl: news.url,
     stage: 'publicado',
-    publishedAt: (news.publishedAt ?? news.createdAt).toISOString().slice(0, 10),
+    publishedAt: dayInMexico(news.publishedAt ?? news.createdAt),
     dueDate: draft?.dueDate ?? null,
     impact: draft?.impact ?? null,
     impactDirection: draft?.impactDirection ?? null,
