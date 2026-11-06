@@ -2,20 +2,16 @@
 
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { eq, and, desc, isNotNull, inArray, sql } from 'drizzle-orm'
+import { eq, and, desc, isNotNull, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { db as mainDb } from '@/lib/db'
-import { getOwnTenantDb, getTenantDb } from '@/lib/db/tenant'
-import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents, user, userTenants } from '@/lib/db/schema'
-import { members } from '@/lib/db/tenant-schema'
+import { getTenantDb } from '@/lib/db/tenant'
+import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@/lib/db/schema'
+import { attachEvidence, listTeam, recordEvent } from '@/lib/regulatory-items-db'
 import { DIRECTIONS, IMPACTS, MATERIAS, SCOPES, STATUSES, isOneOf } from '@/lib/regulatory'
 import { getFirstTenantId, requireAdmin } from './auth-helpers'
 import { isTenantAdmin } from './tenant-users'
 
 export type ItemEvent = typeof regulatoryItemEvents.$inferSelect
-
-// Los asuntos viven en la base de cada cliente (getTenantDb).
-type TenantDb = Awaited<ReturnType<typeof getTenantDb>>
 
 export type ItemInput = {
   scope: string
@@ -83,37 +79,6 @@ function normalize(input: ItemInput) {
   }
 }
 
-async function recordEvent(db: TenantDb, input: {
-  itemId: string
-  tenantId: string
-  eventType: string
-  title: string
-  description?: string
-  createdBy: string
-  metadata?: Record<string, unknown>
-}) {
-  await db.insert(regulatoryItemEvents).values({
-    id: crypto.randomUUID(),
-    itemId: input.itemId,
-    tenantId: input.tenantId,
-    eventType: input.eventType,
-    title: input.title,
-    description: input.description ?? '',
-    metadata: input.metadata ?? {},
-    createdBy: input.createdBy,
-  })
-}
-
-async function attachEvidence<T extends { id: string }>(db: TenantDb, rows: T[]) {
-  if (!rows.length) return rows.map((row) => ({ ...row, evidence: [] as (typeof regulatoryItemEvidence.$inferSelect)[] }))
-  const evidence = await db
-    .select()
-    .from(regulatoryItemEvidence)
-    .where(inArray(regulatoryItemEvidence.itemId, rows.map((row) => row.id)))
-    .orderBy(desc(regulatoryItemEvidence.createdAt))
-  return rows.map((row) => ({ ...row, evidence: evidence.filter((entry) => entry.itemId === row.id) }))
-}
-
 // ── Cliente: solo ve lo que el admin le envió ──────────────────────
 
 export async function getRegulatoryItems() {
@@ -153,8 +118,11 @@ export async function updateItemStatus(id: string, status: string, reason?: stri
     .set({
       status,
       // Al aceptar entra al tablero de cumplimiento; al devolverlo a la bandeja sale de él.
+      // Cerrarlo desde la bandeja equivale a Cumplido en el tablero.
       executionStatus:
-        status === 'aceptada' ? sql`coalesce(${regulatoryItems.executionStatus}, 'por_hacer')` : status === 'identificada' ? null : regulatoryItems.executionStatus,
+        status === 'aceptada' ? sql`coalesce(${regulatoryItems.executionStatus}, 'por_hacer')`
+          : status === 'cerrada' ? 'cumplido'
+            : status === 'identificada' ? null : regulatoryItems.executionStatus,
       updatedAt: new Date(),
     })
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
@@ -170,29 +138,17 @@ export async function updateItemStatus(id: string, status: string, reason?: stri
     metadata: { status, ...(reason?.trim() ? { reason: reason.trim() } : {}) },
   })
   revalidatePath('/cliente/obligaciones')
+  revalidatePath('/cliente/cumplimiento')
   revalidatePath('/cliente')
 }
 
-export type AssignableMember = { id: string; name: string }
+export type AssignableMember = { id: string; name: string; position?: string | null }
 
 /** Personas activas de la empresa a quienes el admin puede asignar un asunto. Solo el admin del cliente las ve. */
 export async function getAssignableMembers(): Promise<AssignableMember[]> {
   if (!(await isTenantAdmin())) return []
   const { tenantId } = await clientContext()
   return listTeam(tenantId)
-}
-
-/**
- * Equipo asignable del cliente. Con base propia sale de `members`; si el cliente
- * aún vive en la principal (no hay `members`), de sus usuarios: el id es el del usuario.
- */
-async function listTeam(tenantId: string): Promise<AssignableMember[]> {
-  const own = await getOwnTenantDb(tenantId)
-  const rows = own
-    ? await own.select({ id: members.id, name: members.name }).from(members).where(eq(members.active, true))
-    : await mainDb.select({ id: user.id, name: user.name }).from(userTenants).innerJoin(user, eq(user.id, userTenants.userId))
-      .where(and(eq(userTenants.tenantId, tenantId), inArray(userTenants.role, ['client', 'tenant_admin'])))
-  return rows.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 /** El admin del cliente acepta un asunto y se lo asigna a una persona de su equipo. Pasa a Por hacer. */
@@ -223,6 +179,7 @@ export async function acceptAndAssign(id: string, memberId: string) {
     metadata: { status: 'aceptada', assigneeId: member.id },
   })
   revalidatePath('/cliente/obligaciones')
+  revalidatePath('/cliente/cumplimiento')
   revalidatePath('/cliente')
 }
 
@@ -254,6 +211,7 @@ export async function addItemEvidence(input: { itemId: string; kind: string; tit
     createdBy: userId,
   })
   revalidatePath('/cliente/obligaciones')
+  revalidatePath('/cliente/cumplimiento')
 }
 
 // ── Admin: captura, edición y envío al cliente ─────────────────────

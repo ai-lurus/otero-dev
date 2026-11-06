@@ -32,6 +32,15 @@ const NAV = [
     ),
   },
   {
+    href: "/cliente/cumplimiento",
+    label: "Mi cumplimiento",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
+      </svg>
+    ),
+  },
+  {
     href: "/cliente/certificaciones",
     label: "Certificaciones",
     icon: (
@@ -98,8 +107,8 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   useEffect(() => { getCurrentTenantName().then(setCompany).catch(() => {}) }, [])
   const nav = isTA ? [...NAV, USUARIOS_NAV] : NAV
 
-  // En RegWatch el menú principal se achica a íconos para dejar lugar a las vistas de la bandeja.
-  const compact = pathname.startsWith("/cliente/obligaciones")
+  // En RegWatch y Mi cumplimiento el menú principal se achica a íconos para dejar lugar a las vistas de la bandeja.
+  const compact = pathname.startsWith("/cliente/obligaciones") || pathname.startsWith("/cliente/cumplimiento")
 
   function NavItem({ href, label, icon, badge, exact, compact: rail = false }: {
     href: string; label: string; icon: React.ReactNode; badge?: number; exact?: boolean; compact?: boolean

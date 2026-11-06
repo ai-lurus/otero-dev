@@ -84,3 +84,7 @@ export const INSTRUMENTS: Record<Scope, string[]> = {
 export function isOneOf<T extends readonly string[]>(list: T, value: unknown): value is T[number] {
   return typeof value === 'string' && (list as readonly string[]).includes(value)
 }
+
+/** Folio del asunto, el mismo en el expediente y en el tablero: "REG-1A2B3C4D". */
+export const itemFolio = (item: { id: string; scope: string }) =>
+  `${item.scope === 'legislativo' ? 'LEG' : 'REG'}-${item.id.slice(0, 8).toUpperCase()}`

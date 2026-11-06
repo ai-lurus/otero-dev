@@ -43,3 +43,5 @@ html{scroll-behavior:smooth}
 .min-h-screen { min-height: calc(100dvh - var(--banner-h, 0px)); }
 @media (min-width: 48rem) { .md\:h-screen { height: calc(100dvh - var(--banner-h, 0px)); } }
 .sticky.top-0:not([role='note']), .fixed.top-0:not([role='note']) { top: var(--banner-h, 0px); }
+/* Los paneles laterales (Sheet) también arrancan debajo del banner de demo. */
+[data-slot='sheet-content'].inset-y-0 { top: var(--banner-h, 0px); height: calc(100% - var(--banner-h, 0px)); }
