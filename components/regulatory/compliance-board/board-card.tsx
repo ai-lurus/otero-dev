@@ -7,6 +7,7 @@ import { BandTag } from '@/components/regulatory/inbox/band-tag'
 import { canMoveTo, nextStage, prevStage, stageLabel, stageOf, type Stage } from '@/lib/compliance-board'
 import { bandOf, daysUntil, dueShort } from '@/lib/inbox'
 import { itemFolio } from '@/lib/regulatory'
+import { LEGAL_OBJECTS, isLegalObject } from '@/lib/legal-objects'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -19,6 +20,14 @@ type Props = {
 }
 
 export const generatesObligation = (item: BoardItem) => item.obligationsStatus === 'si' || item.generatesObligation
+
+/** Objetos legales del asunto para las etiquetas de la tarjeta ("Obligación", "Plazo"), sin repetir y hasta tres. */
+function objectLabels(item: BoardItem) {
+  const labels = (item.objects ?? []).filter((object) => isLegalObject(object.tipo) && LEGAL_OBJECTS[object.tipo].family !== 'sin_accion')
+    .map((object) => LEGAL_OBJECTS[object.tipo].label)
+  if (!labels.length && generatesObligation(item)) labels.push(LEGAL_OBJECTS.obligacion.label)
+  return [...new Set(labels)].slice(0, 3)
+}
 
 /** Tarjeta de un asunto en el tablero: prioridad, plazo, responsable y el paso siguiente. */
 export function BoardCard({ item, isDirector, selected, busy, onOpen, onMove }: Props) {
@@ -48,12 +57,12 @@ export function BoardCard({ item, isDirector, selected, busy, onOpen, onMove }: 
 
       <div className="flex flex-wrap items-center gap-2">
         <BandTag band={bandOf(item)} />
-        {generatesObligation(item) && (
-          <span className="inline-flex items-center gap-1 rounded-pill bg-surface-sunken px-2.5 py-1 text-label text-ink">
+        {objectLabels(item).map((label) => (
+          <span key={label} className="inline-flex items-center gap-1 rounded-pill bg-surface-sunken px-2.5 py-1 text-label text-ink">
             <FileCheck2 aria-hidden className="size-3.5" />
-            Obligación
+            {label}
           </span>
-        )}
+        ))}
       </div>
 
       <dl className="flex flex-col gap-1 text-caption text-ink-muted">
