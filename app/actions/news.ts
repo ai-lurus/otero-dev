@@ -193,22 +193,7 @@ export async function createItemFromNews(newsId: string): Promise<{ itemId: stri
   return { itemId, existing: false }
 }
 
-// ── Despacho: fuentes y notas ──────────────────────────────────────
-
-export async function getNewsSourcesAdmin() {
-  await requireAdmin()
-  const sources = await db.select().from(newsSources).orderBy(newsSources.kind, newsSources.name)
-  const counts = await db.select({ sourceId: newsItems.sourceId, n: sql<number>`count(*)::int` }).from(newsItems).groupBy(newsItems.sourceId)
-  const byId = new Map(counts.map(c => [c.sourceId, c.n]))
-  return sources.map(s => ({ ...s, notes: byId.get(s.id) ?? 0 }))
-}
-
-export async function setNewsSourceActive(id: string, active: boolean) {
-  await requireAdmin()
-  await db.update(newsSources).set({ active, updatedAt: new Date() }).where(eq(newsSources.id, id))
-  revalidatePath('/admin/noticias/fuentes')
-  revalidatePath('/cliente/noticias')
-}
+// ── Despacho: notas (las fuentes van en ./news-sources) ──────────────────────────────────────
 
 export async function hideNewsItems(ids: string[], hidden: boolean) {
   await requireAdmin()

@@ -31,7 +31,8 @@ async function fetchHtml(url: string) {
 
 const isGobMx = (url: string) => new URL(url).hostname === 'www.gob.mx'
 
-async function listNotes(source: NewsSourceRow): Promise<ListedNote[]> {
+/** Notas que se tomarían de un listado. También lo usa el panel para probar una URL antes de guardarla. */
+export async function listNotes(source: Pick<NewsSourceRow, 'url' | 'linkFilter'>): Promise<ListedNote[]> {
   if (isGobMx(source.url)) {
     const { html, finalUrl } = await fetchHtml(source.url)
     const re = source.linkFilter ? filterToRegExp(source.linkFilter) : null
