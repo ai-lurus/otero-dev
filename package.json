@@ -14,7 +14,8 @@
     "tenant:copy": "node scripts/tenant-copy.mjs",
     "pigr:ingest": "node scripts/pigr-ingest.mjs",
     "regwatch:run": "node scripts/regwatch-run.mjs",
-    "demo:users": "node scripts/demo-users.mjs"
+    "demo:users": "node scripts/demo-users.mjs",
+    "tenant:admin": "node scripts/tenant-admin.mjs"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.55",
