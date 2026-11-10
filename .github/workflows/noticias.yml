@@ -1,4 +1,4 @@
-# Lee las salas de prensa de las dependencias (lib/news/catalog.ts) para el
+# Lee las salas de prensa de las dependencias (news_sources, se administran en /admin/noticias/fuentes) para el
 # boletín de Noticias. Horarios en UTC; CDMX es UTC-6 todo el año.
 # Usa los mismos secretos que RegWatch: CRON_SECRET y REGWATCH_URL.
 name: Noticias

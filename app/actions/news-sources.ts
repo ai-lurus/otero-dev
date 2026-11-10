@@ -6,23 +6,20 @@ import { db } from '@/lib/db'
 import { newsItems, newsSources, type NewsSourceRow } from '@/lib/db/schema'
 import { IngestError } from '@/lib/ingest/errors'
 import { MATERIAS } from '@/lib/ingest/categories'
-import { NEWS_CATALOG } from '@/lib/news/catalog'
 import { enrichPending, listNotes, syncNewsSources, type NewsRun } from '@/lib/news/sync'
 import { requireAdmin } from './auth-helpers'
 
 // Fuentes del boletín de Noticias (news_sources), que lee el cron
-// /api/cron/noticias. Mismo permiso que la ingesta de RegWatch: admin del despacho.
+// /api/cron/noticias. La base es la única lista: no hay catálogo en el código.
+// Mismo permiso que la ingesta de RegWatch: admin del despacho.
 
 const PANEL = '/admin/noticias/fuentes'
 /** Tiempo que "Leer ahora" dedica a abrir las notas nuevas para sacar su entrada. */
 const READ_ENRICH_MS = 20_000
-const CATALOG_IDS = new Set(NEWS_CATALOG.map(s => s.id))
 
 export type NewsSourceAdminRow = NewsSourceRow & {
   notes: number
   lastNoteAt: Date | null
-  /** Del catálogo del despacho: el cron la vuelve a dar de alta si se borra, así que solo se pausa. */
-  fromCatalog: boolean
 }
 
 export type NewsSourceInput = {
@@ -87,12 +84,12 @@ async function urlTaken(url: string, exceptId?: string) {
   return rows.length > 0
 }
 
-/** Slug estable a partir del nombre corto; los del catálogo usan el mismo formato ("semarnat"). */
+/** Slug estable a partir del nombre corto, con el formato de las existentes ("semarnat"). */
 async function newId(shortName: string) {
   const base = shortName.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'fuente'
   const taken = new Set((await db.select({ id: newsSources.id }).from(newsSources)).map(r => r.id))
-  if (!taken.has(base) && !CATALOG_IDS.has(base)) return base
-  for (let i = 2; ; i++) if (!taken.has(`${base}-${i}`) && !CATALOG_IDS.has(`${base}-${i}`)) return `${base}-${i}`
+  if (!taken.has(base)) return base
+  for (let i = 2; ; i++) if (!taken.has(`${base}-${i}`)) return `${base}-${i}`
 }
 
 async function withStats(rows: NewsSourceRow[]): Promise<NewsSourceAdminRow[]> {
@@ -104,7 +101,7 @@ async function withStats(rows: NewsSourceRow[]): Promise<NewsSourceAdminRow[]> {
   const byId = new Map(stats.map(s => [s.sourceId, s]))
   return rows.map(s => {
     const st = byId.get(s.id)
-    return { ...s, notes: st?.n ?? 0, lastNoteAt: st?.last ? new Date(st.last) : null, fromCatalog: CATALOG_IDS.has(s.id) }
+    return { ...s, notes: st?.n ?? 0, lastNoteAt: st?.last ? new Date(st.last) : null }
   })
 }
 
@@ -179,10 +176,9 @@ export async function setNewsSourceActive(id: string, active: boolean) {
   revalidate()
 }
 
-/** Borra una fuente agregada por el despacho y sus notas. Las del catálogo solo se pausan. */
+/** Borra una fuente y sus notas. Los asuntos que los clientes abrieron desde ellas viven en su base y se conservan. */
 export async function deleteNewsSource(id: string): Promise<Result<object>> {
   await requireAdmin()
-  if (CATALOG_IDS.has(id)) return { ok: false, error: 'Las fuentes del catálogo no se eliminan; Otero las vuelve a dar de alta. Páusala.' }
   await db.delete(newsItems).where(eq(newsItems.sourceId, id))
   await db.delete(newsSources).where(eq(newsSources.id, id))
   revalidate()

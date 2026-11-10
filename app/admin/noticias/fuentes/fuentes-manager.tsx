@@ -165,7 +165,6 @@ export default function FuentesManager({ sources }: { sources: NewsSourceAdminRo
                         s.notes === 1 ? '1 nota' : `${s.notes} notas`,
                         s.lastNoteAt ? `última del ${mxWhen(s.lastNoteAt)}` : null,
                         s.linkFilter ? `filtro ${s.linkFilter}` : null,
-                        s.fromCatalog ? 'del catálogo' : 'agregada por el despacho',
                       ].filter(Boolean).join(' · ')}
                     </p>
                     {s.lastError && <p className="text-body-sm text-risk">{s.lastError}{s.lastCheckedAt ? ` · ${mxWhen(s.lastCheckedAt)}` : ''}</p>}
@@ -181,8 +180,8 @@ export default function FuentesManager({ sources }: { sources: NewsSourceAdminRo
                     <Button variant="ghost" size="sm" onClick={() => toggle(s)} disabled={busyId !== null}>
                       {s.active ? <><Pause /> Pausar</> : <><Play /> Activar</>}
                     </Button>
-                    <Button variant="destructive" size="icon-sm" onClick={() => setDeleting(s)} disabled={busyId !== null || s.fromCatalog}
-                      aria-label="Eliminar fuente" title={s.fromCatalog ? 'Las fuentes del catálogo no se eliminan; páusala' : 'Eliminar fuente'}>
+                    <Button variant="destructive" size="icon-sm" onClick={() => setDeleting(s)} disabled={busyId !== null}
+                      aria-label="Eliminar fuente" title="Eliminar fuente">
                       <Trash2 />
                     </Button>
                   </div>
@@ -197,9 +196,6 @@ export default function FuentesManager({ sources }: { sources: NewsSourceAdminRo
             )
           })}
         </ul>
-        {list.some(s => s.fromCatalog) && (
-          <p className="text-caption text-ink-muted">Las fuentes del catálogo se pueden editar y pausar, pero no eliminar: Otero las vuelve a dar de alta en cada lectura.</p>
-        )}
       </section>
 
       <AlertDialog open={deleting !== null} onOpenChange={open => { if (!open) setDeleting(null) }}>

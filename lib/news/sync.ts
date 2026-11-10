@@ -4,7 +4,6 @@ import { newsItems, newsSources, type NewsSourceRow } from '@/lib/db/schema'
 import { decodeBody, fetchRemote, readCapped } from '@/lib/ingest/extract'
 import { IngestError } from '@/lib/ingest/errors'
 import { fetchSiteLinks, filterToRegExp } from '@/lib/ingest/site'
-import { NEWS_CATALOG } from './catalog'
 import { classifyMateria, displayTitle, parseArticle, parseGobMxListing, type ListedNote } from './parse'
 
 // Sync de Noticias: lee las salas de prensa activas, guarda las notas nuevas
@@ -17,11 +16,6 @@ const MAX_NEW_PER_SOURCE = 12
 const PARALLEL = 6
 
 export type NewsRun = { sources: number; newItems: number; enriched: number; failed: number; remaining: boolean }
-
-/** Da de alta las fuentes del catálogo que falten. No toca las existentes (el despacho pudo pausarlas). */
-export async function ensureCatalog() {
-  await db.insert(newsSources).values(NEWS_CATALOG.map(s => ({ ...s, active: s.active ?? true }))).onConflictDoNothing({ target: newsSources.id })
-}
 
 async function fetchHtml(url: string) {
   const res = await fetchRemote(url)
@@ -133,10 +127,7 @@ export async function enrichPending(run: NewsRun, deadline: number) {
 export async function runNews(opts: { budgetMs: number; syncSources: boolean }): Promise<NewsRun> {
   const deadline = Date.now() + opts.budgetMs
   const run: NewsRun = { sources: 0, newItems: 0, enriched: 0, failed: 0, remaining: false }
-  if (opts.syncSources) {
-    await ensureCatalog()
-    await syncNewsSources(run)
-  }
+  if (opts.syncSources) await syncNewsSources(run)
   await enrichPending(run, deadline)
   const [left] = await db.select({ id: newsItems.id }).from(newsItems).where(isNull(newsItems.enrichedAt)).limit(1)
   run.remaining = Boolean(left)

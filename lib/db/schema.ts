@@ -313,11 +313,11 @@ export const ingestMatches = pgTable('ingest_matches', {
 }, (t) => [primaryKey({ columns: [t.sourceId, t.tenantId] })])
 
 // ── Noticias ───────────────────────────────────────────────────────
-// Salas de prensa de dependencias e instituciones (lista del despacho,
-// lib/news/catalog.ts). Sus comunicados arman el boletín que ven los clientes;
+// Salas de prensa de dependencias e instituciones. El despacho las administra
+// en /admin/noticias/fuentes; no hay lista en el código. Sus comunicados arman el boletín que ven los clientes;
 // no pasan por la categorización de RegWatch. Viven en la principal.
 export const newsSources = pgTable('news_sources', {
-  id:            text('id').primaryKey(), // slug estable del catálogo: "semarnat"
+  id:            text('id').primaryKey(), // slug estable: "semarnat"
   name:          text('name').notNull(), // "Medio Ambiente"
   shortName:     text('short_name').notNull(), // "SEMARNAT", para la cita
   url:           text('url').notNull(), // listado de comunicados
