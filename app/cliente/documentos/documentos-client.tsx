@@ -5,6 +5,10 @@ import { cn } from "@/lib/utils"
 import type { DocumentRow } from "@/lib/db/schema"
 import { deleteDocument } from "@/app/actions/documents"
 import { Spinner } from "@/components/ui/spinner"
+import { Button } from "@/components/ui/button"
+import { DeadlineChip, StatusTag } from "@/components/ui/status-tag"
+import { DOC_TYPES, expiryState } from "@/lib/documents/analysis"
+import { AnalysisDialog } from "./analysis-dialog"
 
 // ── File type config ──────────────────────────────────────────────
 const EXT_CONFIG: Record<string, { color: string; label: string }> = {
@@ -116,6 +120,9 @@ function UploadModal({
         signed:            false,
         blobUrl:           null,
         blobPathname:      data.pathname,
+        analysis:          data.analysis ?? null,
+        analysisStatus:    data.analysis ? "detected" : "none",
+        analysisConfirmedAt: null,
         createdAt:         new Date(),
       })
     } catch (e: unknown) {
@@ -231,6 +238,44 @@ function UploadModal({
   )
 }
 
+// ── Datos detectados ──────────────────────────────────────────────
+const dateFormat = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+const formatDay = (day: string) => dateFormat.format(new Date(`${day}T00:00:00Z`))
+
+function DocumentFacts({ doc, onReview }: { doc: DocumentRow; onReview: () => void }) {
+  const a = doc.analysis
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date())
+  const expiry = expiryState(doc.expiresAt, today)
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      {a && doc.analysisStatus === "confirmed" && (
+        <span className="text-caption text-ink-muted">
+          {[DOC_TYPES[a.tipo], a.autoridad].filter(Boolean).join(" · ")}
+        </span>
+      )}
+      {expiry === "vencido" && <StatusTag status="risk" label="Vencido" />}
+      {expiry === "por_vencer" && <StatusTag status="warn" label="Por vencer" />}
+      {doc.expiresAt && (
+        expiry === "por_vencer"
+          ? <DeadlineChip>Vence el {formatDay(doc.expiresAt)}</DeadlineChip>
+          : <span className="text-caption text-ink-muted">{expiry === "vencido" ? "Venció" : "Vence"} el {formatDay(doc.expiresAt)}</span>
+      )}
+      {doc.analysisStatus === "detected" && (
+        <>
+          <StatusTag status="info" label="Por confirmar" />
+          <Button variant="link" size="sm" onClick={onReview}>Revisar datos</Button>
+        </>
+      )}
+      {doc.analysisStatus === "none" && (
+        <Button variant="link" size="sm" onClick={onReview}>Completar datos</Button>
+      )}
+      {doc.analysisStatus === "confirmed" && (
+        <Button variant="link" size="sm" onClick={onReview}>Editar datos</Button>
+      )}
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────
 interface DocumentosPageProps {
   initialDocs: DocumentRow[]
@@ -243,6 +288,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
   const [search, setSearch]           = useState("")
   const [showUpload, setShowUpload]   = useState(false)
   const [deletingId, setDeletingId]   = useState<string | null>(null)
+  const [reviewing, setReviewing]     = useState<DocumentRow | null>(null)
 
   // Group by category (folder)
   const folders = [...new Set(docs.map(d => d.category))].sort()
@@ -257,6 +303,13 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
     // Auto-navigate into the folder the file was uploaded to
     setSelectedFolder(doc.category)
     setShowUpload(false)
+    // Si Otero detectó datos, el cliente los confirma o edita enseguida.
+    if (doc.analysis) setReviewing(doc)
+  }
+
+  function handleAnalysisSaved(row: DocumentRow) {
+    setDocs(prev => prev.map(d => (d.id === row.id ? row : d)))
+    setReviewing(null)
   }
 
   async function handleDelete(id: string) {
@@ -371,6 +424,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
   // ── FILE LIST VIEW ────────────────────────────────────────────
   return (
     <>
+      {reviewing && <AnalysisDialog key={reviewing.id} doc={reviewing} onClose={() => setReviewing(null)} onSaved={handleAnalysisSaved} />}
       {showUpload && (
         <UploadModal
           tenantId={tenantId}
@@ -441,6 +495,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
                         {new Date(doc.uploadedAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                     </div>
+                    <DocumentFacts doc={doc} onReview={() => setReviewing(doc)} />
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {downloadHref && (

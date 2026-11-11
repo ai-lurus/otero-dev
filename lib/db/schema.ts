@@ -13,6 +13,7 @@ import {
 } from 'drizzle-orm/pg-core'
 import type { DetectedObject } from '@/lib/legal-objects'
 import type { Triggers } from '@/lib/monitoring-profile'
+import type { AnalysisStatus, DocAnalysis } from '@/lib/documents/analysis'
 
 // ── Better Auth required tables ────────────────────────────────────
 
@@ -99,6 +100,11 @@ export const documents = pgTable('documents', {
   signed:            boolean('signed').notNull().default(false),
   blobUrl:           text('blobUrl'),
   blobPathname:      text('blobPathname'),
+  // Análisis del documento (lib/documents/analysis.ts): Haiku propone al subir,
+  // el cliente confirma o edita; solo lo confirmado alimenta el matching de RegWatch.
+  analysis:          jsonb('analysis').$type<DocAnalysis>(),
+  analysisStatus:    text('analysisStatus').$type<AnalysisStatus>().notNull().default('none'),
+  analysisConfirmedAt: timestamp('analysisConfirmedAt'),
   createdAt:         timestamp('createdAt').notNull().defaultNow(),
 })
 

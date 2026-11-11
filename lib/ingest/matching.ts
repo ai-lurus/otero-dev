@@ -2,6 +2,8 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { getTenantDb } from '@/lib/db/tenant'
 import { companyProfiles, ingestMatches, tenants, type IngestSource } from '@/lib/db/schema'
+import { mergeTriggers } from '@/lib/documents/analysis'
+import { loadDocumentTriggers } from '@/lib/documents/signals'
 import { matchTenant } from './match'
 
 // Calcula (por reglas, sin IA) a qué clientes aplica una fuente categorizada y
@@ -14,7 +16,9 @@ export async function computeMatches(source: Pick<IngestSource, 'id' | 'materia'
     try {
       const tdb = await getTenantDb(tenant.id)
       const [profile] = await tdb.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenant.id)).limit(1)
-      const match = matchTenant(source.materia, { ...profile, industry: [tenant.industry, profile?.industry].filter(Boolean).join(' ') })
+      // Los documentos confirmados del cliente completan las respuestas del perfil.
+      const triggers = mergeTriggers(profile?.triggers, await loadDocumentTriggers(tdb, tenant.id))
+      const match = matchTenant(source.materia, { ...profile, triggers, industry: [tenant.industry, profile?.industry].filter(Boolean).join(' ') })
       rows.push({ sourceId: source.id, tenantId: tenant.id, ...match })
     } catch (e) {
       console.error('computeMatches', tenant.id, e)

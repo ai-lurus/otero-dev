@@ -8,6 +8,8 @@ import {
   companyProfiles, newsItems, newsSources, regulatoryItemEvents, regulatoryItems, tenants, userTenants,
 } from '@/lib/db/schema'
 import { draftObligation, ITEM_MATERIA, type Company, type Draft } from '@/lib/ingest/draft'
+import { mergeTriggers } from '@/lib/documents/analysis'
+import { loadDocumentTriggers } from '@/lib/documents/signals'
 import { matchTenant } from '@/lib/ingest/match'
 import { dayInMexico } from '@/lib/ingest/dof'
 import { MATERIAS, type Materia } from '@/lib/ingest/categories'
@@ -52,7 +54,8 @@ async function profileOf(tenantId: string) {
   const [profile] = await tdb.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId)).limit(1)
   const [tenant] = await db.select().from(tenants).where(eq(tenants.id, tenantId)).limit(1)
   if (!tenant) throw new Error('Cliente no encontrado')
-  return { tdb, tenant, profile, matchProfile: { ...profile, industry: [tenant.industry, profile?.industry].filter(Boolean).join(' ') } }
+  const triggers = mergeTriggers(profile?.triggers, await loadDocumentTriggers(tdb, tenantId))
+  return { tdb, tenant, profile, matchProfile: { ...profile, triggers, industry: [tenant.industry, profile?.industry].filter(Boolean).join(' ') } }
 }
 
 /** Notas ya convertidas en asunto por este cliente: id de nota -> id de asunto. */

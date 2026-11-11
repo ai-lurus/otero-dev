@@ -3,8 +3,10 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { getTenantSession } from '@/lib/obligation-access'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES, safeFileName } from '@/lib/upload-rules'
 import { addDocument } from '@/app/actions/documents'
+import { analyzeDocument } from '@/lib/documents/analyze'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   // Auth check: the tenant always comes from the session, never from the form.
@@ -47,6 +49,10 @@ export async function POST(request: NextRequest) {
       contentType: file.type,
     })
 
+    // Haiku lee el documento y propone tipo, autoridad, estado, materia y vigencia.
+    // Si falla o el formato no se analiza, el archivo se guarda igual y el cliente lo llena a mano.
+    const analysis = await analyzeDocument(Buffer.from(await file.arrayBuffer()), file.type, file.name)
+
     // Persist record in Neon
     const docId = await addDocument({
       tenantId:         ctx.tenantId,
@@ -60,9 +66,10 @@ export async function POST(request: NextRequest) {
       requiresSignature: requiresSig,
       blobUrl:          blob.url,
       blobPathname:     blob.pathname,
+      analysis,
     })
 
-    return NextResponse.json({ success: true, docId, pathname: blob.pathname })
+    return NextResponse.json({ success: true, docId, pathname: blob.pathname, analysis })
   } catch (error) {
     console.error('[upload] error:', error)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
