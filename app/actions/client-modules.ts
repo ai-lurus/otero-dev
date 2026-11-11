@@ -5,9 +5,12 @@ import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { getTenantDb } from '@/lib/db/tenant'
+import { requireDirector } from '@/lib/client-guard'
 import { appointments, payments, services, userTenants } from '@/lib/db/schema'
 
+// Servicios, pagos y agenda son de la empresa: solo el director.
 async function tenantForUser() {
+  await requireDirector()
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) throw new Error('Unauthorized')
   const membership = await db.select({ tenantId: userTenants.tenantId }).from(userTenants).where(eq(userTenants.userId, session.user.id)).limit(1)

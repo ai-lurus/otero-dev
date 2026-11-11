@@ -242,7 +242,7 @@ function UploadModal({
 const dateFormat = new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
 const formatDay = (day: string) => dateFormat.format(new Date(`${day}T00:00:00Z`))
 
-function DocumentFacts({ doc, onReview }: { doc: DocumentRow; onReview: () => void }) {
+function DocumentFacts({ doc, onReview, canManage }: { doc: DocumentRow; onReview: () => void; canManage: boolean }) {
   const a = doc.analysis
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Mexico_City" }).format(new Date())
   const expiry = expiryState(doc.expiresAt, today)
@@ -263,13 +263,13 @@ function DocumentFacts({ doc, onReview }: { doc: DocumentRow; onReview: () => vo
       {doc.analysisStatus === "detected" && (
         <>
           <StatusTag status="info" label="Por confirmar" />
-          <Button variant="link" size="sm" onClick={onReview}>Revisar datos</Button>
+          {canManage && <Button variant="link" size="sm" onClick={onReview}>Revisar datos</Button>}
         </>
       )}
-      {doc.analysisStatus === "none" && (
+      {canManage && doc.analysisStatus === "none" && (
         <Button variant="link" size="sm" onClick={onReview}>Completar datos</Button>
       )}
-      {doc.analysisStatus === "confirmed" && (
+      {canManage && doc.analysisStatus === "confirmed" && (
         <Button variant="link" size="sm" onClick={onReview}>Editar datos</Button>
       )}
     </div>
@@ -280,9 +280,11 @@ function DocumentFacts({ doc, onReview }: { doc: DocumentRow; onReview: () => vo
 interface DocumentosPageProps {
   initialDocs: DocumentRow[]
   tenantId: string
+  /** Solo el director confirma los datos detectados y elimina documentos. */
+  canManage: boolean
 }
 
-export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPageProps) {
+export default function DocumentosPage({ initialDocs, tenantId, canManage }: DocumentosPageProps) {
   const [docs, setDocs]               = useState<DocumentRow[]>(initialDocs)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [search, setSearch]           = useState("")
@@ -304,7 +306,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
     setSelectedFolder(doc.category)
     setShowUpload(false)
     // Si Otero detectó datos, el cliente los confirma o edita enseguida.
-    if (doc.analysis) setReviewing(doc)
+    if (doc.analysis && canManage) setReviewing(doc)
   }
 
   function handleAnalysisSaved(row: DocumentRow) {
@@ -495,7 +497,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
                         {new Date(doc.uploadedAt).toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" })}
                       </span>
                     </div>
-                    <DocumentFacts doc={doc} onReview={() => setReviewing(doc)} />
+                    <DocumentFacts doc={doc} onReview={() => setReviewing(doc)} canManage={canManage} />
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {downloadHref && (
@@ -510,6 +512,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
                         </svg>
                       </a>
                     )}
+                    {canManage && (
                     <button
                       onClick={() => handleDelete(doc.id)}
                       disabled={deletingId === doc.id}
@@ -524,6 +527,7 @@ export default function DocumentosPage({ initialDocs, tenantId }: DocumentosPage
                         </svg>
                       )}
                     </button>
+                    )}
                   </div>
                 </div>
               )

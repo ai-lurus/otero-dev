@@ -7,6 +7,7 @@ import { getFirstTenantId, getUserId } from './auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { expiryState, sanitizeAnalysis, type DocAnalysis } from '@/lib/documents/analysis'
 import { dayInMexico } from '@/lib/ingest/dof'
+import { requireDirector } from '@/lib/client-guard'
 
 export async function getDocuments(tenantId: string) {
   const currentTenantId = await getFirstTenantId()
@@ -20,6 +21,7 @@ export async function getDocuments(tenantId: string) {
 }
 
 export async function signDocument(id: string) {
+  await requireDirector()
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('Forbidden')
   const db = await getTenantDb(tenantId)
@@ -28,6 +30,7 @@ export async function signDocument(id: string) {
 }
 
 export async function deleteDocument(id: string) {
+  await requireDirector()
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('Forbidden')
   const db = await getTenantDb(tenantId)
@@ -67,7 +70,8 @@ export async function addDocument(data: {
 
 /** El cliente confirma o corrige lo detectado. La vigencia pasa a ser el vencimiento del documento. */
 export async function confirmDocumentAnalysis(id: string, input: Record<string, unknown>) {
-  await getUserId()
+  // Lo confirmado alimenta el matching de RegWatch: lo decide el director.
+  await requireDirector()
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('Forbidden')
   const analysis = sanitizeAnalysis(input)

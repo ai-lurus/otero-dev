@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (!(file instanceof File) || typeof itemId !== 'string') {
     return NextResponse.json({ error: 'Archivo inválido' }, { status: 400 })
   }
-  if (!(await tenantOwnsItem(ctx.tenantId, itemId))) {
+  if (!(await tenantOwnsItem(ctx, itemId))) {
     return NextResponse.json({ error: 'Asunto no encontrado' }, { status: 404 })
   }
   if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {

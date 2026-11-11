@@ -46,7 +46,8 @@ export async function getOnboardingState(): Promise<OnboardingState> {
     isAdmin,
     done: Boolean(profile?.confirmedAt),
     profile: profile ?? null,
-    team: team.sort((a, b) => a.name.localeCompare(b.name)),
+    // La lista del equipo (con correos) es del director.
+    team: isAdmin ? team.sort((a, b) => a.name.localeCompare(b.name)) : [],
   }
 }
 

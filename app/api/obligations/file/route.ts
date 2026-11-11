@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const pathname = searchParams.get('pathname')
   if (!pathname) return NextResponse.json({ error: 'Missing pathname' }, { status: 400 })
-  if (!(await tenantOwnsBlob(ctx.tenantId, pathname))) return new NextResponse('Not found', { status: 404 })
+  if (!(await tenantOwnsBlob(ctx, pathname))) return new NextResponse('Not found', { status: 404 })
 
   const result = await get(pathname, { access: 'private' })
   if (!result || result.statusCode !== 200) return new NextResponse('Not found', { status: 404 })

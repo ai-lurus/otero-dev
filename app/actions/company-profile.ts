@@ -5,6 +5,7 @@ import { companyProfiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getUserId, getFirstTenantId, getSession } from './auth-helpers'
 import { revalidatePath } from 'next/cache'
+import { requireDirector } from '@/lib/client-guard'
 
 export async function getCompanyProfileForCurrentUser() {
   await getUserId()
@@ -48,7 +49,8 @@ export async function saveCompanyProfile(data: {
   certifications: string
   riesgos:        string
 }) {
-  await getUserId()
+  // El perfil de la empresa alimenta a RegWatch: lo edita el director.
+  await requireDirector()
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('No tenant')
   const db = await getTenantDb(tenantId)

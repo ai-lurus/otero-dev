@@ -4,9 +4,11 @@ import { db } from '@/lib/db'
 import { posts } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
-import { getUserId } from './auth-helpers'
+import { requireAdmin } from './auth-helpers'
 
 export async function getPosts() {
+  // Incluye borradores: solo el despacho.
+  await requireAdmin()
   return db.select().from(posts).orderBy(desc(posts.createdAt))
 }
 
@@ -26,7 +28,7 @@ export async function createPost(data: {
   affectsNote?: string
   published: boolean
 }) {
-  const authorId = await getUserId()
+  const authorId = await requireAdmin()
   const id = `post-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   await db.insert(posts).values({ ...data, id, authorId })
   revalidatePath('/admin/noticias')
@@ -44,7 +46,7 @@ export async function updatePost(id: string, data: {
   affectsNote?: string
   published?: boolean
 }) {
-  await getUserId()
+  await requireAdmin()
   await db.update(posts)
     .set({ ...data, updatedAt: new Date() })
     .where(eq(posts.id, id))
@@ -53,14 +55,14 @@ export async function updatePost(id: string, data: {
 }
 
 export async function deletePost(id: string) {
-  await getUserId()
+  await requireAdmin()
   await db.delete(posts).where(eq(posts.id, id))
   revalidatePath('/admin/noticias')
   revalidatePath('/cliente/noticias')
 }
 
 export async function togglePublish(id: string, published: boolean) {
-  await getUserId()
+  await requireAdmin()
   await db.update(posts)
     .set({ published, updatedAt: new Date() })
     .where(eq(posts.id, id))

@@ -5,6 +5,8 @@ import { getTenantDb } from '@/lib/db/tenant'
 import { companyProfiles, posts, regulatoryItems } from '@/lib/db/schema'
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
 import { getFirstTenantId } from '@/app/actions/auth-helpers'
+import { isTenantAdmin } from '@/app/actions/tenant-users'
+import { memberIdOf } from '@/lib/regulatory-items-db'
 import { convertToModelMessages, streamText, type UIMessage } from 'ai'
 
 export const maxDuration = 30
@@ -30,12 +32,18 @@ export async function POST(req: Request) {
       const tenantId = await getFirstTenantId()
       if (tenantId) {
         const tdb = await getTenantDb(tenantId)
+        // El miembro del equipo solo conoce los asuntos que le asignaron; el director, todos.
+        const isDirector = await isTenantAdmin()
+        const memberId = isDirector ? null : await memberIdOf(tenantId, session.user.id)
+        const scope = isDirector
+          ? [inArray(regulatoryItems.status, ['identificada', 'aceptada'])]
+          : [inArray(regulatoryItems.status, ['aceptada']), eq(regulatoryItems.assigneeId, memberId ?? '')]
         const [profile, recentPosts, items] = await Promise.all([
           tdb.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId)).limit(1),
           db.select().from(posts).where(eq(posts.published, true)).orderBy(desc(posts.createdAt)).limit(10),
           // Solo lo que ya le llegó a esta empresa y sigue abierto.
           tdb.select().from(regulatoryItems)
-            .where(and(eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt), inArray(regulatoryItems.status, ['identificada', 'aceptada'])))
+            .where(and(eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt), ...scope))
             .orderBy(desc(regulatoryItems.updatedAt)).limit(25),
         ])
 

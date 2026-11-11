@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { eq, and, desc, isNotNull, sql } from 'drizzle-orm'
+import { eq, and, desc, inArray, isNotNull, sql } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@/lib/db/schema'
@@ -10,6 +10,8 @@ import { attachEvidence, listTeam, recordEvent } from '@/lib/regulatory-items-db
 import { DIRECTIONS, IMPACTS, MATERIAS, SCOPES, STATUSES, isOneOf } from '@/lib/regulatory'
 import { getFirstTenantId, requireAdmin } from './auth-helpers'
 import { isTenantAdmin } from './tenant-users'
+import { BOARD_STATUSES } from '@/lib/client-access'
+import { memberIdOf } from '@/lib/regulatory-items-db'
 
 export type ItemEvent = typeof regulatoryItemEvents.$inferSelect
 
@@ -41,7 +43,16 @@ async function clientContext() {
   if (!session?.user) throw new Error('Unauthorized')
   const tenantId = await getFirstTenantId()
   if (!tenantId) throw new Error('Tenant not found')
-  return { userId: session.user.id, tenantId, db: await getTenantDb(tenantId) }
+  const [isDirector, memberId, db] = await Promise.all([isTenantAdmin(), memberIdOf(tenantId, session.user.id), getTenantDb(tenantId)])
+  return { userId: session.user.id, tenantId, isDirector, memberId, db }
+}
+
+/** Asuntos que esta persona puede ver: el director todos los enviados; el miembro solo los aceptados que le asignaron. */
+function visibleItems(ctx: { tenantId: string; isDirector: boolean; memberId: string | null }) {
+  const sent = and(eq(regulatoryItems.tenantId, ctx.tenantId), isNotNull(regulatoryItems.sentAt))
+  if (ctx.isDirector) return sent
+  // Sin ficha en el equipo no tiene nada asignado: la condición nunca coincide.
+  return and(sent, inArray(regulatoryItems.status, [...BOARD_STATUSES]), eq(regulatoryItems.assigneeId, ctx.memberId ?? ''))
 }
 
 const text = (value?: string) => value?.trim() || null
@@ -80,23 +91,26 @@ function normalize(input: ItemInput) {
 }
 
 // ── Cliente: solo ve lo que el admin le envió ──────────────────────
+// El director ve todo lo enviado; el miembro del equipo, solo lo suyo.
 
 export async function getRegulatoryItems() {
-  const { tenantId, db } = await clientContext()
+  const ctx = await clientContext()
+  const { db } = ctx
   const rows = await db
     .select()
     .from(regulatoryItems)
-    .where(and(eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
+    .where(visibleItems(ctx))
     .orderBy(desc(regulatoryItems.publishedAt), desc(regulatoryItems.updatedAt))
   return attachEvidence(db, rows)
 }
 
 export async function getRegulatoryItem(id: string) {
-  const { tenantId, db } = await clientContext()
+  const ctx = await clientContext()
+  const { tenantId, db } = ctx
   const [row] = await db
     .select()
     .from(regulatoryItems)
-    .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
+    .where(and(eq(regulatoryItems.id, id), visibleItems(ctx)))
     .limit(1)
   if (!row) return null
   const [withEvidence] = await attachEvidence(db, [row])
@@ -184,11 +198,13 @@ export async function acceptAndAssign(id: string, memberId: string) {
 }
 
 export async function addItemEvidence(input: { itemId: string; kind: string; title: string; content: string; url?: string; blobPathname?: string }) {
-  const { userId, tenantId, db } = await clientContext()
+  const ctx = await clientContext()
+  const { userId, tenantId, db } = ctx
+  // El miembro solo agrega evidencia a lo que tiene asignado.
   const parent = await db
     .select({ id: regulatoryItems.id })
     .from(regulatoryItems)
-    .where(and(eq(regulatoryItems.id, input.itemId), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
+    .where(and(eq(regulatoryItems.id, input.itemId), visibleItems(ctx)))
   if (!parent.length || !input.title.trim()) throw new Error('Asunto inválido')
   await db.insert(regulatoryItemEvidence).values({
     id: crypto.randomUUID(),

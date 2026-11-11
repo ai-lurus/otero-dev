@@ -10,6 +10,8 @@ import ObligationsClient from './obligations-client'
 export default async function ObligationsPage() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect('/sign-in')
+  // La bandeja de RegWatch (aceptar, descartar, archivar) es del director; el equipo trabaja en Mi cumplimiento.
+  if (!(await isTenantAdmin())) redirect('/cliente/cumplimiento')
   const [items, members, canDecide, company] = await Promise.all([
     getRegulatoryItems().catch(() => []),
     getAssignableMembers().catch(() => []),

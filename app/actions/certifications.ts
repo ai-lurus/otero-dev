@@ -7,8 +7,11 @@ import { auth } from '@/lib/auth'
 import { getTenantDb } from '@/lib/db/tenant'
 import { certifications } from '@/lib/db/schema'
 import { getFirstTenantId } from './auth-helpers'
+import { requireDirector } from '@/lib/client-guard'
 
+// Certificaciones de toda la empresa: solo las ve y edita el director.
 async function context() {
+  await requireDirector()
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) throw new Error('Unauthorized')
   const tenantId = await getFirstTenantId()

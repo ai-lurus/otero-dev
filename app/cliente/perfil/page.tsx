@@ -13,7 +13,7 @@ export default async function PerfilPage() {
   }
   const canEdit = await isTenantAdmin()
   return (
-    <PerfilClient user={data.user} profile={data.profile}>
+    <PerfilClient user={data.user} profile={data.profile} canEdit={canEdit}>
       <MonitoringSection profile={data.profile} canEdit={canEdit} />
     </PerfilClient>
   )

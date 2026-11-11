@@ -66,9 +66,11 @@ type PerfilClientProps = {
   profile: CompanyProfile | null
   /** Sección del perfil de monitoreo, armada en el servidor. */
   children?: React.ReactNode
+  /** Solo el director edita el perfil de la empresa; el equipo lo ve en lectura. */
+  canEdit?: boolean
 }
 
-export default function PerfilClient({ user, profile, children }: PerfilClientProps) {
+export default function PerfilClient({ user, profile, children, canEdit = false }: PerfilClientProps) {
   const [notifs, setNotifs] = useState({ compliance: true, documentos: true, chat: true, pagos: true })
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" })
@@ -170,6 +172,7 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
                   {f.rows > 1 ? (
                     <textarea
                       rows={f.rows}
+                      readOnly={!canEdit}
                       value={companyForm[f.key]}
                       onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
@@ -178,6 +181,7 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
                   ) : (
                     <input
                       type="text"
+                      readOnly={!canEdit}
                       value={companyForm[f.key]}
                       onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
@@ -187,6 +191,7 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
                 </div>
               ))}
               {companyError && <p role="alert" className="rounded-md bg-risk-tint px-3 py-2 text-body-sm text-risk">{companyError}</p>}
+              {canEdit ? (
               <button
                 type="submit"
                 disabled={companySaving}
@@ -199,6 +204,9 @@ export default function PerfilClient({ user, profile, children }: PerfilClientPr
               >
                 {companySaving ? "Guardando..." : companySaved ? "Guardado — Otero ya lo sabe" : "Guardar perfil de empresa"}
               </button>
+              ) : (
+                <p className="text-body-sm text-ink-muted">Solo el administrador de tu empresa puede cambiar estos datos.</p>
+              )}
             </form>
           </div>
         </div>
