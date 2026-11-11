@@ -1,4 +1,4 @@
-import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES } from '../upload-rules'
+import { ALLOWED_UPLOAD_TYPES, MAX_DOCUMENT_BYTES } from '../upload-rules'
 import type { DocAnalysis } from './analysis'
 
 // Reglas de la carga por lote. Viven aparte para que el navegador y el servidor
@@ -20,8 +20,8 @@ export function pickBatchFiles<T extends FileLike>(files: T[], alreadyQueued = 0
   const accepted: T[] = []
   const rejected: { name: string; reason: string }[] = []
   for (const file of files) {
-    if (file.size === 0 || file.size > MAX_UPLOAD_BYTES) {
-      rejected.push({ name: file.name, reason: 'Pesa más de 25 MB o está vacío' })
+    if (file.size === 0 || file.size > MAX_DOCUMENT_BYTES) {
+      rejected.push({ name: file.name, reason: 'Pesa más de 50 MB o está vacío' })
     } else if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
       rejected.push({ name: file.name, reason: 'Formato no permitido' })
     } else if (alreadyQueued + accepted.length >= MAX_BATCH_FILES) {

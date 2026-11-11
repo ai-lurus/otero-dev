@@ -48,3 +48,12 @@ test('analysisRoom nunca es negativo', () => {
   assert.equal(analysisRoom(40, 100), 60)
   assert.equal(analysisRoom(150, 100), 0)
 })
+
+test('los documentos admiten hasta 50 MB y la ruta de Blob queda en la carpeta de la empresa', async () => {
+  const { documentBlobPath, documentBlobPrefix } = await import('../lib/documents/blob-path.ts')
+  assert.equal(pickBatchFiles([pdf('grande.pdf', 49 * 1024 * 1024)]).accepted.length, 1)
+  assert.equal(pickBatchFiles([pdf('enorme.pdf', 51 * 1024 * 1024)]).rejected.length, 1)
+  const path = documentBlobPath('t1', 'Permiso ñ.pdf', 'abcdef123456')
+  assert.ok(path.startsWith(documentBlobPrefix('t1')))
+  assert.notEqual(documentBlobPath('t1', 'a.pdf', 'aaaaaaaa1'), documentBlobPath('t1', 'a.pdf', 'bbbbbbbb2'))
+})

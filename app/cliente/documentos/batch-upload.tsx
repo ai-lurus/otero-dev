@@ -1,11 +1,13 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { upload } from "@vercel/blob/client"
 import { XIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { StatusTag } from "@/components/ui/status-tag"
 import type { DocumentRow } from "@/lib/db/schema"
+import { documentBlobPath } from "@/lib/documents/blob-path"
 import { MAX_BATCH_FILES, UPLOAD_CONCURRENCY, pickBatchFiles, runPool } from "@/lib/documents/batch"
 import { AnalysisDialog } from "./analysis-dialog"
 import { BatchReview } from "./batch-review"
@@ -18,7 +20,7 @@ const ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.jpg,.jpeg,.png,.webp,.heic
 type Item = {
   key: string
   file: File
-  status: "queued" | "uploading" | "done" | "error"
+  status: "queued" | "uploading" | "reading" | "done" | "error"
   error?: string
   docId?: string
 }
@@ -77,13 +79,19 @@ export function BatchUploadModal({
     if (closed.current) return
     patchItem(item.key, { status: "uploading" })
     try {
-      const fd = new FormData()
-      fd.append("file", item.file)
-      fd.append("tenantId", tenantId)
-      fd.append("category", finalCategory)
-      fd.append("requiresSignature", "false")
-      if (service.trim()) fd.append("service", service.trim())
-      const res = await fetch("/api/upload", { method: "POST", body: fd })
+      // 1) El archivo va directo a Blob (sin límite de cuerpo de función); 2) el servidor lo registra y lo lee.
+      const blob = await upload(documentBlobPath(tenantId, item.file.name, item.key), item.file, {
+        access: "private",
+        handleUploadUrl: "/api/upload/token",
+        contentType: item.file.type,
+        multipart: item.file.size > 8 * 1024 * 1024,
+      })
+      patchItem(item.key, { status: "reading" })
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pathname: blob.pathname, name: item.file.name, category: finalCategory, service: service.trim() }),
+      })
       if (!res.ok) {
         const j = await res.json().catch(() => ({}))
         throw new Error(j.error ?? "No se pudo subir")
@@ -93,7 +101,7 @@ export function BatchUploadModal({
       const now = new Date()
       upsert({
         id: data.docId, tenantId, name: item.file.name, type: extOf(item.file.name), category: finalCategory,
-        service: service.trim() || null, status: "vigente", size: sizeOf(item.file.size), uploadedAt: now,
+        service: service.trim() || null, status: "vigente", size: data.size ?? sizeOf(item.file.size), uploadedAt: now,
         expiresAt: null, requiresSignature: false, signed: false, blobUrl: null, blobPathname: data.pathname,
         analysis: data.analysis ?? null, analysisStatus: data.analysis ? "detected" : "none",
         analysisConfirmedAt: null, createdAt: now,
@@ -147,7 +155,7 @@ export function BatchUploadModal({
               className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors ${dragging ? "border-ink bg-surface-sunken" : "border-border-strong"}`}
             >
               <p className="text-body-sm font-semibold text-ink">Arrastra tus archivos aquí</p>
-              <p className="mt-1 text-caption text-ink-muted">PDF, Word, Excel, imágenes o texto, hasta 25 MB cada uno</p>
+              <p className="mt-1 text-caption text-ink-muted">PDF, Word, Excel, imágenes o texto, hasta 50 MB cada uno</p>
               <Button variant="outline" className="mt-3" onClick={() => inputRef.current?.click()}>Seleccionar archivos</Button>
               <input ref={inputRef} type="file" multiple accept={ACCEPT} className="hidden"
                 onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = "" }} />
@@ -188,7 +196,8 @@ export function BatchUploadModal({
                     <Button variant="ghost" size="icon-sm" aria-label={`Quitar ${item.file.name}`} onClick={() => setItems(prev => prev.filter(i => i.key !== item.key))}><XIcon /></Button>
                   )}
                   {item.status === "queued" && started && <span className="text-caption text-ink-muted">En cola</span>}
-                  {item.status === "uploading" && <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Subiendo y leyendo</span>}
+                  {item.status === "uploading" && <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Subiendo</span>}
+                  {item.status === "reading" && <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Leyendo</span>}
                   {item.status === "done" && <StatusTag status="ok" label="Subido" />}
                   {item.status === "error" && (
                     <>

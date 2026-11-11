@@ -1,4 +1,5 @@
 import mammoth from 'mammoth'
+import { PDFDocument } from 'pdf-lib'
 import { MATERIAS, MATERIA_KEYS } from '../ingest/categories'
 import { TRIGGERS } from '../monitoring-profile'
 import {
@@ -11,9 +12,13 @@ import {
 
 const MODEL = 'claude-haiku-5-5'
 const API_URL = 'https://api.anthropic.com/v1/messages'
-const TIMEOUT_MS = 40_000
+const TIMEOUT_MS = 50_000
+// Los datos que importan (vigencia, autoridad, tipo) están al inicio: un PDF largo se recorta a sus primeras páginas.
+const MAX_PDF_PAGES = 30
 const MAX_TEXT_CHARS = 60_000
 const MAX_BINARY_BYTES = 18 * 1024 * 1024
+// Un PDF recortado puede venir de un archivo enorme; solo se abre si cabe en memoria con holgura.
+const MAX_PDF_PARSE_BYTES = 50 * 1024 * 1024
 
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 const IMAGES = ['image/jpeg', 'image/png', 'image/webp'] as const
@@ -59,6 +64,21 @@ const TOOL = {
 
 type Block = Record<string, unknown>
 
+/** Primeras páginas de un PDF largo. Devuelve los bytes originales si ya es corto o no se puede abrir. */
+export async function trimPdf(bytes: Buffer): Promise<Buffer> {
+  if (bytes.length > MAX_PDF_PARSE_BYTES) return bytes
+  try {
+    const src = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false })
+    if (src.getPageCount() <= MAX_PDF_PAGES) return bytes
+    const out = await PDFDocument.create()
+    const pages = await out.copyPages(src, Array.from({ length: MAX_PDF_PAGES }, (_, i) => i))
+    pages.forEach(p => out.addPage(p))
+    return Buffer.from(await out.save())
+  } catch {
+    return bytes
+  }
+}
+
 /** Contenido para Claude, o null si el formato no se analiza (xls, doc viejo, HEIC, archivos enormes). */
 export async function buildBlocks(bytes: Buffer, mime: string, name: string): Promise<Block[] | null> {
   const intro = { type: 'text', text: `Analiza este documento (${name}).` }
@@ -67,11 +87,13 @@ export async function buildBlocks(bytes: Buffer, mime: string, name: string): Pr
 
   if (mime === 'text/plain' || mime === 'text/csv') return asText(bytes.toString('utf8'))
   if (mime === DOCX) return asText((await mammoth.extractRawText({ buffer: bytes })).value)
+  if (mime === 'application/pdf') {
+    const pdf = await trimPdf(bytes)
+    if (pdf.length > MAX_BINARY_BYTES) return null
+    return [{ type: 'document', source: { type: 'base64', media_type: mime, data: pdf.toString('base64') } }, intro]
+  }
   if (bytes.length > MAX_BINARY_BYTES) return null
   const data = bytes.toString('base64')
-  if (mime === 'application/pdf') {
-    return [{ type: 'document', source: { type: 'base64', media_type: mime, data } }, intro]
-  }
   if ((IMAGES as readonly string[]).includes(mime)) {
     return [{ type: 'image', source: { type: 'base64', media_type: mime, data } }, intro]
   }
