@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import type { DocumentRow } from "@/lib/db/schema"
 import { deleteDocument } from "@/app/actions/documents"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { DeadlineChip, StatusTag } from "@/components/ui/status-tag"
 import { DOC_TYPES, expiryState } from "@/lib/documents/analysis"
 import { AnalysisDialog } from "./analysis-dialog"
+import { BatchUploadModal } from "./batch-upload"
 
 // ── File type config ──────────────────────────────────────────────
 const EXT_CONFIG: Record<string, { color: string; label: string }> = {
@@ -52,188 +53,6 @@ function FolderIcon({ category, index }: { category: string; index: number }) {
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke={color} strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
       </svg>
-    </div>
-  )
-}
-
-// ── Upload Modal ──────────────────────────────────────────────────
-const DEFAULT_CATEGORIES = ["General", "Corporativo", "Ambiental", "Fiscal", "Contratos", "Permisos", "Trámites"]
-
-function UploadModal({
-  tenantId,
-  defaultCategory,
-  existingCategories,
-  onClose,
-  onSuccess,
-}: {
-  tenantId: string
-  defaultCategory?: string
-  existingCategories: string[]
-  onClose: () => void
-  onSuccess: (doc: DocumentRow) => void
-}) {
-  const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...existingCategories])]
-  const [file, setFile]           = useState<File | null>(null)
-  const [category, setCategory]   = useState(defaultCategory ?? allCategories[0])
-  const [newFolder, setNewFolder] = useState("")
-  const [expiresAt, setExpiresAt] = useState("")
-  const [uploading, setUploading] = useState(false)
-  const [error, setError]         = useState<string | null>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const finalCategory = newFolder.trim() || category
-
-  async function handleUpload() {
-    if (!file) return
-    setUploading(true)
-    setError(null)
-    try {
-      const fd = new FormData()
-      fd.append("file", file)
-      fd.append("tenantId", tenantId)
-      fd.append("category", finalCategory)
-      fd.append("requiresSignature", "false")
-      if (expiresAt) fd.append("expiresAt", expiresAt)
-
-      const res = await fetch("/api/upload", { method: "POST", body: fd })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        throw new Error(j.error ?? "Error al subir")
-      }
-      const data = await res.json()
-      const size = file.size < 1024 * 1024
-        ? `${(file.size / 1024).toFixed(0)} KB`
-        : `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-
-      onSuccess({
-        id:                data.docId,
-        tenantId,
-        name:              file.name,
-        type:              getExt(file.name),
-        category:          finalCategory,
-        service:           null,
-        status:            "vigente",
-        size,
-        uploadedAt:        new Date(),
-        expiresAt:         null,
-        requiresSignature: false,
-        signed:            false,
-        blobUrl:           null,
-        blobPathname:      data.pathname,
-        analysis:          data.analysis ?? null,
-        analysisStatus:    data.analysis ? "detected" : "none",
-        analysisConfirmedAt: null,
-        createdAt:         new Date(),
-      })
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error al subir")
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink/50" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-sm bg-background rounded-2xl p-6 ">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-base font-bold text-foreground">Subir archivo</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted transition-colors">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Drop zone */}
-        <button
-          onClick={() => inputRef.current?.click()}
-          className={cn(
-            "w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 transition-colors mb-4 text-center",
-            file ? "border-ok bg-ok/5" : "border-border hover:border-foreground/30"
-          )}
-        >
-          {file ? (
-            <>
-              <FileIcon name={file.name} />
-              <p className="text-sm font-medium text-foreground line-clamp-2">{file.name}</p>
-              <p className="text-[11px] text-muted-foreground">{
-                file.size < 1024 * 1024
-                  ? `${(file.size / 1024).toFixed(0)} KB`
-                  : `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-              }</p>
-            </>
-          ) : (
-            <>
-              <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-              <p className="text-sm font-medium text-foreground">Seleccionar archivo</p>
-              <p className="text-[11px] text-muted-foreground">PDF, DOC, XLS, DWG, JPG — hasta 50 MB</p>
-            </>
-          )}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          className="hidden"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.dwg,.jpg,.jpeg,.png"
-          onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }}
-        />
-
-        {/* Folder */}
-        <div className="mb-3">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">Carpeta destino</label>
-          <select
-            value={newFolder ? "__new__" : category}
-            onChange={e => { if (e.target.value !== "__new__") { setCategory(e.target.value); setNewFolder("") } }}
-            className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring mb-2"
-          >
-            {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
-            <option value="__new__">+ Nueva carpeta...</option>
-          </select>
-          <input
-            placeholder="Nombre de la nueva carpeta"
-            value={newFolder}
-            onChange={e => setNewFolder(e.target.value)}
-            className="w-full border border-border rounded-xl px-3 py-2 text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          {newFolder && (
-            <p className="text-[11px] text-muted-foreground mt-1">
-              Se creará la carpeta <span className="font-semibold text-foreground">{newFolder}</span>
-            </p>
-          )}
-        </div>
-
-        {/* Expiry date — optional, triggers auto-obligation */}
-        <div className="mb-3">
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1.5 block">
-            Fecha de vencimiento
-            <span className="ml-1.5 normal-case font-normal text-muted-foreground/60">(opcional — genera alerta en asuntos regulatorios)</span>
-          </label>
-          <input
-            type="date"
-            value={expiresAt}
-            onChange={e => setExpiresAt(e.target.value)}
-            className="w-full border border-border rounded-xl px-3 py-2.5 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-
-        {error && <p className="text-xs text-risk mb-3">{error}</p>}
-
-        <button
-          onClick={handleUpload}
-          disabled={!file || uploading}
-          className="w-full bg-foreground text-background font-semibold text-sm py-3 rounded-xl disabled:opacity-40 transition-opacity flex items-center justify-center gap-2 mt-2"
-        >
-          {uploading ? (
-            <>
-              <Spinner />
-              Subiendo...
-            </>
-          ) : "Subir archivo"}
-        </button>
-      </div>
     </div>
   )
 }
@@ -300,13 +119,8 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
     ? docs.filter(d => d.category === selectedFolder && (!search || d.name.toLowerCase().includes(search.toLowerCase())))
     : []
 
-  function handleUploadSuccess(doc: DocumentRow) {
-    setDocs(prev => [doc, ...prev])
-    // Auto-navigate into the folder the file was uploaded to
-    setSelectedFolder(doc.category)
-    setShowUpload(false)
-    // Si Otero detectó datos, el cliente los confirma o edita enseguida.
-    if (doc.analysis && canManage) setReviewing(doc)
+  function upsertDoc(doc: DocumentRow) {
+    setDocs(prev => (prev.some(d => d.id === doc.id) ? prev.map(d => (d.id === doc.id ? doc : d)) : [doc, ...prev]))
   }
 
   function handleAnalysisSaved(row: DocumentRow) {
@@ -348,11 +162,12 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
     return (
       <>
         {showUpload && (
-          <UploadModal
+          <BatchUploadModal
             tenantId={tenantId}
             existingCategories={folders}
+            canManage={canManage}
             onClose={() => setShowUpload(false)}
-            onSuccess={handleUploadSuccess}
+            onUpsert={upsertDoc}
           />
         )}
         <div className="min-h-full p-6 lg:p-8">
@@ -370,7 +185,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              Subir archivo
+              Subir documentos
             </button>
           </div>
 
@@ -385,7 +200,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
                 onClick={() => setShowUpload(true)}
                 className="mt-4 text-sm font-semibold text-foreground underline underline-offset-2"
               >
-                Subir primer archivo
+                Subir documentos
               </button>
             </div>
           ) : (
@@ -428,12 +243,13 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
     <>
       {reviewing && <AnalysisDialog key={reviewing.id} doc={reviewing} onClose={() => setReviewing(null)} onSaved={handleAnalysisSaved} />}
       {showUpload && (
-        <UploadModal
+        <BatchUploadModal
           tenantId={tenantId}
           defaultCategory={selectedFolder}
           existingCategories={folders}
+          canManage={canManage}
           onClose={() => setShowUpload(false)}
-          onSuccess={handleUploadSuccess}
+          onUpsert={upsertDoc}
         />
       )}
       <div className="min-h-full p-6 lg:p-8">
@@ -449,7 +265,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
               </svg>
-              Subir archivo
+              Subir documentos
             </button>
           </div>
         </div>
@@ -472,7 +288,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
             </p>
             {!search && (
               <button onClick={() => setShowUpload(true)} className="mt-3 text-sm font-semibold text-foreground underline underline-offset-2">
-                Subir primer archivo
+                Subir documentos
               </button>
             )}
           </div>

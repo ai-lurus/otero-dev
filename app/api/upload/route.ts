@@ -2,7 +2,7 @@ import { put } from '@vercel/blob'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getTenantSession } from '@/lib/obligation-access'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES, safeFileName } from '@/lib/upload-rules'
-import { addDocument } from '@/app/actions/documents'
+import { addDocument, getAnalysisRoom } from '@/app/actions/documents'
 import { analyzeDocument } from '@/lib/documents/analyze'
 
 export const runtime = 'nodejs'
@@ -51,7 +51,11 @@ export async function POST(request: NextRequest) {
 
     // Haiku lee el documento y propone tipo, autoridad, estado, materia y vigencia.
     // Si falla o el formato no se analiza, el archivo se guarda igual y el cliente lo llena a mano.
-    const analysis = await analyzeDocument(Buffer.from(await file.arrayBuffer()), file.type, file.name)
+    // Tope diario por empresa para acotar el costo: pasado el tope se guarda sin análisis.
+    const analysisSkipped = (await getAnalysisRoom(ctx.tenantId)) <= 0
+    const analysis = analysisSkipped
+      ? null
+      : await analyzeDocument(Buffer.from(await file.arrayBuffer()), file.type, file.name)
 
     // Persist record in Neon
     const docId = await addDocument({
@@ -69,7 +73,7 @@ export async function POST(request: NextRequest) {
       analysis,
     })
 
-    return NextResponse.json({ success: true, docId, pathname: blob.pathname, analysis })
+    return NextResponse.json({ success: true, docId, pathname: blob.pathname, analysis, analysisSkipped })
   } catch (error) {
     console.error('[upload] error:', error)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
