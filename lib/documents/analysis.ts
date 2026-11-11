@@ -43,8 +43,17 @@ export type DocAnalysis = {
   senales: DocSignal[]
 }
 
-/** none: no se pudo leer o no se analiza ese formato. detected: espera confirmación. */
-export type AnalysisStatus = 'none' | 'detected' | 'confirmed'
+/** none: no se pudo leer o no se analiza ese formato. analyzing: Otero lo está leyendo. detected: espera confirmación. */
+export type AnalysisStatus = 'none' | 'analyzing' | 'detected' | 'confirmed'
+
+/** Una lectura que lleva más que esto se da por perdida (la función se cortó) y el cliente completa a mano. */
+export const ANALYZING_STALE_MS = 10 * 60 * 1000
+
+/** Estado que ve el cliente: una lectura vieja deja de mostrarse como "leyendo". */
+export function visibleStatus(row: { analysisStatus: string | null; uploadedAt: Date | string }, now = Date.now()): AnalysisStatus {
+  const status = (row.analysisStatus ?? 'none') as AnalysisStatus
+  return status === 'analyzing' && now - new Date(row.uploadedAt).getTime() > ANALYZING_STALE_MS ? 'none' : status
+}
 
 const str = (v: unknown, max: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null)
 const isoDate = (v: unknown) =>
@@ -114,4 +123,58 @@ export function expiryState(fin: string | null, today: string): ExpiryState | nu
   if (fin < today) return 'vencido'
   const days = (Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000
   return days <= 30 ? 'por_vencer' : 'vigente'
+}
+
+/** Lo más repetido entre las partes; en empate gana la que aparece primero. */
+function mostCommon<T>(values: (T | null)[], skip: (v: T) => boolean, key: (v: T) => string = String): T | null {
+  const counts = new Map<string, { value: T; n: number }>()
+  for (const v of values) {
+    if (v === null || skip(v)) continue
+    const k = key(v).toLowerCase()
+    const entry = counts.get(k)
+    if (entry) entry.n++
+    else counts.set(k, { value: v, n: 1 })
+  }
+  let best: { value: T; n: number } | null = null
+  for (const e of counts.values()) if (!best || e.n > best.n) best = e
+  return best?.value ?? null
+}
+
+/**
+ * Junta el análisis de las partes de un documento largo (en orden de lectura).
+ * Tipo, autoridad y materia: lo más repetido. Vigencia y estado: lo último que aparece, porque
+ * transitorios, prórrogas y vigencias suelen estar al final. Señales: la respuesta más exigente de cada pregunta.
+ */
+export function mergeAnalyses(parts: DocAnalysis[]): DocAnalysis {
+  const last = <T>(pick: (a: DocAnalysis) => T | null, skip: (v: T) => boolean = () => false): T | null => {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const v = pick(parts[i])
+      if (v !== null && !skip(v)) return v
+    }
+    return null
+  }
+  const first = <T>(pick: (a: DocAnalysis) => T | null): T | null => {
+    for (const p of parts) {
+      const v = pick(p)
+      if (v !== null) return v
+    }
+    return null
+  }
+  const senales = new Map<TriggerKey, string>()
+  for (const part of parts) {
+    for (const { key, value } of part.senales) {
+      const options = TRIGGERS.find(t => t.key === key)?.options.map(o => o.value) ?? []
+      const current = senales.get(key)
+      if (!current || options.indexOf(value) > options.indexOf(current)) senales.set(key, value)
+    }
+  }
+  return sanitizeAnalysis({
+    tipo: mostCommon(parts.map(p => p.tipo), v => v === 'otro') ?? 'otro',
+    autoridad: mostCommon(parts.map(p => p.autoridad), () => false),
+    estado: last(p => p.estado, v => v === 'desconocido') ?? 'desconocido',
+    materia: mostCommon(parts.map(p => p.materia), v => v === 'otra') ?? 'otra',
+    vigenciaInicio: first(p => p.vigenciaInicio),
+    vigenciaFin: last(p => p.vigenciaFin),
+    senales: [...senales].map(([key, value]) => ({ key, value })),
+  })
 }

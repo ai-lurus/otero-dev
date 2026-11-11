@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  documentTriggers, expiryState, mergeTriggers, sanitizeAnalysis, sanitizeSignals,
+  documentTriggers, expiryState, mergeAnalyses, mergeTriggers, sanitizeAnalysis, sanitizeSignals, visibleStatus,
 } from '../lib/documents/analysis.ts'
 
 test('sanitizeAnalysis descarta valores fuera de catálogo y fechas inválidas', () => {
@@ -55,4 +55,37 @@ test('expiryState', () => {
   assert.equal(expiryState('2026-11-10', '2026-11-10'), 'por_vencer')
   assert.equal(expiryState('2026-12-10', '2026-11-10'), 'por_vencer')
   assert.equal(expiryState('2026-12-11', '2026-11-10'), 'vigente')
+})
+
+const part = over => ({
+  tipo: 'otro', autoridad: null, estado: 'desconocido', materia: 'otra',
+  vigenciaInicio: null, vigenciaFin: null, senales: [], ...over,
+})
+
+test('mergeAnalyses junta las partes: lo más repetido en identidad, lo último en vigencia', () => {
+  const merged = mergeAnalyses([
+    part({ tipo: 'permiso', autoridad: 'SEMARNAT', materia: 'ambiental', vigenciaInicio: '2024-01-01', vigenciaFin: '2026-01-01', estado: 'vigente' }),
+    part({ tipo: 'otro', autoridad: 'semarnat', materia: 'ambiental' }),
+    part({ tipo: 'permiso', autoridad: 'ASEA', vigenciaFin: '2030-06-30', estado: 'vigente',
+      senales: [{ key: 'hidrocarburos', value: 'si' }] }),
+  ])
+  assert.equal(merged.tipo, 'permiso')
+  assert.equal(merged.autoridad, 'SEMARNAT')
+  assert.equal(merged.materia, 'ambiental')
+  assert.equal(merged.vigenciaInicio, '2024-01-01')
+  assert.equal(merged.vigenciaFin, '2030-06-30') // la prórroga del final manda
+  assert.deepEqual(merged.senales, [{ key: 'hidrocarburos', value: 'si' }])
+})
+
+test('mergeAnalyses de una sola parte la devuelve igual y sin datos cae a valores neutros', () => {
+  const one = part({ tipo: 'licencia', autoridad: 'COFEPRIS', materia: 'salud', estado: 'vigente' })
+  assert.deepEqual(mergeAnalyses([one]), one)
+  assert.equal(mergeAnalyses([part({})]).tipo, 'otro')
+})
+
+test('visibleStatus deja de mostrar "leyendo" cuando la lectura lleva demasiado', () => {
+  const now = Date.parse('2026-11-11T12:00:00Z')
+  assert.equal(visibleStatus({ analysisStatus: 'analyzing', uploadedAt: new Date(now - 60_000) }, now), 'analyzing')
+  assert.equal(visibleStatus({ analysisStatus: 'analyzing', uploadedAt: new Date(now - 11 * 60_000) }, now), 'none')
+  assert.equal(visibleStatus({ analysisStatus: 'detected', uploadedAt: new Date(now - 99 * 60_000) }, now), 'detected')
 })

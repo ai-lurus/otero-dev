@@ -33,6 +33,7 @@ export function BatchUploadModal({
   defaultCategory,
   existingCategories,
   canManage,
+  docs: allDocs,
   onClose,
   onUpsert,
 }: {
@@ -42,12 +43,14 @@ export function BatchUploadModal({
   /** Solo el director confirma los datos detectados. */
   canManage: boolean
   onClose: () => void
+  /** Documentos de la página, siempre al día (incluye lo que Otero termina de leer). */
+  docs: DocumentRow[]
   /** Agrega o reemplaza un documento en la lista de la página. */
   onUpsert: (doc: DocumentRow) => void
 }) {
   const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...existingCategories])]
   const [items, setItems] = useState<Item[]>([])
-  const [docs, setDocs] = useState<DocumentRow[]>([])
+  const [batchIds, setBatchIds] = useState<string[]>([])
   const [rejected, setRejected] = useState<{ name: string; reason: string }[]>([])
   const [category, setCategory] = useState(defaultCategory ?? allCategories[0])
   const [newFolder, setNewFolder] = useState("")
@@ -59,6 +62,7 @@ export function BatchUploadModal({
   const inputRef = useRef<HTMLInputElement>(null)
   const closed = useRef(false)
 
+  const docs = batchIds.flatMap(id => allDocs.find(d => d.id === id) ?? [])
   const finalCategory = newFolder.trim() || category
 
   function addFiles(list: FileList | File[]) {
@@ -71,7 +75,7 @@ export function BatchUploadModal({
     setItems(prev => prev.map(i => (i.key === key ? { ...i, ...change } : i)))
 
   function upsert(doc: DocumentRow) {
-    setDocs(prev => (prev.some(d => d.id === doc.id) ? prev.map(d => (d.id === doc.id ? doc : d)) : [...prev, doc]))
+    setBatchIds(prev => (prev.includes(doc.id) ? prev : [...prev, doc.id]))
     onUpsert(doc)
   }
 
@@ -103,7 +107,7 @@ export function BatchUploadModal({
         id: data.docId, tenantId, name: item.file.name, type: extOf(item.file.name), category: finalCategory,
         service: service.trim() || null, status: "vigente", size: data.size ?? sizeOf(item.file.size), uploadedAt: now,
         expiresAt: null, requiresSignature: false, signed: false, blobUrl: null, blobPathname: data.pathname,
-        analysis: data.analysis ?? null, analysisStatus: data.analysis ? "detected" : "none",
+        analysis: null, analysisStatus: data.analysisStatus ?? "none",
         analysisConfirmedAt: null, createdAt: now,
       })
     } catch (e) {
@@ -141,7 +145,7 @@ export function BatchUploadModal({
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h2 id="batch-title" className="text-heading text-ink">Subir documentos</h2>
-            <p className="mt-1 text-body-sm text-ink-muted">Hasta {MAX_BATCH_FILES} archivos a la vez. Otero lee cada uno y te pide confirmar lo que detecte.</p>
+            <p className="mt-1 text-body-sm text-ink-muted">Hasta {MAX_BATCH_FILES} archivos a la vez. Otero los lee en segundo plano y te pide confirmar lo que detecte.</p>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={close} aria-label="Cerrar"><XIcon /></Button>
         </div>
@@ -197,7 +201,7 @@ export function BatchUploadModal({
                   )}
                   {item.status === "queued" && started && <span className="text-caption text-ink-muted">En cola</span>}
                   {item.status === "uploading" && <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Subiendo</span>}
-                  {item.status === "reading" && <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Leyendo</span>}
+                  {item.status === "reading" && <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Registrando</span>}
                   {item.status === "done" && <StatusTag status="ok" label="Subido" />}
                   {item.status === "error" && (
                     <>
@@ -214,7 +218,7 @@ export function BatchUploadModal({
         {started && (
           <p className="mt-3 text-body-sm text-ink-muted" aria-live="polite">
             {done} de {items.length} subidos{failed.length > 0 ? `, ${failed.length} con error` : ""}.
-            {running ? " Puedes seguir aquí mientras Otero lee los documentos." : ""}
+            {running ? " Otero lee cada documento completo en segundo plano; puedes cerrar esta ventana." : ""}
           </p>
         )}
 

@@ -10,6 +10,7 @@ import { DeadlineChip, StatusTag } from "@/components/ui/status-tag"
 import { DOC_TYPES, expiryState } from "@/lib/documents/analysis"
 import { AnalysisDialog } from "./analysis-dialog"
 import { BatchUploadModal } from "./batch-upload"
+import { useAnalysisPolling } from "./use-analysis-polling"
 
 // ── File type config ──────────────────────────────────────────────
 const EXT_CONFIG: Record<string, { color: string; label: string }> = {
@@ -79,6 +80,9 @@ function DocumentFacts({ doc, onReview, canManage }: { doc: DocumentRow; onRevie
           ? <DeadlineChip>Vence el {formatDay(doc.expiresAt)}</DeadlineChip>
           : <span className="text-caption text-ink-muted">{expiry === "vencido" ? "Venció" : "Vence"} el {formatDay(doc.expiresAt)}</span>
       )}
+      {doc.analysisStatus === "analyzing" && (
+        <span className="inline-flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Otero está leyendo este documento</span>
+      )}
       {doc.analysisStatus === "detected" && (
         <>
           <StatusTag status="info" label="Por confirmar" />
@@ -123,6 +127,8 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
     setDocs(prev => (prev.some(d => d.id === doc.id) ? prev.map(d => (d.id === doc.id ? doc : d)) : [doc, ...prev]))
   }
 
+  useAnalysisPolling(docs, rows => rows.forEach(upsertDoc))
+
   function handleAnalysisSaved(row: DocumentRow) {
     setDocs(prev => prev.map(d => (d.id === row.id ? row : d)))
     setReviewing(null)
@@ -166,6 +172,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
             tenantId={tenantId}
             existingCategories={folders}
             canManage={canManage}
+            docs={docs}
             onClose={() => setShowUpload(false)}
             onUpsert={upsertDoc}
           />
@@ -248,6 +255,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
           defaultCategory={selectedFolder}
           existingCategories={folders}
           canManage={canManage}
+          docs={docs}
           onClose={() => setShowUpload(false)}
           onUpsert={upsertDoc}
         />

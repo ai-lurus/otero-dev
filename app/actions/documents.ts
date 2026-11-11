@@ -2,10 +2,10 @@
 
 import { getTenantDb } from '@/lib/db/tenant'
 import { documents, type DocumentRow } from '@/lib/db/schema'
-import { and, eq, desc, gte, count } from 'drizzle-orm'
+import { and, eq, desc, gte, count, inArray } from 'drizzle-orm'
 import { getFirstTenantId, getUserId } from './auth-helpers'
 import { revalidatePath } from 'next/cache'
-import { expiryState, sanitizeAnalysis, type DocAnalysis } from '@/lib/documents/analysis'
+import { expiryState, sanitizeAnalysis, visibleStatus, type AnalysisStatus, type DocAnalysis } from '@/lib/documents/analysis'
 import { dayInMexico } from '@/lib/ingest/dof'
 import { requireDirector } from '@/lib/client-guard'
 import { analysisRoom } from '@/lib/documents/batch'
@@ -14,11 +14,24 @@ export async function getDocuments(tenantId: string) {
   const currentTenantId = await getFirstTenantId()
   if (!currentTenantId || currentTenantId !== tenantId) throw new Error('Forbidden')
   const db = await getTenantDb(currentTenantId)
-  return db
+  const rows = await db
     .select()
     .from(documents)
     .where(eq(documents.tenantId, currentTenantId))
     .orderBy(desc(documents.uploadedAt))
+  return rows.map(r => ({ ...r, analysisStatus: visibleStatus(r) }))
+}
+
+/** Estado actual de documentos recién subidos, para que la pantalla se actualice cuando Otero termina de leerlos. */
+export async function getDocumentsByIds(ids: string[]) {
+  const tenantId = await getFirstTenantId()
+  if (!tenantId || ids.length === 0) return []
+  const db = await getTenantDb(tenantId)
+  const rows = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.tenantId, tenantId), inArray(documents.id, ids.slice(0, 100))))
+  return rows.map(r => ({ ...r, analysisStatus: visibleStatus(r) }))
 }
 
 export async function signDocument(id: string) {
@@ -52,17 +65,19 @@ export async function addDocument(data: {
   blobUrl?: string
   blobPathname?: string
   analysis?: DocAnalysis | null
+  /** 'analyzing' cuando la lectura corre en segundo plano. */
+  analysisStatus?: AnalysisStatus
 }) {
   await getUserId()
   const currentTenantId = await getFirstTenantId()
   if (!currentTenantId || currentTenantId !== data.tenantId) throw new Error('Forbidden')
   const id = crypto.randomUUID()
   const db = await getTenantDb(currentTenantId)
-  const { analysis, ...rest } = data
+  const { analysis, analysisStatus, ...rest } = data
   await db.insert(documents).values({
     ...rest, id, tenantId: currentTenantId, uploadedAt: new Date(),
     analysis: analysis ?? null,
-    analysisStatus: analysis ? 'detected' : 'none',
+    analysisStatus: analysisStatus ?? (analysis ? 'detected' : 'none'),
   })
 
   revalidatePath('/cliente/documentos')

@@ -54,6 +54,7 @@ export function BatchReview({
   const [pending, startTransition] = useTransition()
 
   const pendingDocs = docs.filter(d => d.analysisStatus !== "confirmed")
+  const reading = pendingDocs.filter(d => d.analysisStatus === "analyzing").length
   const draft = (d: DocumentRow) => drafts[d.id] ?? draftOf(d)
   const patch = (d: DocumentRow, change: Partial<Draft>) =>
     setDrafts(prev => ({ ...prev, [d.id]: { ...draft(d), ...change } }))
@@ -85,7 +86,7 @@ export function BatchReview({
           <p className="mt-1 text-body-sm text-ink-muted">
             {pendingDocs.length === 0
               ? "Todos los documentos están confirmados."
-              : `${pendingDocs.length} por confirmar. Al confirmar, Otero usa los datos para saber qué publicaciones te tocan.`}
+              : `${pendingDocs.length - reading} por confirmar${reading > 0 ? `, ${reading} que Otero todavía está leyendo` : ""}. Al confirmar, Otero usa los datos para saber qué publicaciones te tocan.`}
           </p>
         </div>
         {pendingDocs.length > 0 && (
@@ -107,16 +108,18 @@ export function BatchReview({
           const d = draft(doc)
           const level = confidence(doc, d)
           const confirmed = doc.analysisStatus === "confirmed"
+          const analyzing = doc.analysisStatus === "analyzing"
           return (
             <li key={doc.id} className="rounded-md border border-border bg-surface-raised p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="min-w-0 truncate text-body-sm font-semibold text-ink">{doc.name}</p>
-                {confirmed ? <StatusTag status="ok" label="Confirmado" />
+                {analyzing ? <span className="flex items-center gap-1 text-caption text-ink-muted"><Spinner /> Leyendo el documento completo</span>
+                  : confirmed ? <StatusTag status="ok" label="Confirmado" />
                   : level === "alta" ? <StatusTag status="info" label="Alta confianza" />
                   : level === "revisar" ? <StatusTag status="warn" label="Revisa los datos" />
                   : <StatusTag status="warn" label="Sin lectura" />}
               </div>
-              {!confirmed && (
+              {!confirmed && !analyzing && (
                 doc.analysis ? (
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                     <select aria-label={`Tipo de ${doc.name}`} className={FIELD} value={d.tipo} onChange={e => patch(doc, { tipo: e.target.value as DocType })}>
@@ -132,7 +135,7 @@ export function BatchReview({
                   <p className="mt-2 text-caption text-ink-muted">Otero no pudo leer este documento. Captura los datos a mano.</p>
                 )
               )}
-              {!confirmed && (
+              {!confirmed && !analyzing && (
                 <div className="mt-2 flex gap-2">
                   {doc.analysis && (
                     <Button size="sm" variant="outline" onClick={() => confirm([doc])} disabled={pending}>Confirmar</Button>
