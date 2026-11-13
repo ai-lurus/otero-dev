@@ -1,10 +1,12 @@
 'use server'
 
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { db } from '@/lib/db'
 import { getTenantDb } from '@/lib/db/tenant'
-import { companyProfiles, tenants, user, userTenants } from '@/lib/db/schema'
+import { companyProfiles, documents, tenants, user, userTenants, type DocumentRow } from '@/lib/db/schema'
+import { visibleStatus } from '@/lib/documents/analysis'
+import { todayInMexico } from '@/lib/ingest/dof'
 import { sanitizeMonitoring, type MonitoringFields } from '@/lib/monitoring-profile'
 import { MATERIA_KEYS } from '@/lib/ingest/categories'
 import { companyReady, sanitizeCompany, type CompanyFields } from '@/lib/onboarding'
@@ -24,28 +26,36 @@ async function membership() {
 }
 
 export type OnboardingState = {
+  tenantId: string
   tenantName: string
   isAdmin: boolean
   done: boolean
   profile: (CompanyFields & MonitoringFields) | null
+  /** Documentos que la empresa ya subió (el alta empieza por ellos). Solo para el admin. */
+  documents: DocumentRow[]
+  today: string
   team: { id: string; name: string; email: string; role: string }[]
 }
 
 export async function getOnboardingState(): Promise<OnboardingState> {
   const { tenantId, isAdmin } = await membership()
   const tdb = await getTenantDb(tenantId)
-  const [[tenant], [profile], team] = await Promise.all([
+  const [[tenant], [profile], team, docs] = await Promise.all([
     db.select({ name: tenants.name }).from(tenants).where(eq(tenants.id, tenantId)).limit(1),
     tdb.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId)).limit(1),
     db.select({ id: user.id, name: user.name, email: user.email, role: userTenants.role })
       .from(userTenants).innerJoin(user, eq(user.id, userTenants.userId))
       .where(and(eq(userTenants.tenantId, tenantId), inArray(userTenants.role, ['client', 'tenant_admin']))),
+    isAdmin ? tdb.select().from(documents).where(eq(documents.tenantId, tenantId)).orderBy(desc(documents.uploadedAt)).limit(100) : Promise.resolve([]),
   ])
   return {
+    tenantId,
     tenantName: tenant?.name ?? 'Tu empresa',
     isAdmin,
     done: Boolean(profile?.confirmedAt),
     profile: profile ?? null,
+    documents: docs.map(d => ({ ...d, analysisStatus: visibleStatus(d) })),
+    today: todayInMexico(),
     // La lista del equipo (con correos) es del director.
     team: isAdmin ? team.sort((a, b) => a.name.localeCompare(b.name)) : [],
   }

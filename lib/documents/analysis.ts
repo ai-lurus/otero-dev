@@ -1,5 +1,5 @@
 import { MATERIA_KEYS, type Materia } from '../ingest/categories'
-import { TRIGGERS, type TriggerKey, type Triggers } from '../monitoring-profile'
+import { ESTADOS, SCIAN_SECTORS, SCIAN_SUBSECTORS, TRIGGERS, type TriggerKey, type Triggers } from '../monitoring-profile'
 
 // Lo que se detecta de un documento que sube el cliente. Haiku propone, el
 // cliente confirma o edita, y solo lo confirmado alimenta el matching de RegWatch
@@ -33,6 +33,15 @@ export const DOC_STATE_KEYS = Object.keys(DOC_STATES) as DocState[]
 /** Respuesta a una pregunta del perfil de monitoreo que el documento evidencia. */
 export type DocSignal = { key: TriggerKey; value: string }
 
+/** Lo que el documento dice de la empresa titular. Alimenta el alta (lib/onboarding-proposal.ts). */
+export type DocCompany = {
+  razonSocial: string | null
+  actividad: string | null
+  scian: string | null
+  estados: string[]
+  certificaciones: string[]
+}
+
 export type DocAnalysis = {
   tipo: DocType
   autoridad: string | null
@@ -41,6 +50,8 @@ export type DocAnalysis = {
   vigenciaInicio: string | null // YYYY-MM-DD
   vigenciaFin: string | null // YYYY-MM-DD
   senales: DocSignal[]
+  /** Ausente si el documento no dice nada de la empresa o es un análisis anterior a este dato. */
+  empresa?: DocCompany
 }
 
 /** none: no se pudo leer o no se analiza ese formato. analyzing: Otero lo está leyendo. detected: espera confirmación. */
@@ -73,11 +84,48 @@ export function sanitizeSignals(input: unknown): DocSignal[] {
   return [...out].map(([key, value]) => ({ key, value }))
 }
 
+const normalize = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+
+/** Únicos sin importar mayúsculas ni acentos, con el primer spelling. */
+function uniqueBy(values: string[], max: number): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const v of values) {
+    const k = normalize(v)
+    if (!k || seen.has(k)) continue
+    seen.add(k)
+    out.push(v)
+  }
+  return out.slice(0, max)
+}
+
+/** Datos de empresa válidos, o undefined si no queda ninguno. */
+export function sanitizeCompanyHints(input: unknown): DocCompany | undefined {
+  if (!input || typeof input !== 'object') return undefined
+  const raw = input as Record<string, unknown>
+  const scian = typeof raw.scian === 'string' && (SCIAN_SECTORS.some(s => s.code === raw.scian) || SCIAN_SUBSECTORS.some(s => s.code === raw.scian)) ? raw.scian : null
+  const estados = uniqueBy(
+    (Array.isArray(raw.estados) ? raw.estados : []).flatMap((e: unknown) => {
+      const match = typeof e === 'string' ? ESTADOS.find(x => normalize(x) === normalize(e)) : undefined
+      return match ? [match] : []
+    }),
+    32,
+  )
+  const certificaciones = uniqueBy(
+    (Array.isArray(raw.certificaciones) ? raw.certificaciones : []).flatMap((c: unknown) => str(c, 120) ?? []),
+    8,
+  )
+  const out: DocCompany = { razonSocial: str(raw.razonSocial, 160), actividad: str(raw.actividad, 400), scian, estados, certificaciones }
+  const empty = !out.razonSocial && !out.actividad && !out.scian && estados.length === 0 && certificaciones.length === 0
+  return empty ? undefined : out
+}
+
 /** Normaliza lo que llega de la IA o del formulario del cliente a un análisis válido. */
 export function sanitizeAnalysis(input: Record<string, unknown>): DocAnalysis {
   let inicio = isoDate(input.vigenciaInicio)
   const fin = isoDate(input.vigenciaFin)
   if (inicio && fin && inicio > fin) inicio = null
+  const empresa = sanitizeCompanyHints(input.empresa)
   return {
     tipo: pick(input.tipo, DOC_TYPE_KEYS, 'otro'),
     autoridad: str(input.autoridad, 120),
@@ -86,6 +134,7 @@ export function sanitizeAnalysis(input: Record<string, unknown>): DocAnalysis {
     vigenciaInicio: inicio,
     vigenciaFin: fin,
     senales: sanitizeSignals(input.senales),
+    ...(empresa ? { empresa } : {}),
   }
 }
 
@@ -176,5 +225,17 @@ export function mergeAnalyses(parts: DocAnalysis[]): DocAnalysis {
     vigenciaInicio: first(p => p.vigenciaInicio),
     vigenciaFin: last(p => p.vigenciaFin),
     senales: [...senales].map(([key, value]) => ({ key, value })),
+    empresa: mergeCompanyHints(parts.flatMap(p => p.empresa ?? [])),
+  })
+}
+
+function mergeCompanyHints(hints: DocCompany[]): DocCompany | undefined {
+  if (hints.length === 0) return undefined
+  return sanitizeCompanyHints({
+    razonSocial: mostCommon(hints.map(h => h.razonSocial), () => false),
+    actividad: hints.map(h => h.actividad).find(Boolean) ?? null,
+    scian: mostCommon(hints.map(h => h.scian), () => false),
+    estados: hints.flatMap(h => h.estados),
+    certificaciones: hints.flatMap(h => h.certificaciones),
   })
 }

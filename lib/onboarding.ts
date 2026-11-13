@@ -1,5 +1,5 @@
 import type { MonitoringFields } from '@/lib/monitoring-profile'
-import { LONG_TEXT_MAX, MEDIUM_TEXT_MAX, SHORT_TEXT_MAX } from '@/lib/text-limits'
+import { LONG_TEXT_MAX, MEDIUM_TEXT_MAX, SHORT_TEXT_MAX } from './text-limits'
 
 // Alta del cliente: un asistente por pasos que llena el perfil de la empresa y
 // el perfil de monitoreo. Se da por terminada cuando el admin del cliente
@@ -21,6 +21,7 @@ export const EMPTY_COMPANY: CompanyFields = {
 }
 
 export const ONBOARDING_STEPS = [
+  { id: 'documentos', label: 'Tus documentos', hint: 'Súbelos y Otero contesta por ti' },
   { id: 'empresa', label: 'Tu empresa', hint: 'A qué se dedica y dónde opera' },
   { id: 'monitoreo', label: 'Qué vigila Otero', hint: 'Actividad, estados y preguntas clave' },
   { id: 'equipo', label: 'Tu equipo', hint: 'Quién recibe y atiende los asuntos' },

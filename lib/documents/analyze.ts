@@ -1,7 +1,7 @@
 import mammoth from 'mammoth'
 import { PDFDocument } from 'pdf-lib'
 import { MATERIAS, MATERIA_KEYS } from '../ingest/categories'
-import { TRIGGERS } from '../monitoring-profile'
+import { ESTADOS, SCIAN_SECTORS, SCIAN_SUBSECTORS, TRIGGERS } from '../monitoring-profile'
 import {
   DOC_STATES, DOC_STATE_KEYS, DOC_TYPES, DOC_TYPE_KEYS, mergeAnalyses, sanitizeAnalysis, type DocAnalysis,
 } from './analysis'
@@ -39,7 +39,8 @@ Reglas:
 - "materia": la materia principal. Válidas: ${MATERIA_KEYS.map(k => `${k} (${MATERIAS[k]})`).join(', ')}.
 - Puede que veas solo una parte del documento (se indica en el mensaje): devuelve null o "desconocido" para lo que no aparezca en esa parte.
 - "vigencia_inicio" y "vigencia_fin": fechas de inicio y de fin de la vigencia, YYYY-MM-DD. Null si el documento no las dice o no vence.
-- "senales": respuestas a las preguntas del perfil de la empresa que este documento demuestra con claridad. Solo afirmativas y solo si el documento lo evidencia (un registro de generador de residuos peligrosos con su categoría, una concesión de agua, un permiso de importación, un programa IMMEX, un registro sanitario, un permiso de la ASEA o la CRE por combustibles…). Si no estás seguro, lista vacía. Claves y valores válidos: ${TRIGGERS.map(t => `${t.key} (${t.options.filter(o => o.value !== 'no').map(o => o.value).join('|')})`).join(', ')}.`
+- "senales": respuestas a las preguntas del perfil de la empresa que este documento demuestra con claridad. Solo afirmativas y solo si el documento lo evidencia (un registro de generador de residuos peligrosos con su categoría, una concesión de agua, un permiso de importación, un programa IMMEX, un registro sanitario, un permiso de la ASEA o la CRE por combustibles…). Si no estás seguro, lista vacía. Claves y valores válidos: ${TRIGGERS.map(t => `${t.key} (${t.options.filter(o => o.value !== 'no').map(o => o.value).join('|')})`).join(', ')}.
+- "empresa": lo que el documento dice de la empresa titular (no de la autoridad ni del despacho). "razon_social": nombre o razón social. "actividad": una frase en español, en tercera persona, de a qué se dedica la empresa o qué opera en el establecimiento según el documento (máximo 300 caracteres). "scian": código SCIAN del giro, solo si es claro (sector de 2 dígitos o subsector de 3 de esta lista: ${[...SCIAN_SECTORS.map(s => s.code), ...SCIAN_SUBSECTORS.map(s => s.code)].join(', ')}). "estados": estados de la República donde está el establecimiento. "certificaciones": certificaciones vigentes que el documento acredita (ISO, Industria Limpia, C-TPAT…). Null o lista vacía si no aparece; no lo inventes.`
 
 const TOOL = {
   name: 'analizar_documento',
@@ -62,8 +63,19 @@ const TOOL = {
           required: ['clave', 'valor'],
         },
       },
+      empresa: {
+        type: 'object',
+        properties: {
+          razon_social: { type: ['string', 'null'] },
+          actividad: { type: ['string', 'null'] },
+          scian: { type: ['string', 'null'] },
+          estados: { type: 'array', items: { type: 'string', enum: [...ESTADOS] } },
+          certificaciones: { type: 'array', maxItems: 8, items: { type: 'string' } },
+        },
+        required: ['razon_social', 'actividad', 'scian', 'estados', 'certificaciones'],
+      },
     },
-    required: ['tipo', 'autoridad', 'estado', 'materia', 'vigencia_inicio', 'vigencia_fin', 'senales'],
+    required: ['tipo', 'autoridad', 'estado', 'materia', 'vigencia_inicio', 'vigencia_fin', 'senales', 'empresa'],
   },
 } as const
 
@@ -141,6 +153,12 @@ export async function buildBlocks(bytes: Buffer, mime: string, name: string): Pr
   return (await buildChunks(bytes, mime, name))?.[0] ?? null
 }
 
+function fromCompanyInput(input: unknown) {
+  if (!input || typeof input !== 'object') return undefined
+  const e = input as Record<string, unknown>
+  return { razonSocial: e.razon_social, actividad: e.actividad, scian: e.scian, estados: e.estados, certificaciones: e.certificaciones }
+}
+
 /** Convierte la respuesta de la herramienta (en español, snake_case) al análisis del sistema. */
 export function fromToolInput(input: Record<string, unknown>): DocAnalysis {
   const senales = Array.isArray(input.senales)
@@ -149,6 +167,7 @@ export function fromToolInput(input: Record<string, unknown>): DocAnalysis {
   return sanitizeAnalysis({
     tipo: input.tipo, autoridad: input.autoridad, estado: input.estado, materia: input.materia,
     vigenciaInicio: input.vigencia_inicio, vigenciaFin: input.vigencia_fin, senales,
+    empresa: fromCompanyInput(input.empresa),
   })
 }
 
@@ -160,7 +179,7 @@ async function analyzeChunk(apiKey: string, content: Block[], timeoutMs: number)
       headers: { 'content-type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: MODEL,
-        max_tokens: 1024,
+        max_tokens: 1536,
         system: SYSTEM,
         tools: [TOOL],
         tool_choice: { type: 'tool', name: TOOL.name },

@@ -1,9 +1,10 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { SuggestedTag } from '@/components/onboarding/suggested-tag'
 import {
   EMPLOYEE_RANGES, ESTADOS, SCIAN_SECTORS, SCIAN_SUBSECTORS, TRIGGERS, sectorOf,
-  type MonitoringFields, type Triggers,
+  type MonitoringFields, type TriggerKey, type Triggers,
 } from '@/lib/monitoring-profile'
 
 // Paso "Qué vigila Otero" del alta. Controlado: el asistente guarda todo al final.
@@ -15,9 +16,16 @@ const chip = (on: boolean) =>
   cn('rounded-pill border px-3 py-1 text-label transition-colors',
     on ? 'border-ink bg-ink text-surface' : 'border-border text-ink hover:bg-surface-sunken')
 
-type Props = { value: MonitoringFields; onChange: (next: MonitoringFields) => void }
+/** Lo que Otero propuso desde los documentos y el cliente aún no ha tocado. */
+export type MonitoringSuggestions = {
+  scian?: string[]
+  states?: string[]
+  triggers?: Partial<Record<TriggerKey, string[]>>
+}
 
-export function MonitoringStep({ value, onChange }: Props) {
+type Props = { value: MonitoringFields; onChange: (next: MonitoringFields) => void; suggestions?: MonitoringSuggestions }
+
+export function MonitoringStep({ value, onChange, suggestions }: Props) {
   const sector = sectorOf(value.scian) ?? ''
   const subsector = value.scian && value.scian.length === 3 ? value.scian : ''
   const states = value.stateList ?? []
@@ -31,6 +39,7 @@ export function MonitoringStep({ value, onChange }: Props) {
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <label className={labelClass} htmlFor="ob-sector">Sector SCIAN</label>
+          {suggestions?.scian && <SuggestedTag sources={suggestions.scian} />}
           <select id="ob-sector" className={fieldClass} value={sector} onChange={e => set({ scian: e.target.value || null })}>
             <option value="">Elige un sector</option>
             {SCIAN_SECTORS.map(s => <option key={s.code} value={s.code}>{s.label}</option>)}
@@ -56,6 +65,7 @@ export function MonitoringStep({ value, onChange }: Props) {
 
       <section className="space-y-3">
         <p className={labelClass}>Estados donde operas <span className="text-ink-muted">({states.length})</span></p>
+        {suggestions?.states && <SuggestedTag sources={suggestions.states} />}
         <div className="flex flex-wrap gap-2">
           {ESTADOS.map(s => (
             <button key={s} type="button" aria-pressed={states.includes(s)} onClick={() => toggleState(s)} className={chip(states.includes(s))}>{s}</button>
@@ -71,6 +81,11 @@ export function MonitoringStep({ value, onChange }: Props) {
               <div className="min-w-0">
                 <p className="text-body-sm text-ink">{t.label}</p>
                 {'hint' in t && t.hint && <p className="text-caption text-ink-muted">{t.hint}</p>}
+                {suggestions?.triggers?.[t.key] && (
+                  <p className="mt-1 text-caption text-brand-text">
+                    Sugerido por tus documentos · De: {suggestions.triggers[t.key]!.slice(0, 2).join(', ')}{suggestions.triggers[t.key]!.length > 2 ? ` y ${suggestions.triggers[t.key]!.length - 2} más` : ''}
+                  </p>
+                )}
               </div>
               <div className="flex shrink-0 flex-wrap gap-2">
                 {t.options.map(o => (

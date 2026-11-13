@@ -89,3 +89,30 @@ test('visibleStatus deja de mostrar "leyendo" cuando la lectura lleva demasiado'
   assert.equal(visibleStatus({ analysisStatus: 'analyzing', uploadedAt: new Date(now - 11 * 60_000) }, now), 'none')
   assert.equal(visibleStatus({ analysisStatus: 'detected', uploadedAt: new Date(now - 99 * 60_000) }, now), 'detected')
 })
+
+test('sanitizeAnalysis conserva los datos de la empresa solo si son válidos', () => {
+  const a = sanitizeAnalysis({
+    empresa: {
+      razonSocial: ' Química del Bajío SA de CV ', actividad: 'Fabrica resinas.', scian: '325',
+      estados: ['Guanajuato', 'Narnia', 'guanajuato'], certificaciones: ['ISO 14001', ' ', 'ISO 14001'],
+    },
+  })
+  assert.equal(a.empresa.razonSocial, 'Química del Bajío SA de CV')
+  assert.equal(a.empresa.scian, '325')
+  assert.deepEqual(a.empresa.estados, ['Guanajuato'])
+  assert.deepEqual(a.empresa.certificaciones, ['ISO 14001'])
+  assert.equal(sanitizeAnalysis({ empresa: { scian: '999', estados: [] } }).empresa, undefined)
+  assert.equal(sanitizeAnalysis({}).empresa, undefined)
+})
+
+test('mergeAnalyses junta los datos de empresa de las partes', () => {
+  const merged = mergeAnalyses([
+    part({ empresa: { razonSocial: null, actividad: null, scian: null, estados: ['Guanajuato'], certificaciones: [] } }),
+    part({ empresa: { razonSocial: 'Acme', actividad: 'Fabrica resinas.', scian: '325', estados: ['Querétaro', 'Guanajuato'], certificaciones: ['ISO 14001'] } }),
+  ])
+  assert.equal(merged.empresa.razonSocial, 'Acme')
+  assert.equal(merged.empresa.actividad, 'Fabrica resinas.')
+  assert.equal(merged.empresa.scian, '325')
+  assert.deepEqual(merged.empresa.estados, ['Guanajuato', 'Querétaro'])
+  assert.deepEqual(merged.empresa.certificaciones, ['ISO 14001'])
+})

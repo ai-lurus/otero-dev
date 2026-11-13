@@ -294,6 +294,7 @@ export default function PerfilClient({ user, profile, children, canEdit = false,
                       maxLength={COMPANY_LIMITS[f.key]}
                       onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
+                      className="rounded-xl border-transparent bg-muted px-3 py-2.5 text-sm placeholder:text-muted-foreground/40"
                     />
                   ) : (
                     <input
