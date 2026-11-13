@@ -30,4 +30,5 @@ export {
   services,
   payments,
   appointments,
+  tasks,
 } from './schema'

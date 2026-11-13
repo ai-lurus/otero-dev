@@ -46,6 +46,15 @@ const NAV: NavItem[] = [
     ),
   },
   {
+    href: "/cliente/tareas",
+    label: "Mis tareas",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M6 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75z" />
+      </svg>
+    ),
+  },
+  {
     href: "/cliente/certificaciones",
     label: "Certificaciones",
     directorOnly: true,

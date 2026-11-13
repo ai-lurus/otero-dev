@@ -191,6 +191,23 @@ export const regulatoryItemEvidence = pgTable('regulatory_item_evidence', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 
+// Tareas de un asunto (regulatory_items): trabajo concreto con responsable y plazo propios.
+export const tasks = pgTable('tasks', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  itemId: text('item_id').notNull(),
+  title: text('title').notNull(),
+  description: text('description').notNull().default(''),
+  status: text('status').notNull().default('pendiente'), // pendiente | en_curso | completada
+  assigneeId: text('assignee_id'), // members.id de la persona responsable
+  startDate: date('start_date'),
+  dueDate: date('due_date'),
+  completedAt: timestamp('completed_at'),
+  createdBy: text('created_by').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
 export const certifications = pgTable('certifications', {
   id: text('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),

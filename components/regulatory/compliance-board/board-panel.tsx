@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Cite, DeadlineChip } from '@/components/ui/status-tag'
 import { BandTag, sourceCite } from '@/components/regulatory/inbox/band-tag'
+import { ItemTasks } from '@/components/tasks/item-tasks'
 import { AddEvidenceDialog, KINDS, KIND_COPY, type Kind } from '@/components/regulatory/evidence/add-evidence-dialog'
 import { STAGES, canMoveTo, stageLabel, stageOf, type Stage } from '@/lib/compliance-board'
 import { bandOf, daysUntil, deadlineLabel, dueShort } from '@/lib/inbox'
@@ -143,6 +144,8 @@ export function BoardPanel({ item, viewer, directorMode, team, busy, onClose, on
                 </div>
                 {!viewer.isDirector && <p className="text-caption text-ink-muted">Al terminar, pásalo a En revisión: el director lo marca como cumplido.</p>}
               </section>
+
+              <ItemTasks itemId={item.id} canCreate={viewer.isDirector || item.assigneeId === viewer.memberId} />
 
               <section className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-3">
