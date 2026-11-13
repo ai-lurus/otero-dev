@@ -167,6 +167,9 @@ export async function createItemFromNews(newsId: string): Promise<{ itemId: stri
     source: `${source.shortName} · comunicado`,
     sourceUrl: news.url,
     stage: 'publicado',
+    // El admin ya decidió al crearlo: entra aceptado y va directo a Mi cumplimiento, sin pasar por la bandeja de RegWatch.
+    status: 'aceptada',
+    executionStatus: 'por_hacer',
     publishedAt: dayInMexico(news.publishedAt ?? news.createdAt),
     dueDate: draft?.dueDate ?? null,
     impact: draft?.impact ?? null,
@@ -192,14 +195,52 @@ export async function createItemFromNews(newsId: string): Promise<{ itemId: stri
   })
   revalidatePath('/cliente/noticias')
   revalidatePath('/cliente/obligaciones')
+  revalidatePath('/cliente/cumplimiento')
   revalidatePath(`/cliente/noticias/${news.id}`)
   return { itemId, existing: false }
 }
 
 // ── Despacho: notas (las fuentes van en ./news-sources) ──────────────────────────────────────
 
+export type NewsAdminRow = {
+  id: string
+  title: string
+  summary: string | null
+  url: string
+  publishedAt: string
+  source: string
+  sourceId: string
+  materia: string
+  materiaLabel: string
+  hidden: boolean
+}
+
+/** Notas guardadas de todas las fuentes (también las ocultas), de la más reciente a la más vieja. */
+export async function getNewsAdmin(): Promise<NewsAdminRow[]> {
+  await requireAdmin()
+  const when = sql`coalesce(${newsItems.publishedAt}, ${newsItems.createdAt})`
+  const rows = await db.select({ item: newsItems, source: newsSources })
+    .from(newsItems)
+    .innerJoin(newsSources, eq(newsSources.id, newsItems.sourceId))
+    .orderBy(desc(when))
+    .limit(300)
+  return rows.map(({ item, source }) => ({
+    id: item.id,
+    title: item.title,
+    summary: item.summary,
+    url: item.url,
+    publishedAt: (item.publishedAt ?? item.createdAt).toISOString(),
+    source: source.shortName,
+    sourceId: source.id,
+    materia: item.materia,
+    materiaLabel: MATERIAS[item.materia as Materia] ?? 'Otra',
+    hidden: item.hidden,
+  }))
+}
+
 export async function hideNewsItems(ids: string[], hidden: boolean) {
   await requireAdmin()
   if (ids.length) await db.update(newsItems).set({ hidden }).where(inArray(newsItems.id, ids))
   revalidatePath('/cliente/noticias')
+  revalidatePath('/admin/noticias')
 }
