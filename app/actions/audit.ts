@@ -2,11 +2,9 @@
 
 import { getAccess } from '@/lib/access'
 import { listAuditLog } from '@/lib/audit'
-import { AUDIT_CATEGORIES, type AuditCategory } from '@/lib/audit-actions'
+import { AUDIT_CATEGORIES, AUDIT_PAGE_SIZE, type AuditCategory } from '@/lib/audit-actions'
 
 // Lectura de la bitácora: solo el director de la empresa, y solo la de su empresa.
-
-export const AUDIT_PAGE_SIZE = 50
 
 const isCategory = (value?: string): value is AuditCategory => Boolean(value && value in AUDIT_CATEGORIES)
 

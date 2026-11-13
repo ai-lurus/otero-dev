@@ -11,6 +11,9 @@ export const AUDIT_CATEGORIES = {
   usuario: 'Usuarios y permisos',
 } as const
 
+/** Filas por página en la pantalla de bitácora. */
+export const AUDIT_PAGE_SIZE = 50
+
 export type AuditCategory = keyof typeof AUDIT_CATEGORIES
 
 export const ACTION_DICTIONARY = {
