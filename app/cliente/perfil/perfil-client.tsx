@@ -1,10 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { saveCompanyProfile } from "@/app/actions/company-profile"
 import type { CompanyProfile } from "@/lib/db/schema"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CountedTextarea } from "@/components/ui/counted-textarea"
+import { COMPANY_LIMITS } from "@/lib/onboarding"
+
+export type PerfilTab = "cuenta" | "empresa"
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -54,11 +59,11 @@ function Row({
 }
 
 const COMPANY_FIELDS = [
-  { key: "description",    label: "Descripción de la empresa",        placeholder: "Ej. Grupo industrial con plantas manufactureras en el norte del país...", rows: 3 },
+  { key: "description",    label: "Descripción de la empresa",        placeholder: "Ej. Grupo industrial con plantas manufactureras en el norte del país...", rows: 5 },
   { key: "industry",       label: "Industria / Sector",               placeholder: "Ej. Manufactura, Alimentos, Minería, Construcción...", rows: 1 },
-  { key: "activities",     label: "Actividades principales",          placeholder: "Ej. Fabricación de autopartes, almacenamiento de residuos peligrosos...", rows: 2 },
-  { key: "certifications", label: "Certificaciones vigentes",         placeholder: "Ej. ISO 14001, EMAS, Industria Limpia...", rows: 1 },
-  { key: "riesgos",        label: "Riesgos regulatorios conocidos",   placeholder: "Ej. Licencias SEMARNAT pendientes, auditorías PROFEPA recientes...", rows: 2 },
+  { key: "activities",     label: "Actividades principales",          placeholder: "Ej. Fabricación de autopartes, almacenamiento de residuos peligrosos...", rows: 4 },
+  { key: "certifications", label: "Certificaciones vigentes",         placeholder: "Ej. ISO 14001, EMAS, Industria Limpia...", rows: 3 },
+  { key: "riesgos",        label: "Riesgos regulatorios conocidos",   placeholder: "Ej. Licencias SEMARNAT pendientes, auditorías PROFEPA recientes...", rows: 4 },
 ] as const
 
 type PerfilClientProps = {
@@ -68,9 +73,18 @@ type PerfilClientProps = {
   children?: React.ReactNode
   /** Solo el director edita el perfil de la empresa; el equipo lo ve en lectura. */
   canEdit?: boolean
+  /** Pestaña con la que abre la pantalla (?tab=empresa). */
+  initialTab?: PerfilTab
 }
 
-export default function PerfilClient({ user, profile, children, canEdit = false }: PerfilClientProps) {
+export default function PerfilClient({ user, profile, children, canEdit = false, initialTab = "cuenta" }: PerfilClientProps) {
+  const [tab, setTab] = useState<PerfilTab>(initialTab)
+
+  // Un enlace con #monitoreo abre directo la pestaña de la empresa.
+  useEffect(() => {
+    if (window.location.hash === "#monitoreo") setTab("empresa")
+  }, [])
+
   const [notifs, setNotifs] = useState({ compliance: true, documentos: true, chat: true, pagos: true })
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" })
@@ -129,8 +143,13 @@ export default function PerfilClient({ user, profile, children, canEdit = false 
         </div>
       </div>
 
-      <div className="bg-background rounded-t-3xl -mt-2 px-5 pt-6 pb-6 flex flex-col gap-5">
+      <Tabs value={tab} onValueChange={v => setTab(v as PerfilTab)} className="bg-background rounded-t-3xl -mt-2 px-5 pt-6 pb-6 gap-5">
+        <TabsList className="w-full">
+          <TabsTrigger value="cuenta">Mi cuenta</TabsTrigger>
+          <TabsTrigger value="empresa">Mi empresa</TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="cuenta" className="flex flex-col gap-5">
         {/* Cuenta */}
         <Section title="Cuenta">
           <Row
@@ -149,69 +168,6 @@ export default function PerfilClient({ user, profile, children, canEdit = false 
             value="+52 998 123 4567"
           />
         </Section>
-
-        {/* Perfil de empresa — contexto para Compi IA */}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 mb-2">Perfil de empresa</p>
-          <div className="bg-card border border-border rounded-2xl overflow-hidden">
-            {/* Info banner */}
-            <div className="flex items-start gap-2.5 px-4 py-3 border-b border-border bg-surface-sunken">
-              <svg className="w-4 h-4 text-ink shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-              </svg>
-              <p className="text-[11px] text-ink font-medium leading-snug">
-                Otero usa esta información para personalizar sus respuestas según tu empresa y sector.
-              </p>
-            </div>
-            <form onSubmit={handleSaveCompany} className="px-4 pt-4 pb-3 flex flex-col gap-4">
-              {COMPANY_FIELDS.map(f => (
-                <div key={f.key}>
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
-                    {f.label}
-                  </label>
-                  {f.rows > 1 ? (
-                    <textarea
-                      rows={f.rows}
-                      readOnly={!canEdit}
-                      value={companyForm[f.key]}
-                      onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ink/20 resize-none placeholder:text-muted-foreground/40"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      readOnly={!canEdit}
-                      value={companyForm[f.key]}
-                      onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                      placeholder={f.placeholder}
-                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ink/20 placeholder:text-muted-foreground/40"
-                    />
-                  )}
-                </div>
-              ))}
-              {companyError && <p role="alert" className="rounded-md bg-risk-tint px-3 py-2 text-body-sm text-risk">{companyError}</p>}
-              {canEdit ? (
-              <button
-                type="submit"
-                disabled={companySaving}
-                className={cn(
-                  "w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]",
-                  companySaved
-                    ? "bg-ok text-surface"
-                    : "bg-ink text-surface disabled:opacity-50"
-                )}
-              >
-                {companySaving ? "Guardando..." : companySaved ? "Guardado — Otero ya lo sabe" : "Guardar perfil de empresa"}
-              </button>
-              ) : (
-                <p className="text-body-sm text-ink-muted">Solo el administrador de tu empresa puede cambiar estos datos.</p>
-              )}
-            </form>
-          </div>
-        </div>
-
-        {children}
 
         {/* Seguridad */}
         <Section title="Seguridad">
@@ -307,8 +263,78 @@ export default function PerfilClient({ user, profile, children, canEdit = false 
           />
         </Section>
 
+        </TabsContent>
+
+        <TabsContent value="empresa" className="flex flex-col gap-5">
+        {/* Perfil de empresa — contexto para Compi IA */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-1 mb-2">Perfil de empresa</p>
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            {/* Info banner */}
+            <div className="flex items-start gap-2.5 px-4 py-3 border-b border-border bg-surface-sunken">
+              <svg className="w-4 h-4 text-ink shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+              </svg>
+              <p className="text-[11px] text-ink font-medium leading-snug">
+                Otero usa esta información para personalizar sus respuestas según tu empresa y sector.
+              </p>
+            </div>
+            <form onSubmit={handleSaveCompany} className="px-4 pt-4 pb-3 flex flex-col gap-4">
+              {COMPANY_FIELDS.map(f => (
+                <div key={f.key}>
+                  <label htmlFor={`perfil-${f.key}`} className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                    {f.label}
+                  </label>
+                  {f.rows > 1 ? (
+                    <CountedTextarea
+                      id={`perfil-${f.key}`}
+                      rows={f.rows}
+                      readOnly={!canEdit}
+                      value={companyForm[f.key]}
+                      maxLength={COMPANY_LIMITS[f.key]}
+                      onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                    />
+                  ) : (
+                    <input
+                      id={`perfil-${f.key}`}
+                      type="text"
+                      maxLength={COMPANY_LIMITS[f.key]}
+                      readOnly={!canEdit}
+                      value={companyForm[f.key]}
+                      onChange={e => setCompanyForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      placeholder={f.placeholder}
+                      className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-ink/20 placeholder:text-muted-foreground/40"
+                    />
+                  )}
+                </div>
+              ))}
+              {companyError && <p role="alert" className="rounded-md bg-risk-tint px-3 py-2 text-body-sm text-risk">{companyError}</p>}
+              {canEdit ? (
+              <button
+                type="submit"
+                disabled={companySaving}
+                className={cn(
+                  "w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]",
+                  companySaved
+                    ? "bg-ok text-surface"
+                    : "bg-ink text-surface disabled:opacity-50"
+                )}
+              >
+                {companySaving ? "Guardando..." : companySaved ? "Guardado — Otero ya lo sabe" : "Guardar perfil de empresa"}
+              </button>
+              ) : (
+                <p className="text-body-sm text-ink-muted">Solo el administrador de tu empresa puede cambiar estos datos.</p>
+              )}
+            </form>
+          </div>
+        </div>
+
+        {children}
+        </TabsContent>
+
         <p className="text-center text-[10px] text-muted-foreground/40 pb-2">v2.1.0 · Portal Legal Empresarial</p>
-      </div>
+      </Tabs>
     </div>
   )
 }

@@ -10,7 +10,7 @@ export default function ObligationsClient({ items, members, canDecide, profileIn
       {profileIncomplete && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-warn-text/20 bg-warn-tint px-6 py-2.5 text-sm text-warn-text">
           <span>Completa el perfil de tu empresa para recibir lo de tu sector. Por ahora solo te llega lo general.</span>
-          <Link href="/cliente/perfil#monitoreo" className="font-semibold underline underline-offset-2">Completar perfil</Link>
+          <Link href="/cliente/perfil?tab=empresa#monitoreo" className="font-semibold underline underline-offset-2">Completar perfil</Link>
         </div>
       )}
       <Inbox items={items} members={members} canDecide={canDecide} />

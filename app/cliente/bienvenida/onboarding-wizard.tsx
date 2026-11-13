@@ -5,13 +5,14 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ArrowRight, Check, Sparkles, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { CountedTextarea } from '@/components/ui/counted-textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { MonitoringStep, fieldClass, labelClass } from '@/components/onboarding/monitoring-step'
 import { RegWatchGuide } from '@/components/onboarding/regwatch-guide'
 import { completeOnboarding, type OnboardingState } from '@/app/actions/onboarding'
 import { profileStatus, PROFILE_STATUS_LABELS, type MonitoringFields } from '@/lib/monitoring-profile'
 import {
-  DEMO_COMPANY, DEMO_MONITORING, EMPTY_COMPANY, ONBOARDING_STEPS, companyReady, type CompanyFields,
+  COMPANY_LIMITS, DEMO_COMPANY, DEMO_MONITORING, EMPTY_COMPANY, ONBOARDING_STEPS, companyReady, type CompanyFields,
 } from '@/lib/onboarding'
 import { cn } from '@/lib/utils'
 
@@ -90,10 +91,10 @@ export default function OnboardingWizard({ state }: { state: OnboardingState }) 
               <div key={f.key} className={cn('flex flex-col gap-2', f.long && 'sm:col-span-2')}>
                 <label className={labelClass} htmlFor={`ob-${f.key}`}>{f.label}</label>
                 {f.long ? (
-                  <textarea id={`ob-${f.key}`} rows={2} className={fieldClass} placeholder={f.placeholder}
+                  <CountedTextarea id={`ob-${f.key}`} rows={4} placeholder={f.placeholder} maxLength={COMPANY_LIMITS[f.key]}
                     value={company[f.key]} onChange={e => setCompany({ ...company, [f.key]: e.target.value })} />
                 ) : (
-                  <input id={`ob-${f.key}`} className={fieldClass} placeholder={f.placeholder}
+                  <input id={`ob-${f.key}`} className={fieldClass} maxLength={COMPANY_LIMITS[f.key]} placeholder={f.placeholder}
                     value={company[f.key]} onChange={e => setCompany({ ...company, [f.key]: e.target.value })} />
                 )}
               </div>

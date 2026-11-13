@@ -1,4 +1,5 @@
 import type { MonitoringFields } from '@/lib/monitoring-profile'
+import { LONG_TEXT_MAX, MEDIUM_TEXT_MAX, SHORT_TEXT_MAX } from '@/lib/text-limits'
 
 // Alta del cliente: un asistente por pasos que llena el perfil de la empresa y
 // el perfil de monitoreo. Se da por terminada cuando el admin del cliente
@@ -57,16 +58,17 @@ export const DEMO_MONITORING: MonitoringFields = {
   },
 }
 
-const LIMITS: Record<keyof CompanyFields, number> = {
-  description: 600, industry: 120, employees: 40, states: 300, activities: 800, certifications: 400, riesgos: 800,
+export const COMPANY_LIMITS: Record<keyof CompanyFields, number> = {
+  description: LONG_TEXT_MAX, industry: SHORT_TEXT_MAX, employees: 40, states: 300,
+  activities: LONG_TEXT_MAX, certifications: MEDIUM_TEXT_MAX, riesgos: LONG_TEXT_MAX,
 }
 
 /** Recorta y limpia lo que llega del asistente: solo texto, con tope por campo. */
 export function sanitizeCompany(input: Partial<Record<keyof CompanyFields, unknown>>): CompanyFields {
   const out = { ...EMPTY_COMPANY }
-  for (const key of Object.keys(LIMITS) as (keyof CompanyFields)[]) {
+  for (const key of Object.keys(COMPANY_LIMITS) as (keyof CompanyFields)[]) {
     const value = input[key]
-    out[key] = typeof value === 'string' ? value.trim().slice(0, LIMITS[key]) : ''
+    out[key] = typeof value === 'string' ? value.trim().slice(0, COMPANY_LIMITS[key]) : ''
   }
   return out
 }

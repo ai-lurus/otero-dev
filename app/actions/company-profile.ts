@@ -5,7 +5,9 @@ import { companyProfiles } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { getUserId, getFirstTenantId, getSession } from './auth-helpers'
 import { revalidatePath } from 'next/cache'
-import { requireDirector } from '@/lib/client-guard'
+import { actorOf, requirePermission } from '@/lib/access'
+import { logAction } from '@/lib/audit'
+import { sanitizeCompany } from '@/lib/onboarding'
 
 export async function getCompanyProfileForCurrentUser() {
   await getUserId()
@@ -50,19 +52,22 @@ export async function saveCompanyProfile(data: {
   riesgos:        string
 }) {
   // El perfil de la empresa alimenta a RegWatch: lo edita el director.
-  await requireDirector()
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('No tenant')
+  const access = await requirePermission('perfil', 'edit')
+  const tenantId = access.tenantId
   const db = await getTenantDb(tenantId)
+  // Mismo tope por campo que la UI: el servidor no confía en lo que manda el navegador.
+  const { description, industry, activities, certifications, riesgos } = sanitizeCompany(data)
+  const clean = { description, industry, activities, certifications, riesgos }
 
   await db
     .insert(companyProfiles)
-    .values({ tenantId, ...data, updatedAt: new Date() })
+    .values({ tenantId, ...clean, updatedAt: new Date() })
     .onConflictDoUpdate({
       target: companyProfiles.tenantId,
-      set: { ...data, updatedAt: new Date() },
+      set: { ...clean, updatedAt: new Date() },
     })
 
+  await logAction(actorOf(access), 'empresa.perfil_guardado', { entityType: 'empresa', entityId: tenantId })
   revalidatePath('/cliente/perfil')
   revalidatePath('/api/compi')
 }

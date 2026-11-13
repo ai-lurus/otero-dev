@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { SERVICE_CATALOG } from "@/lib/types"
 import type { Firm } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { MEDIUM_TEXT_MAX } from "@/lib/text-limits"
 
 type Step = 1 | 2 | 3
 
@@ -279,14 +280,15 @@ export default function SolicitarPage() {
             <p className="text-sm font-semibold text-foreground mb-2">Describe tu necesidad</p>
             <p className="text-xs text-muted-foreground mb-3">Menciona contexto relevante, fechas límite o información que nos ayude a atenderte mejor.</p>
             <textarea
-              rows={5}
+              rows={6}
+              maxLength={MEDIUM_TEXT_MAX}
               placeholder="Ej. Necesitamos renovar la Licencia Ambiental de Operación antes del 15 de mayo. La licencia original es de 2022 y cubre la Planta Vallejo Norte..."
               value={description}
-              onChange={(e) => setDescription(e.target.value.slice(0, 500))}
+              onChange={(e) => setDescription(e.target.value.slice(0, MEDIUM_TEXT_MAX))}
               className="w-full text-sm bg-muted rounded-2xl px-4 py-3 outline-none border border-transparent focus:border-border placeholder:text-muted-foreground/40 resize-none leading-relaxed"
             />
             <p className="text-xs text-muted-foreground mt-1.5 text-right tabular-nums">
-              {description.length}/500
+              {description.length}/{MEDIUM_TEXT_MAX}
             </p>
           </div>
 
