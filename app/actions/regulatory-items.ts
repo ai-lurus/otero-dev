@@ -202,10 +202,12 @@ export async function addItemEvidence(input: { itemId: string; kind: string; tit
   const { userId, tenantId, db } = ctx
   // El miembro solo agrega evidencia a lo que tiene asignado.
   const parent = await db
-    .select({ id: regulatoryItems.id })
+    .select({ id: regulatoryItems.id, status: regulatoryItems.status })
     .from(regulatoryItems)
     .where(and(eq(regulatoryItems.id, input.itemId), visibleItems(ctx)))
   if (!parent.length || !input.title.trim()) throw new Error('Asunto inválido')
+  // El expediente se abre al aceptar el asunto; antes no admite notas, documentos ni evidencias.
+  if (!(BOARD_STATUSES as readonly string[]).includes(parent[0].status)) throw new Error('El asunto aún no está en Mi cumplimiento')
   await db.insert(regulatoryItemEvidence).values({
     id: crypto.randomUUID(),
     itemId: input.itemId,

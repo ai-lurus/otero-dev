@@ -150,7 +150,7 @@ export default function DemoTour({ state }: { state: DemoTourState }) {
       say: 'El administrador decide qué atender y a quién se lo encarga. Desde ese momento hay responsable, estado y evidencia.',
       body: (
         <div className="space-y-2">
-          <p>Como administrador del cliente: RegWatch, Bandeja · sin revisar. Marca el asunto, usa Atender, elige a alguien en Asignar a y confirma con Aceptar y asignar. Pasa a En seguimiento.</p>
+          <p>Como administrador del cliente: RegWatch, Bandeja · sin revisar. Marca el asunto, usa Atender, elige a alguien en Asignar a y confirma con Aceptar y asignar. Sale de la bandeja y pasa a Mi cumplimiento, en Por hacer.</p>
           <p>Para cerrar, entra como <span className="text-data">{users.find(u => u.role === 'client')?.email ?? 'una persona del equipo'}</span> y muestra que el asunto ya está en su lista.</p>
           {firstAssigned && <p className="text-ink">Asignado: {firstAssigned.title} · {firstAssigned.owner ?? 'sin nombre'}</p>}
         </div>

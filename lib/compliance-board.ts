@@ -1,8 +1,12 @@
+import { BOARD_STATUSES } from '@/lib/client-access'
 import { daysUntil } from '@/lib/inbox'
 import { EXECUTION_LABELS, EXECUTION_STATUSES } from '@/lib/regulatory'
 
 // Tablero "Mi cumplimiento": etapas de ejecución, vistas y filtros de un asunto
 // ya aceptado por el director (admin del cliente).
+
+/** Antes de aceptarse el asunto y pasar a Mi cumplimiento no hay expediente. */
+export const hasExpediente = (status: string) => (BOARD_STATUSES as readonly string[]).includes(status)
 
 export type Stage = (typeof EXECUTION_STATUSES)[number]
 export const STAGES = EXECUTION_STATUSES

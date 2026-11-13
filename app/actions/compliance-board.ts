@@ -8,6 +8,7 @@ import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems } from '@/lib/db/schema'
 import { attachEvidence, listTeam, memberIdOf, recordEvent, type TeamMember } from '@/lib/regulatory-items-db'
 import { canMoveTo, isStage, stageLabel, type Stage } from '@/lib/compliance-board'
+import { BOARD_STATUSES } from '@/lib/client-access'
 import { getFirstTenantId } from './auth-helpers'
 import { isTenantAdmin } from './tenant-users'
 
@@ -15,7 +16,7 @@ import { isTenantAdmin } from './tenant-users'
 // el director (admin del cliente) ve todo, reasigna y marca como cumplido.
 
 // Un asunto entra al tablero al aceptarse y queda ahí al cerrarse (Cumplido); los descartados o archivados salen.
-const ON_BOARD = ['aceptada', 'cerrada']
+const ON_BOARD: string[] = [...BOARD_STATUSES]
 
 async function boardContext() {
   const session = await auth.api.getSession({ headers: await headers() })

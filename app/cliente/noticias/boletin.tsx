@@ -34,7 +34,7 @@ export function CreateItemButton({ newsId, itemId: initial, canCreate, size = 's
   if (itemId) {
     return (
       <Button asChild variant="outline" size={size}>
-        <Link href={`/cliente/obligaciones/${itemId}`}><FileCheck2 aria-hidden /> Ver asunto</Link>
+        <Link href={`/cliente/obligaciones/${itemId}?from=cumplimiento`}><FileCheck2 aria-hidden /> Ver asunto</Link>
       </Button>
     )
   }

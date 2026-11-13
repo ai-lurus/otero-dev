@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { AddEvidenceDialog, KIND_COPY, type Kind } from '@/components/regulatory/evidence/add-evidence-dialog'
+import { hasExpediente } from '@/lib/compliance-board'
 import { AMBITOS, ENVIRONMENTAL_GENERA, OBLIGATION_STATUSES, isAmbito, isGenus } from '@/lib/environmental-genera'
 
 type Evidence = Obligation['evidence'][number]
@@ -64,7 +65,9 @@ export function ObligationDetail({
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [tab, setTab] = useState<'resumen' | Kind>(initialTab)
+  // El expediente (notas, documentos y evidencias) existe cuando el admin acepta el asunto y pasa a Mi cumplimiento.
+  const expedienteOpen = adminMode || hasExpediente(obligation.status)
+  const [tab, setTab] = useState<'resumen' | Kind>(expedienteOpen ? initialTab : 'resumen')
   const [dialogKind, setDialogKind] = useState<Kind | null>(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
 
@@ -151,7 +154,7 @@ export function ObligationDetail({
           <div className="-mx-4 overflow-x-auto px-4 md:mx-0 md:px-0">
             <TabsList className="h-11 w-max">
               <TabsTrigger value="resumen" className="min-h-9 px-4">Resumen</TabsTrigger>
-              {(Object.keys(KIND_COPY) as Kind[]).map((kind) => (
+              {expedienteOpen && (Object.keys(KIND_COPY) as Kind[]).map((kind) => (
                 <TabsTrigger key={kind} value={kind} className="min-h-9 gap-2 px-4">
                   {KIND_COPY[kind].tab}
                   <span className="text-xs text-muted-foreground">{byKind[kind].length}</span>
@@ -217,7 +220,7 @@ export function ObligationDetail({
             </div>
           </TabsContent>
 
-          {(Object.keys(KIND_COPY) as Kind[]).map((kind) => (
+          {expedienteOpen && (Object.keys(KIND_COPY) as Kind[]).map((kind) => (
             <TabsContent key={kind} value={kind} className="mt-5">
               <EvidencePanel kind={kind} items={byKind[kind]} onAdd={() => setDialogKind(kind)} />
             </TabsContent>

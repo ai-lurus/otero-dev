@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { KanbanSquare, List, Search } from 'lucide-react'
 import { moveExecution, reassignItem, type BoardItem, type BoardViewer } from '@/app/actions/compliance-board'
 import type { TeamMember } from '@/lib/regulatory-items-db'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
@@ -12,9 +12,11 @@ import {
   BOARD_VIEWS, DUE_FILTERS, STAGES, columnsFor, inBoardView, matchesDue, stageLabel, stageOf, viewCount,
   type BoardView, type DueFilter, type Stage,
 } from '@/lib/compliance-board'
+import { daysUntil } from '@/lib/inbox'
 import { itemFolio } from '@/lib/regulatory'
 import { cn } from '@/lib/utils'
 import { BoardCard } from './board-card'
+import { BoardTable } from './board-table'
 import { BoardPanel } from './board-panel'
 import { BoardSidebar } from './board-sidebar'
 import { BoardToast, type ToastState } from './board-toast'
@@ -23,12 +25,18 @@ type Props = { items: BoardItem[]; viewer: BoardViewer; team: TeamMember[] }
 type Override = Partial<Pick<BoardItem, 'executionStatus' | 'assigneeId' | 'owner'>>
 
 const ALL = 'todos'
+type Layout = 'tablero' | 'lista'
+const LAYOUTS = [
+  { id: 'tablero', label: 'Tablero', Icon: KanbanSquare },
+  { id: 'lista', label: 'Lista', Icon: List },
+] as const
 
 /** Tablero "Mi cumplimiento": los asuntos aceptados, por etapa de ejecución. */
 export function ComplianceBoard({ items, viewer, team }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [view, setView] = useState<BoardView>('tablero')
+  const [layout, setLayout] = useState<Layout>('tablero')
   const [query, setQuery] = useState('')
   const [due, setDue] = useState<DueFilter>('todos')
   const [person, setPerson] = useState(ALL)
@@ -64,6 +72,12 @@ export function ComplianceBoard({ items, viewer, team }: Props) {
   const counts = useMemo(
     () => Object.fromEntries(BOARD_VIEWS.map((entry) => [entry.id, viewCount(scoped, entry.id)])) as Record<BoardView, number>,
     [scoped],
+  )
+  // Lista: por etapa y, dentro de cada una, el plazo más cercano primero (sin plazo al final).
+  const listed = useMemo(
+    () => [...visible].sort((a, b) =>
+      STAGES.indexOf(stageOf(a)) - STAGES.indexOf(stageOf(b)) || (daysUntil(a.dueDate) ?? Infinity) - (daysUntil(b.dueDate) ?? Infinity)),
+    [visible],
   )
   const byStage = useMemo(() => {
     const groups = Object.fromEntries(STAGES.map((stage) => [stage, [] as typeof visible])) as Record<Stage, typeof visible>
@@ -180,6 +194,20 @@ export function ComplianceBoard({ items, viewer, team }: Props) {
             </label>
           )}
           <span className="text-body-sm text-ink-muted">{visible.length} {visible.length === 1 ? 'asunto' : 'asuntos'} en esta vista</span>
+          <div role="group" aria-label="Forma de ver los asuntos" className="ml-auto inline-flex overflow-hidden rounded-md border border-ink">
+            {LAYOUTS.map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={layout === id}
+                onClick={() => setLayout(id)}
+                className={cn('inline-flex items-center gap-2 px-4 py-2 text-body-sm transition-colors', layout === id ? 'bg-ink text-surface' : 'bg-surface-raised text-ink hover:bg-surface-sunken')}
+              >
+                <Icon aria-hidden className="size-4" />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {error && <p role="alert" className="text-body-sm text-risk">{error}</p>}
@@ -190,11 +218,22 @@ export function ComplianceBoard({ items, viewer, team }: Props) {
               <EmptyTitle>{directorMode ? 'Aún no hay asuntos en ejecución' : 'No tienes asuntos asignados'}</EmptyTitle>
               <EmptyDescription>
                 {directorMode
-                  ? 'Cuando aceptes un asunto en RegWatch y lo asignes, aparece aquí en Por hacer.'
+                  ? 'Cuando aceptes un asunto en RegWatch o lo crees desde una noticia, aparece aquí en Por hacer.'
                   : 'Cuando el director te asigne un asunto, aparece aquí en Por hacer.'}
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
+        ) : layout === 'lista' ? (
+          visible.length === 0 ? (
+            <Empty className="rounded-lg border border-border bg-surface-raised py-16">
+              <EmptyHeader>
+                <EmptyTitle>No hay asuntos aquí</EmptyTitle>
+                <EmptyDescription>Cambia de vista o ajusta los filtros.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <BoardTable items={listed} isDirector={viewer.isDirector} openId={openId} busy={isPending} onOpen={setOpenId} onMove={move} />
+          )
         ) : (
           <div className={cn('grid gap-4', columns.length > 1 ? 'md:grid-cols-2 xl:grid-cols-4' : 'grid-cols-1')}>
             {columns.map((stage) => (

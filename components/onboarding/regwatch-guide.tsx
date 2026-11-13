@@ -25,7 +25,7 @@ const STEPS = [
   {
     icon: UserCheck,
     title: 'Acepta y asigna un responsable',
-    body: 'Marca el asunto y usa Atender. Elige a una persona en Asignar a y confirma con Aceptar y asignar: pasa a En seguimiento, ya con responsable.',
+    body: 'Marca el asunto y usa Atender. Elige a una persona en Asignar a y confirma con Aceptar y asignar: pasa a Mi cumplimiento, en Por hacer y ya con responsable.',
   },
   {
     icon: CheckCircle2,

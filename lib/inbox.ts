@@ -6,7 +6,6 @@ export const VIEWS = [
   { id: 'bandeja', label: 'Bandeja · sin revisar', history: false },
   { id: 'impacto_alto', label: 'Impacto alto', history: false },
   { id: 'vencen_7', label: 'Urgentes', history: false },
-  { id: 'seguimiento', label: 'En seguimiento', history: false },
   { id: 'todo', label: 'Todo', history: true },
   { id: 'descartados', label: 'Descartados', history: true },
   { id: 'archivo', label: 'Archivo', history: true },
@@ -61,14 +60,13 @@ export function inView(item: InboxFields, view: ViewId, today = new Date()) {
       const days = daysUntil(item.dueDate, today)
       return item.status === 'identificada' && days !== null && days <= 7
     }
-    case 'seguimiento':
-      return item.status === 'aceptada'
     case 'descartados':
       return item.status === 'descartada'
     case 'archivo':
       return item.status === 'archivada'
     default:
-      return true
+      // Lo aceptado ya vive en Mi cumplimiento; RegWatch no lo repite.
+      return item.status !== 'aceptada' && item.status !== 'cerrada'
   }
 }
 
