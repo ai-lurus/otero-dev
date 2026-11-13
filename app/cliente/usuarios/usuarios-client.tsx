@@ -8,6 +8,8 @@ import {
   removeMyTenantUser,
   resetMyTenantUserPassword,
 } from '@/app/actions/tenant-users'
+import { DEFAULT_MEMBER_PERMISSIONS, type PermissionMap } from '@/lib/client-permissions'
+import { PermissionsEditor } from './permissions-editor'
 
 type Row = { id: string; name: string; email: string; role: string }
 type Role = 'client' | 'tenant_admin'
@@ -15,7 +17,8 @@ type Role = 'client' | 'tenant_admin'
 const inputCls = 'rounded-xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-foreground/20'
 const labelCls = 'text-xs font-semibold uppercase tracking-wide text-muted-foreground'
 
-export default function UsuariosClient({ users, meId }: { users: Row[]; meId: string }) {
+export default function UsuariosClient({ users, meId, permissions }: { users: Row[]; meId: string; permissions: Record<string, PermissionMap | null> }) {
+  const [editingId, setEditingId] = useState<string | null>(null)
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState('')
@@ -111,11 +114,25 @@ export default function UsuariosClient({ users, meId }: { users: Row[]; meId: st
                 <option value="client">Usuario</option>
                 <option value="tenant_admin">Administrador</option>
               </select>
+              {!isMe && u.role === 'client' && (
+                <button onClick={() => setEditingId(editingId === u.id ? null : u.id)} disabled={isPending}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Permisos</button>
+              )}
               <button onClick={() => handleReset(u)} disabled={isPending}
                 className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">Restablecer contraseña</button>
               {!isMe && (
                 <button onClick={() => handleRemove(u)} disabled={isPending}
                   className="text-xs font-medium text-risk hover:text-risk transition-colors">Quitar</button>
+              )}
+              {editingId === u.id && (
+                <PermissionsEditor
+                  key={u.id}
+                  userId={u.id}
+                  userName={u.name}
+                  initial={permissions[u.id] ?? DEFAULT_MEMBER_PERMISSIONS}
+                  custom={permissions[u.id] != null}
+                  onClose={() => setEditingId(null)}
+                />
               )}
             </div>
           )

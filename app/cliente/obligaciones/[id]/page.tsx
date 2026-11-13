@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { notFound, redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getRegulatoryItem } from '@/app/actions/regulatory-items'
-import { isTenantAdmin } from '@/app/actions/tenant-users'
+import { getMyScreenPermissions } from '@/app/actions/access'
 import { ObligationDetail } from './obligation-detail'
 
 const TABS = ['resumen', 'nota', 'documento', 'evidencia'] as const
@@ -18,5 +18,5 @@ export default async function ObligationDetailPage({ params, searchParams }: { p
   const obligation = await getRegulatoryItem(id).catch(() => null)
   if (!obligation) notFound()
 
-  return <ObligationDetail obligation={obligation} canDecide={await isTenantAdmin()} initialTab={isTab(tab) ? tab : 'resumen'} fromBoard={from === 'cumplimiento'} />
+  return <ObligationDetail obligation={obligation} canDecide={(await getMyScreenPermissions('regwatch')).edit} initialTab={isTab(tab) ? tab : 'resumen'} fromBoard={from === 'cumplimiento'} />
 }

@@ -1,6 +1,7 @@
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client'
 import { type NextRequest, NextResponse } from 'next/server'
 import { getTenantSession } from '@/lib/obligation-access'
+import { can } from '@/lib/client-permissions'
 import { ALLOWED_UPLOAD_TYPES, MAX_DOCUMENT_BYTES } from '@/lib/upload-rules'
 import { documentBlobPrefix } from '@/lib/documents/blob-path'
 
@@ -11,6 +12,8 @@ export const runtime = 'nodejs'
 export async function POST(request: NextRequest) {
   const ctx = await getTenantSession()
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!can(ctx, 'documentos', 'create')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
     const body = (await request.json()) as HandleUploadBody

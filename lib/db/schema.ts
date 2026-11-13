@@ -10,9 +10,11 @@ import {
   uuid,
   numeric,
   jsonb,
+  index,
 } from 'drizzle-orm/pg-core'
 import type { DetectedObject } from '@/lib/legal-objects'
 import type { Triggers } from '@/lib/monitoring-profile'
+import type { PermissionMap } from '@/lib/client-permissions'
 import type { AnalysisStatus, DocAnalysis } from '@/lib/documents/analysis'
 
 // ── Better Auth required tables ────────────────────────────────────
@@ -369,6 +371,38 @@ export const newsItems = pgTable('news_items', {
   createdAt:   timestamp('created_at').notNull().defaultNow(),
 })
 
+// ── Bitácora y permisos de la empresa cliente ──────────────────────
+// Viven en la principal (todo cliente la tiene) y se filtran siempre por tenantId.
+
+// Bitácora de acciones del sistema por cliente. `action` es una llave de
+// lib/audit-actions.ts; el nombre y el asunto se guardan copiados para que la
+// bitácora siga legible aunque la persona o el asunto se borren.
+export const auditLog = pgTable('audit_log', {
+  id:          text('id').primaryKey(),
+  tenantId:    text('tenant_id').notNull(),
+  userId:      text('user_id'),
+  userName:    text('user_name').notNull().default(''),
+  action:      text('action').notNull(),
+  entityType:  text('entity_type'), // 'asunto' | 'documento' | 'certificacion' | 'usuario' …
+  entityId:    text('entity_id'),
+  entityLabel: text('entity_label'),
+  // Asunto al que pertenece la acción (evidencia, descargas), si aplica.
+  itemId:      text('item_id'),
+  detail:      text('detail').notNull().default(''),
+  metadata:    jsonb('metadata').notNull().default({}),
+  createdAt:   timestamp('created_at').notNull().defaultNow(),
+}, (t) => [index('audit_log_tenant_created_idx').on(t.tenantId, t.createdAt)])
+
+// Permisos por pantalla y acción (ver/crear/editar/borrar) de cada persona del
+// cliente, decididos por su director. Sin fila: aplican los de fábrica del miembro.
+export const tenantUserPermissions = pgTable('tenant_user_permissions', {
+  tenantId:    text('tenant_id').notNull(),
+  userId:      text('user_id').notNull(),
+  permissions: jsonb('permissions').$type<PermissionMap>().notNull().default({}),
+  updatedBy:   text('updated_by'),
+  updatedAt:   timestamp('updated_at').notNull().defaultNow(),
+}, (t) => [primaryKey({ columns: [t.tenantId, t.userId] })])
+
 // ── Type exports ───────────────────────────────────────────────────
 export type User          = typeof user.$inferSelect
 export type Tenant        = typeof tenants.$inferSelect
@@ -379,3 +413,4 @@ export type CompanyProfile = typeof companyProfiles.$inferSelect
 export type IngestSource   = typeof ingestSources.$inferSelect
 export type NewsSourceRow  = typeof newsSources.$inferSelect
 export type NewsItemRow    = typeof newsItems.$inferSelect
+export type AuditLogRow    = typeof auditLog.$inferSelect

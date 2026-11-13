@@ -1,6 +1,8 @@
 import { get } from '@vercel/blob'
 import { NextResponse } from 'next/server'
-import { getTenantSession, tenantOwnsBlob } from '@/lib/obligation-access'
+import { findEvidenceByBlob, getTenantSession, tenantOwnsBlob } from '@/lib/obligation-access'
+import { actorOf } from '@/lib/access'
+import { logAction } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 
@@ -17,6 +19,10 @@ export async function GET(request: Request) {
   if (!result || result.statusCode !== 200) return new NextResponse('Not found', { status: 404 })
 
   const download = searchParams.get('download') === '1'
+  if (download) {
+    const evidence = await findEvidenceByBlob(ctx.tenantId, pathname)
+    await logAction(actorOf(ctx), 'asunto.archivo_descargado', { entityType: 'asunto', entityId: evidence?.itemId, itemId: evidence?.itemId, entityLabel: evidence?.title ?? pathname.split('/').pop() })
+  }
   const filename = encodeURIComponent(pathname.split('/').pop()?.replace(/^[0-9a-f-]{36}-/, '') ?? 'archivo')
   return new NextResponse(result.stream, {
     headers: {

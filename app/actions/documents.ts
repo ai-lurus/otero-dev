@@ -7,12 +7,14 @@ import { getFirstTenantId, getUserId } from './auth-helpers'
 import { revalidatePath } from 'next/cache'
 import { expiryState, sanitizeAnalysis, visibleStatus, type AnalysisStatus, type DocAnalysis } from '@/lib/documents/analysis'
 import { dayInMexico } from '@/lib/ingest/dof'
-import { requireDirector } from '@/lib/client-guard'
+import { actorOf, requirePermission } from '@/lib/access'
+import { logAction } from '@/lib/audit'
 import { analysisRoom } from '@/lib/documents/batch'
 
 export async function getDocuments(tenantId: string) {
-  const currentTenantId = await getFirstTenantId()
-  if (!currentTenantId || currentTenantId !== tenantId) throw new Error('Forbidden')
+  const access = await requirePermission('documentos', 'view')
+  const currentTenantId = access.tenantId
+  if (currentTenantId !== tenantId) throw new Error('Forbidden')
   const db = await getTenantDb(currentTenantId)
   const rows = await db
     .select()
@@ -26,6 +28,7 @@ export async function getDocuments(tenantId: string) {
 export async function getDocumentsByIds(ids: string[]) {
   const tenantId = await getFirstTenantId()
   if (!tenantId || ids.length === 0) return []
+  await requirePermission('documentos', 'view')
   const db = await getTenantDb(tenantId)
   const rows = await db
     .select()
@@ -35,20 +38,20 @@ export async function getDocumentsByIds(ids: string[]) {
 }
 
 export async function signDocument(id: string) {
-  await requireDirector()
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('Forbidden')
+  const access = await requirePermission('documentos', 'edit')
+  const tenantId = access.tenantId
   const db = await getTenantDb(tenantId)
-  await db.update(documents).set({ signed: true }).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
+  const [row] = await db.update(documents).set({ signed: true }).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId))).returning({ name: documents.name })
+  if (row) await logAction(actorOf(access), 'documento.firmado', { entityType: 'documento', entityId: id, entityLabel: row.name })
   revalidatePath('/cliente/documentos')
 }
 
 export async function deleteDocument(id: string) {
-  await requireDirector()
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('Forbidden')
+  const access = await requirePermission('documentos', 'delete')
+  const tenantId = access.tenantId
   const db = await getTenantDb(tenantId)
-  await db.delete(documents).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
+  const [row] = await db.delete(documents).where(and(eq(documents.id, id), eq(documents.tenantId, tenantId))).returning({ name: documents.name, category: documents.category })
+  if (row) await logAction(actorOf(access), 'documento.eliminado', { entityType: 'documento', entityId: id, entityLabel: row.name, detail: `Carpeta: ${row.category}` })
   revalidatePath('/cliente/documentos')
 }
 
@@ -68,9 +71,9 @@ export async function addDocument(data: {
   /** 'analyzing' cuando la lectura corre en segundo plano. */
   analysisStatus?: AnalysisStatus
 }) {
-  await getUserId()
-  const currentTenantId = await getFirstTenantId()
-  if (!currentTenantId || currentTenantId !== data.tenantId) throw new Error('Forbidden')
+  const access = await requirePermission('documentos', 'create')
+  const currentTenantId = access.tenantId
+  if (currentTenantId !== data.tenantId) throw new Error('Forbidden')
   const id = crypto.randomUUID()
   const db = await getTenantDb(currentTenantId)
   const { analysis, analysisStatus, ...rest } = data
@@ -79,6 +82,7 @@ export async function addDocument(data: {
     analysis: analysis ?? null,
     analysisStatus: analysisStatus ?? (analysis ? 'detected' : 'none'),
   })
+  await logAction(actorOf(access), 'documento.creado', { entityType: 'documento', entityId: id, entityLabel: data.name, detail: `Carpeta: ${data.category}` })
 
   revalidatePath('/cliente/documentos')
   return id
@@ -86,10 +90,9 @@ export async function addDocument(data: {
 
 /** El cliente confirma o corrige lo detectado. La vigencia pasa a ser el vencimiento del documento. */
 export async function confirmDocumentAnalysis(id: string, input: Record<string, unknown>) {
-  // Lo confirmado alimenta el matching de RegWatch: lo decide el director.
-  await requireDirector()
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('Forbidden')
+  // Lo confirmado alimenta el matching de RegWatch: solo quien puede editar documentos.
+  const access = await requirePermission('documentos', 'edit')
+  const tenantId = access.tenantId
   const analysis = sanitizeAnalysis(input)
   const expiry = expiryState(analysis.vigenciaFin, dayInMexico(new Date()))
   const db = await getTenantDb(tenantId)
@@ -105,6 +108,7 @@ export async function confirmDocumentAnalysis(id: string, input: Record<string, 
     .where(and(eq(documents.id, id), eq(documents.tenantId, tenantId)))
     .returning()
   if (!row) throw new Error('Documento no encontrado')
+  await logAction(actorOf(access), 'documento.confirmado', { entityType: 'documento', entityId: id, entityLabel: row.name })
   revalidatePath('/cliente/documentos')
   return row
 }
@@ -125,9 +129,8 @@ export type BatchConfirmResult = { confirmed: DocumentRow[]; failed: string[] }
 
 /** Confirma varios documentos a la vez. Uno que falla no detiene a los demás. Solo el director. */
 export async function confirmDocumentsBatch(items: BatchConfirmItem[]): Promise<BatchConfirmResult> {
-  await requireDirector()
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('Forbidden')
+  const access = await requirePermission('documentos', 'edit')
+  const tenantId = access.tenantId
   const db = await getTenantDb(tenantId)
   const today = dayInMexico(new Date())
   const confirmed: DocumentRow[] = []
@@ -147,7 +150,7 @@ export async function confirmDocumentsBatch(items: BatchConfirmItem[]): Promise<
         })
         .where(and(eq(documents.id, item.id), eq(documents.tenantId, tenantId)))
         .returning()
-      if (row) confirmed.push(row)
+      if (row) { confirmed.push(row); await logAction(actorOf(access), 'documento.confirmado', { entityType: 'documento', entityId: row.id, entityLabel: row.name, detail: 'Confirmación en lote' }) }
       else failed.push(item.id)
     } catch (error) {
       console.error('[documents] confirmación en lote falló', item.id, error)

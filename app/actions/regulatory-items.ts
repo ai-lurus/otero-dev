@@ -9,7 +9,9 @@ import { regulatoryItems, regulatoryItemEvidence, regulatoryItemEvents } from '@
 import { attachEvidence, listTeam, recordEvent } from '@/lib/regulatory-items-db'
 import { DIRECTIONS, IMPACTS, MATERIAS, SCOPES, STATUSES, isOneOf } from '@/lib/regulatory'
 import { getFirstTenantId, requireAdmin } from './auth-helpers'
-import { isTenantAdmin } from './tenant-users'
+import { actorOf, getAccess, requirePermission } from '@/lib/access'
+import { logAction } from '@/lib/audit'
+import { can } from '@/lib/client-permissions'
 import { BOARD_STATUSES } from '@/lib/client-access'
 import { memberIdOf } from '@/lib/regulatory-items-db'
 
@@ -39,18 +41,18 @@ export type ItemInput = {
 }
 
 async function clientContext() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) throw new Error('Unauthorized')
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('Tenant not found')
-  const [isDirector, memberId, db] = await Promise.all([isTenantAdmin(), memberIdOf(tenantId, session.user.id), getTenantDb(tenantId)])
-  return { userId: session.user.id, tenantId, isDirector, memberId, db }
+  const access = await getAccess()
+  if (!access) throw new Error('Unauthorized')
+  const { tenantId, userId } = access
+  const [memberId, db] = await Promise.all([memberIdOf(tenantId, userId), getTenantDb(tenantId)])
+  // Con permiso de ver RegWatch la persona ve todo lo enviado, como el director; si no, solo lo asignado.
+  return { ...access, memberId, db, seesAll: can(access, 'regwatch', 'view') }
 }
 
-/** Asuntos que esta persona puede ver: el director todos los enviados; el miembro solo los aceptados que le asignaron. */
-function visibleItems(ctx: { tenantId: string; isDirector: boolean; memberId: string | null }) {
+/** Asuntos que esta persona puede ver: con acceso a RegWatch todos los enviados; si no, solo los aceptados que le asignaron. */
+function visibleItems(ctx: { tenantId: string; seesAll: boolean; memberId: string | null }) {
   const sent = and(eq(regulatoryItems.tenantId, ctx.tenantId), isNotNull(regulatoryItems.sentAt))
-  if (ctx.isDirector) return sent
+  if (ctx.seesAll) return sent
   // Sin ficha en el equipo no tiene nada asignado: la condición nunca coincide.
   return and(sent, inArray(regulatoryItems.status, [...BOARD_STATUSES]), eq(regulatoryItems.assigneeId, ctx.memberId ?? ''))
 }
@@ -123,9 +125,10 @@ export async function getRegulatoryItem(id: string) {
 }
 
 export async function updateItemStatus(id: string, status: string, reason?: string) {
-  // Decidir sobre un asunto es del admin del cliente; el equipo ve y ejecuta lo suyo.
-  if (!(await isTenantAdmin())) throw new Error('Forbidden')
-  const { tenantId, db } = await clientContext()
+  // Decidir sobre un asunto requiere editar RegWatch (el director; el equipo ejecuta lo suyo).
+  await requirePermission('regwatch', 'edit')
+  const ctx = await clientContext()
+  const { tenantId, db } = ctx
   if (!isOneOf(STATUSES, status)) throw new Error('Estado inválido')
   const updated = await db
     .update(regulatoryItems)
@@ -140,15 +143,16 @@ export async function updateItemStatus(id: string, status: string, reason?: stri
       updatedAt: new Date(),
     })
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
-    .returning({ id: regulatoryItems.id })
+    .returning({ id: regulatoryItems.id, title: regulatoryItems.title })
   if (!updated.length) throw new Error('Asunto no encontrado')
+  await logAction(actorOf(ctx), 'asunto.estado_cambiado', { entityType: 'asunto', entityId: id, itemId: id, entityLabel: updated[0].title, detail: `Nuevo estado: ${status}${reason?.trim() ? `. Motivo: ${reason.trim()}` : ''}`, metadata: { status } })
   await recordEvent(db, {
     itemId: id,
     tenantId,
     eventType: 'status_changed',
     title: `Estado cambiado a ${status}`,
     description: reason?.trim() ? `Motivo: ${reason.trim()}` : 'El cliente actualizó el estado del asunto regulatorio.',
-    createdBy: (await auth.api.getSession({ headers: await headers() }))?.user.id ?? 'client',
+    createdBy: ctx.userId,
     metadata: { status, ...(reason?.trim() ? { reason: reason.trim() } : {}) },
   })
   revalidatePath('/cliente/obligaciones')
@@ -160,15 +164,17 @@ export type AssignableMember = { id: string; name: string; position?: string | n
 
 /** Personas activas de la empresa a quienes el admin puede asignar un asunto. Solo el admin del cliente las ve. */
 export async function getAssignableMembers(): Promise<AssignableMember[]> {
-  if (!(await isTenantAdmin())) return []
-  const { tenantId } = await clientContext()
+  const access = await getAccess()
+  if (!access || !can(access, 'regwatch', 'edit')) return []
+  const { tenantId } = access
   return listTeam(tenantId)
 }
 
 /** El admin del cliente acepta un asunto y se lo asigna a una persona de su equipo. Pasa a Por hacer. */
 export async function acceptAndAssign(id: string, memberId: string) {
-  if (!(await isTenantAdmin())) throw new Error('Forbidden')
-  const { userId, tenantId, db } = await clientContext()
+  await requirePermission('regwatch', 'edit')
+  const ctx = await clientContext()
+  const { userId, tenantId, db } = ctx
   const member = (await listTeam(tenantId)).find(m => m.id === memberId)
   if (!member) throw new Error('Persona no encontrada')
   const updated = await db
@@ -181,8 +187,9 @@ export async function acceptAndAssign(id: string, memberId: string) {
       updatedAt: new Date(),
     })
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, tenantId), isNotNull(regulatoryItems.sentAt)))
-    .returning({ id: regulatoryItems.id })
+    .returning({ id: regulatoryItems.id, title: regulatoryItems.title })
   if (!updated.length) throw new Error('Asunto no encontrado')
+  await logAction(actorOf(ctx), 'asunto.aceptado_asignado', { entityType: 'asunto', entityId: id, itemId: id, entityLabel: updated[0].title, detail: `Asignado a ${member.name}`, metadata: { assigneeId: member.id } })
   await recordEvent(db, {
     itemId: id,
     tenantId,
@@ -198,6 +205,7 @@ export async function acceptAndAssign(id: string, memberId: string) {
 }
 
 export async function addItemEvidence(input: { itemId: string; kind: string; title: string; content: string; url?: string; blobPathname?: string }) {
+  await requirePermission('cumplimiento', 'create')
   const ctx = await clientContext()
   const { userId, tenantId, db } = ctx
   // El miembro solo agrega evidencia a lo que tiene asignado.
@@ -220,6 +228,7 @@ export async function addItemEvidence(input: { itemId: string; kind: string; tit
     createdBy: userId,
   })
   const labels = { nota: 'nota', documento: 'documento', evidencia: 'evidencia' }
+  await logAction(actorOf(ctx), 'asunto.evidencia_agregada', { entityType: 'asunto', entityId: input.itemId, itemId: input.itemId, entityLabel: input.title.trim(), detail: `Tipo: ${labels[input.kind as keyof typeof labels] ?? input.kind}${input.blobPathname ? ' · con archivo' : ''}` })
   await recordEvent(db, {
     itemId: input.itemId,
     tenantId,

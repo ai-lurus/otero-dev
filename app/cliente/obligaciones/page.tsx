@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { getAssignableMembers, getRegulatoryItems } from '@/app/actions/regulatory-items'
-import { isTenantAdmin } from '@/app/actions/tenant-users'
+import { getMyScreenPermissions } from '@/app/actions/access'
 import { getCompanyProfileForCurrentUser } from '@/app/actions/company-profile'
 import { profileStatus } from '@/lib/monitoring-profile'
 import ObligationsClient from './obligations-client'
@@ -10,12 +10,13 @@ import ObligationsClient from './obligations-client'
 export default async function ObligationsPage() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect('/sign-in')
-  // La bandeja de RegWatch (aceptar, descartar, archivar) es del director; el equipo trabaja en Mi cumplimiento.
-  if (!(await isTenantAdmin())) redirect('/cliente/cumplimiento')
+  // La bandeja de RegWatch (aceptar, descartar, archivar) es del director o de quien él habilite; el equipo trabaja en Mi cumplimiento.
+  const perms = await getMyScreenPermissions('regwatch')
+  if (!perms.view) redirect('/cliente/cumplimiento')
   const [items, members, canDecide, company] = await Promise.all([
     getRegulatoryItems().catch(() => []),
     getAssignableMembers().catch(() => []),
-    isTenantAdmin(),
+    Promise.resolve(perms.edit),
     getCompanyProfileForCurrentUser().catch(() => null),
   ])
   // Sin perfil de monitoreo completo solo llegan las materias generales: se avisa.

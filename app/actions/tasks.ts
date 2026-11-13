@@ -6,6 +6,8 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems, tasks } from '@/lib/db/schema'
+import { logAction } from '@/lib/audit'
+import type { AuditAction } from '@/lib/audit-actions'
 import { listTeam, memberIdOf, recordEvent, type TeamMember } from '@/lib/regulatory-items-db'
 import { canSeeTask, compareTasks, isTaskStatus, parseTaskInput, TASK_STATUS_LABELS, type TaskInput } from '@/lib/tasks'
 import { getFirstTenantId } from './auth-helpers'
@@ -29,6 +31,11 @@ export type TaskRow = typeof tasks.$inferSelect & { assigneeName: string | null 
 export type MyTask = TaskRow & { itemTitle: string; itemFolio: string | null }
 
 const names = (team: TeamMember[]) => new Map(team.map((member) => [member.id, member.name]))
+
+const audit = (ctx: Ctx, action: AuditAction, task: { id: string; itemId: string; title: string }, detail = '') =>
+  logAction({ tenantId: ctx.tenantId, userId: ctx.userId, userName: ctx.userName }, action, {
+    entityType: 'tarea', entityId: task.id, entityLabel: task.title, itemId: task.itemId, detail,
+  })
 
 function revalidateTasks() {
   revalidatePath('/cliente/tareas')
@@ -110,6 +117,7 @@ export async function createTask(itemId: string, input: TaskInput) {
     createdBy: ctx.userId,
     metadata: { taskId: id, assigneeId: data.assigneeId, dueDate: data.dueDate },
   })
+  await audit(ctx, 'tarea.creada', { id, itemId, title: data.title }, assignee ? `Asignada a ${assignee.name}` : '')
   revalidateTasks()
   return { id }
 }
@@ -132,6 +140,7 @@ export async function updateTask(id: string, input: TaskInput) {
     createdBy: ctx.userId,
     metadata: { taskId: id, assigneeId: data.assigneeId, startDate: data.startDate, dueDate: data.dueDate },
   })
+  await audit(ctx, reassigned ? 'tarea.reasignada' : 'tarea.editada', { id, itemId: row.itemId, title: data.title }, reassigned && assignee ? `Ahora la tiene ${assignee.name}` : '')
   revalidateTasks()
 }
 
@@ -154,6 +163,7 @@ export async function setTaskStatus(id: string, status: string) {
     createdBy: ctx.userId,
     metadata: { taskId: id, from: row.status, to: status },
   })
+  await audit(ctx, 'tarea.estatus_cambiado', row, `${TASK_STATUS_LABELS[row.status as keyof typeof TASK_STATUS_LABELS] ?? row.status} → ${TASK_STATUS_LABELS[status]}`)
   revalidateTasks()
 }
 
@@ -170,5 +180,6 @@ export async function deleteTask(id: string) {
     createdBy: ctx.userId,
     metadata: { taskId: id },
   })
+  await audit(ctx, 'tarea.eliminada', row)
   revalidateTasks()
 }

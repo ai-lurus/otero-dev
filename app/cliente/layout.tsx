@@ -5,15 +5,16 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { authClient } from "@/lib/auth-client"
-import { isTenantAdmin } from "@/app/actions/tenant-users"
+import { getMyAccess } from "@/app/actions/access"
+import type { Screen } from "@/lib/client-permissions"
 import { getCurrentTenantName } from "@/app/actions/auth-helpers"
 import { RailTip } from "@/components/client/rail-tip"
 import { OteroAssistant } from "@/components/client/otero-assistant"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// El miembro del equipo ve solo lo que usa; lo marcado directorOnly es del director (tenant_admin).
+// Cada entrada con `screen` se muestra solo a quien tiene permiso de verla (el director decide); lo marcado directorOnly es siempre del director (tenant_admin).
 // El menú es una comodidad: cada página y acción se protege también en el servidor.
-type NavItem = { href: string; label: string; exact?: boolean; directorOnly?: boolean; icon: React.ReactNode }
+type NavItem = { href: string; label: string; exact?: boolean; directorOnly?: boolean; screen?: Screen; icon: React.ReactNode }
 
 const NAV: NavItem[] = [
   {
@@ -29,7 +30,7 @@ const NAV: NavItem[] = [
   {
     href: "/cliente/obligaciones",
     label: "RegWatch",
-    directorOnly: true,
+    screen: "regwatch",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -39,6 +40,7 @@ const NAV: NavItem[] = [
   {
     href: "/cliente/cumplimiento",
     label: "Mi cumplimiento",
+    screen: "cumplimiento",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.875 0h15.75c.621 0 1.125-.504 1.125-1.125V5.625c0-.621-.504-1.125-1.125-1.125H4.125C3.504 4.5 3 5.004 3 5.625v12.75c0 .621.504 1.125 1.125 1.125z" />
@@ -57,7 +59,7 @@ const NAV: NavItem[] = [
   {
     href: "/cliente/certificaciones",
     label: "Certificaciones",
-    directorOnly: true,
+    screen: "certificaciones",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
@@ -67,6 +69,7 @@ const NAV: NavItem[] = [
   {
     href: "/cliente/documentos",
     label: "Documentos",
+    screen: "documentos",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
@@ -76,6 +79,7 @@ const NAV: NavItem[] = [
   {
     href: "/cliente/noticias",
     label: "Noticias",
+    screen: "noticias",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 01-2.25 2.25M16.5 7.5V18a2.25 2.25 0 002.25 2.25M16.5 7.5V4.875c0-.621-.504-1.125-1.125-1.125H4.125C3.504 3.75 3 4.254 3 4.875V18a2.25 2.25 0 002.25 2.25h13.5M6 7.5h3v3H6v-3z" />
@@ -92,6 +96,18 @@ const USUARIOS_NAV: NavItem = {
   icon: (
     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+    </svg>
+  ),
+}
+
+// Bitácora del sistema: solo el director.
+const BITACORA_NAV: NavItem = {
+  href: "/cliente/bitacora",
+  label: "Bitácora",
+  directorOnly: true,
+  icon: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
     </svg>
   ),
 }
@@ -116,12 +132,13 @@ export default function ClienteLayout({ children }: { children: React.ReactNode 
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isTA, setIsTA] = useState(false)
+  const [screens, setScreens] = useState<Screen[]>([])
   const [company, setCompany] = useState<string | null>(null)
   const { data: session } = authClient.useSession()
   const personName = session?.user?.name ?? null
-  useEffect(() => { isTenantAdmin().then(setIsTA).catch(() => {}) }, [])
+  useEffect(() => { getMyAccess().then(a => { setIsTA(a.isDirector); setScreens(a.screens) }).catch(() => {}) }, [])
   useEffect(() => { getCurrentTenantName().then(setCompany).catch(() => {}) }, [])
-  const nav = isTA ? [...NAV, USUARIOS_NAV] : NAV.filter(item => !item.directorOnly)
+  const nav = [...NAV.filter(item => !item.screen || screens.includes(item.screen)), ...(isTA ? [USUARIOS_NAV, BITACORA_NAV] : [])]
 
   // En RegWatch y Mi cumplimiento el menú principal se achica a íconos para dejar lugar a las vistas de la bandeja.
   const compact = pathname.startsWith("/cliente/obligaciones") || pathname.startsWith("/cliente/cumplimiento")

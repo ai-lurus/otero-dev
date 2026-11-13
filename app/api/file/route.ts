@@ -1,6 +1,9 @@
 import { get } from '@vercel/blob'
 import { type NextRequest, NextResponse } from 'next/server'
-import { getTenantSession, tenantOwnsDocument } from '@/lib/obligation-access'
+import { findOwnDocument, getTenantSession } from '@/lib/obligation-access'
+import { actorOf } from '@/lib/access'
+import { logAction } from '@/lib/audit'
+import { can } from '@/lib/client-permissions'
 
 export const runtime = 'nodejs'
 
@@ -10,13 +13,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  if (!can(ctx, 'documentos', 'view')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   try {
     const pathname = request.nextUrl.searchParams.get('pathname')
     if (!pathname) {
       return NextResponse.json({ error: 'Missing pathname' }, { status: 400 })
     }
     // Only serve blobs registered as documents of the caller's own tenant.
-    if (!(await tenantOwnsDocument(ctx.tenantId, pathname))) {
+    const doc = await findOwnDocument(ctx.tenantId, pathname)
+    if (!doc) {
       return new NextResponse('Not found', { status: 404 })
     }
 
@@ -38,6 +44,8 @@ export async function GET(request: NextRequest) {
         },
       })
     }
+
+    await logAction(actorOf(ctx), 'documento.descargado', { entityType: 'documento', entityId: doc.id, entityLabel: doc.name })
 
     // Force download with the original filename
     const filename = pathname.split('/').pop() ?? 'document'

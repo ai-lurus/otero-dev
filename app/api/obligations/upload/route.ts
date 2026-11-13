@@ -1,6 +1,9 @@
 import { put } from '@vercel/blob'
 import { NextResponse } from 'next/server'
 import { getTenantSession, tenantOwnsItem } from '@/lib/obligation-access'
+import { actorOf } from '@/lib/access'
+import { logAction } from '@/lib/audit'
+import { can } from '@/lib/client-permissions'
 import { ALLOWED_UPLOAD_TYPES, MAX_UPLOAD_BYTES, safeFileName } from '@/lib/upload-rules'
 
 export const runtime = 'nodejs'
@@ -8,6 +11,8 @@ export const runtime = 'nodejs'
 export async function POST(request: Request) {
   const ctx = await getTenantSession()
   if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!can(ctx, 'cumplimiento', 'create')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const formData = await request.formData()
   const file = formData.get('file')
@@ -30,5 +35,6 @@ export async function POST(request: Request) {
     addRandomSuffix: false,
     contentType: file.type,
   })
+  await logAction(actorOf(ctx), 'asunto.archivo_cargado', { entityType: 'asunto', entityId: itemId, itemId, entityLabel: file.name, detail: `${file.type} · ${Math.ceil(file.size / 1024)} KB` })
   return NextResponse.json({ pathname: blob.pathname, name: file.name, size: file.size, type: file.type })
 }

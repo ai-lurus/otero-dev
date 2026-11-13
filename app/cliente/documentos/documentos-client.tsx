@@ -103,11 +103,13 @@ function DocumentFacts({ doc, onReview, canManage }: { doc: DocumentRow; onRevie
 interface DocumentosPageProps {
   initialDocs: DocumentRow[]
   tenantId: string
-  /** Solo el director confirma los datos detectados y elimina documentos. */
+  /** Confirmar los datos detectados (permiso de editar documentos). */
   canManage: boolean
+  canUpload: boolean
+  canDelete: boolean
 }
 
-export default function DocumentosPage({ initialDocs, tenantId, canManage }: DocumentosPageProps) {
+export default function DocumentosPage({ initialDocs, tenantId, canManage, canUpload, canDelete }: DocumentosPageProps) {
   const [docs, setDocs]               = useState<DocumentRow[]>(initialDocs)
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null)
   const [search, setSearch]           = useState("")
@@ -185,6 +187,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
                 {docs.length} archivo{docs.length !== 1 ? "s" : ""} en {folders.length} carpeta{folders.length !== 1 ? "s" : ""}
               </p>
             </div>
+            {canUpload && (
             <button
               onClick={() => setShowUpload(true)}
               className="flex shrink-0 items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background hover:bg-foreground/90 transition-colors"
@@ -194,6 +197,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
               </svg>
               Subir documentos
             </button>
+            )}
           </div>
 
           {folders.length === 0 ? (
@@ -203,12 +207,14 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
               </svg>
               <p className="text-sm font-medium text-muted-foreground">Sin carpetas todavía</p>
               <p className="mt-1 text-xs text-muted-foreground">Sube tu primer archivo para crear una carpeta</p>
+              {canUpload && (
               <button
                 onClick={() => setShowUpload(true)}
                 className="mt-4 text-sm font-semibold text-foreground underline underline-offset-2"
               >
                 Subir documentos
               </button>
+              )}
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -266,6 +272,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
           <Breadcrumb />
           <div className="flex items-start justify-between gap-4 mt-2">
             <h1 className="font-serif text-3xl font-semibold text-foreground">{selectedFolder}</h1>
+            {canUpload && (
             <button
               onClick={() => setShowUpload(true)}
               className="flex shrink-0 items-center gap-2 rounded-xl bg-foreground px-4 py-2.5 text-sm font-semibold text-background hover:bg-foreground/90 transition-colors"
@@ -275,6 +282,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
               </svg>
               Subir documentos
             </button>
+            )}
           </div>
         </div>
 
@@ -294,7 +302,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
             <p className="text-sm font-medium text-muted-foreground">
               {search ? "Sin resultados para esa búsqueda" : "Esta carpeta está vacía"}
             </p>
-            {!search && (
+            {!search && canUpload && (
               <button onClick={() => setShowUpload(true)} className="mt-3 text-sm font-semibold text-foreground underline underline-offset-2">
                 Subir documentos
               </button>
@@ -336,7 +344,7 @@ export default function DocumentosPage({ initialDocs, tenantId, canManage }: Doc
                         </svg>
                       </a>
                     )}
-                    {canManage && (
+                    {canDelete && (
                     <button
                       onClick={() => handleDelete(doc.id)}
                       disabled={deletingId === doc.id}

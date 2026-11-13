@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation'
+import { getMyScreenPermissions } from '@/app/actions/access'
 import { getPublishedPosts } from '@/app/actions/posts'
 import { getNewsBulletin } from '@/app/actions/news'
 import Boletin from './boletin'
@@ -5,6 +7,7 @@ import NoticiasTabs from './noticias-tabs'
 import ClienteNoticiasClient from './noticias-client'
 
 export default async function Page() {
+  if (!(await getMyScreenPermissions('noticias')).view) redirect('/cliente')
   const [posts, bulletin] = await Promise.all([
     getPublishedPosts(),
     getNewsBulletin().catch(() => ({ cards: [], canCreate: false })),

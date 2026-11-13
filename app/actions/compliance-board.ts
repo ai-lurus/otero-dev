@@ -1,16 +1,15 @@
 'use server'
 
-import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm'
-import { auth } from '@/lib/auth'
 import { getTenantDb } from '@/lib/db/tenant'
 import { regulatoryItems } from '@/lib/db/schema'
 import { attachEvidence, listTeam, memberIdOf, recordEvent, type TeamMember } from '@/lib/regulatory-items-db'
 import { canMoveTo, isStage, stageLabel, type Stage } from '@/lib/compliance-board'
 import { BOARD_STATUSES } from '@/lib/client-access'
-import { getFirstTenantId } from './auth-helpers'
-import { isTenantAdmin } from './tenant-users'
+import { actorOf, getAccess } from '@/lib/access'
+import { logAction } from '@/lib/audit'
+import { can, type PermissionAction } from '@/lib/client-permissions'
 
 // Tablero "Mi cumplimiento". El abogado ve y mueve solo lo que tiene asignado;
 // el director (admin del cliente) ve todo, reasigna y marca como cumplido.
@@ -18,13 +17,13 @@ import { isTenantAdmin } from './tenant-users'
 // Un asunto entra al tablero al aceptarse y queda ahí al cerrarse (Cumplido); los descartados o archivados salen.
 const ON_BOARD: string[] = [...BOARD_STATUSES]
 
-async function boardContext() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) throw new Error('Unauthorized')
-  const tenantId = await getFirstTenantId()
-  if (!tenantId) throw new Error('Tenant not found')
-  const [isDirector, memberId, db] = await Promise.all([isTenantAdmin(), memberIdOf(tenantId, session.user.id), getTenantDb(tenantId)])
-  return { userId: session.user.id, userName: session.user.name, tenantId, isDirector, memberId, db }
+async function boardContext(action: PermissionAction = 'view') {
+  const access = await getAccess()
+  if (!access) throw new Error('Unauthorized')
+  if (!can(access, 'cumplimiento', action)) throw new Error('Forbidden')
+  const { tenantId, userId, isDirector } = access
+  const [memberId, db] = await Promise.all([memberIdOf(tenantId, userId), getTenantDb(tenantId)])
+  return { access, userId, userName: access.userName, tenantId, isDirector, memberId, db }
 }
 
 const onBoard = (tenantId: string) =>
@@ -56,7 +55,7 @@ export type BoardItem = Awaited<ReturnType<typeof getComplianceBoard>>['items'][
 
 async function findBoardItem(ctx: Awaited<ReturnType<typeof boardContext>>, id: string) {
   const [row] = await ctx.db
-    .select({ id: regulatoryItems.id, executionStatus: regulatoryItems.executionStatus, status: regulatoryItems.status, assigneeId: regulatoryItems.assigneeId })
+      .select({ id: regulatoryItems.id, title: regulatoryItems.title, executionStatus: regulatoryItems.executionStatus, status: regulatoryItems.status, assigneeId: regulatoryItems.assigneeId })
     .from(regulatoryItems)
     .where(and(eq(regulatoryItems.id, id), onBoard(ctx.tenantId)))
     .limit(1)
@@ -68,7 +67,7 @@ async function findBoardItem(ctx: Awaited<ReturnType<typeof boardContext>>, id: 
 /** Mueve el asunto a otra etapa del tablero y lo deja en su bitácora. */
 export async function moveExecution(id: string, to: string) {
   if (!isStage(to)) throw new Error('Etapa inválida')
-  const ctx = await boardContext()
+  const ctx = await boardContext('edit')
   const row = await findBoardItem(ctx, id)
   const from = stageFor(row)
   if (from === to) return
@@ -79,6 +78,7 @@ export async function moveExecution(id: string, to: string) {
     // Cumplido es lo mismo que Cerrado en la bandeja de RegWatch; reabrirlo lo regresa a seguimiento.
     .set({ executionStatus: to, status: to === 'cumplido' ? 'cerrada' : 'aceptada', updatedAt: new Date() })
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, ctx.tenantId)))
+  await logAction(actorOf(ctx.access), 'cumplimiento.etapa_movida', { entityType: 'asunto', entityId: id, itemId: id, entityLabel: row.title, detail: `De ${stageLabel(from)} a ${stageLabel(to)}`, metadata: { from, to } })
   await recordEvent(ctx.db, {
     itemId: id,
     tenantId: ctx.tenantId,
@@ -93,15 +93,16 @@ export async function moveExecution(id: string, to: string) {
 
 /** El director cambia al responsable de un asunto que ya está en el tablero. */
 export async function reassignItem(id: string, memberId: string) {
-  const ctx = await boardContext()
+  const ctx = await boardContext('edit')
   if (!ctx.isDirector) throw new Error('Forbidden')
-  await findBoardItem(ctx, id)
+  const item = await findBoardItem(ctx, id)
   const member = (await listTeam(ctx.tenantId)).find((entry) => entry.id === memberId)
   if (!member) throw new Error('Persona no encontrada')
   await ctx.db
     .update(regulatoryItems)
     .set({ owner: member.name, assigneeId: member.id, updatedAt: new Date() })
     .where(and(eq(regulatoryItems.id, id), eq(regulatoryItems.tenantId, ctx.tenantId)))
+  await logAction(actorOf(ctx.access), 'cumplimiento.reasignado', { entityType: 'asunto', entityId: id, itemId: id, entityLabel: item.title, detail: `Reasignado a ${member.name}`, metadata: { assigneeId: member.id } })
   await recordEvent(ctx.db, {
     itemId: id,
     tenantId: ctx.tenantId,

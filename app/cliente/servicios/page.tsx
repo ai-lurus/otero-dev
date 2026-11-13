@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getClientServices } from '@/app/actions/client-modules'
-import { isTenantAdmin } from '@/app/actions/tenant-users'
+import { getMyScreenPermissions } from '@/app/actions/access'
 
 export default async function ServiciosPage() {
-  if (!(await isTenantAdmin())) redirect('/cliente')
+  if (!(await getMyScreenPermissions('servicios')).view) redirect('/cliente')
   const rows = await getClientServices()
   const active = rows.filter((row) => !['completed', 'cancelled'].includes(row.status))
   const completed = rows.filter((row) => ['completed', 'cancelled'].includes(row.status))
